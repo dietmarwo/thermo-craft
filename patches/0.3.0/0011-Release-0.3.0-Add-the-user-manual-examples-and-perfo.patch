@@ -1,0 +1,4662 @@
+From 19b0af4eb89b411b97fc35b553b420d1a56f131a Mon Sep 17 00:00:00 2001
+From: Claude <noreply@anthropic.com>
+Date: Wed, 4 Nov 2026 12:39:11 -0400
+Subject: [PATCH 11/13] Release 0.3.0: Add the user manual, examples and
+ performance evidence
+
+Bump the version to 0.3.0 and give the crate and sdist an explicit file
+list. Add docs/user-manual.md, whose Python blocks
+validation/release_checks.py now executes; examples/python with four
+application and four optimization examples (SciPy and fcmaes) and their
+saved outputs; examples/matrix_scan.rs and examples/breakdown.rs; and
+validation/run_examples.py and validation/python_call_costs.py. Update
+the architecture guide with the 0.3.0 design and measured performance,
+and the README, tutorial and model card. Record the cumulative native
+table, the time breakdown, Python per-call costs and the installed
+Python optimization runs under evidence/performance-0.3.0.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+---
+ Cargo.lock                                    |   2 +-
+ Cargo.toml                                    |  24 +-
+ README.md                                     |  49 +-
+ docs/architecture.md                          | 400 +++++--
+ docs/model.md                                 |   5 +-
+ docs/tutorial.md                              |  49 +-
+ docs/user-manual.md                           | 989 ++++++++++++++++++
+ evidence/performance-0.3.0/breakdown.json     | 166 +++
+ .../cumulative/full-domain.json               |  37 +
+ .../cumulative/full-domain2.json              |  37 +
+ .../cumulative/full-invalid.json              |  37 +
+ .../cumulative/full-one.json                  |  37 +
+ .../cumulative/full-parallel.json             |  37 +
+ .../cumulative/full-serial.json               |  37 +
+ .../cumulative/full-trace.json                |  37 +
+ .../cumulative/lean-domain.json               |  37 +
+ .../cumulative/lean-domain2.json              |  37 +
+ .../cumulative/lean-serial.json               |  37 +
+ .../cumulative/matrix-domain.json             |  37 +
+ .../cumulative/matrix-serial.json             |  37 +
+ .../supplement-full-domain2-confirm41.json    |  97 ++
+ .../supplement-lean-domain2-confirm41.json    |  97 ++
+ .../cumulative/supplement-matrix-domain2.json |  37 +
+ .../cumulative/supplement-matrix-invalid.json |  37 +
+ .../python-call-costs-0.2.0.json              |  25 +
+ .../python-call-costs-0.3.0.json              |  33 +
+ .../python-optimization.json                  | 563 ++++++++++
+ examples/breakdown.rs                         | 192 ++++
+ examples/matrix_scan.rs                       |  45 +
+ examples/outputs/matrix_scan.txt              |   3 +
+ examples/python/README.md                     |  47 +
+ examples/python/cycle_comparison.py           |  73 ++
+ examples/python/extraction_map.py             |  62 ++
+ examples/python/optimize_fcmaes_minimize.py   |  64 ++
+ examples/python/optimize_fcmaes_population.py |  86 ++
+ examples/python/optimize_scipy.py             |  74 ++
+ examples/python/outputs/cycle_comparison.txt  |  18 +
+ examples/python/outputs/extraction_map.txt    |  38 +
+ .../outputs/optimize_fcmaes_minimize.txt      |  10 +
+ .../outputs/optimize_fcmaes_population.txt    |   5 +
+ examples/python/outputs/optimize_scipy.txt    |   7 +
+ examples/python/outputs/property_tables.txt   |  28 +
+ examples/python/outputs/robust_design.txt     |   7 +
+ examples/python/outputs/sensitivity.txt       |  18 +
+ examples/python/property_tables.py            |  66 ++
+ examples/python/robust_design.py              |  63 ++
+ examples/python/sensitivity.py                |  67 ++
+ pyproject.toml                                |   2 +-
+ validation/python_call_costs.py               |  44 +
+ validation/release_checks.py                  |  31 +-
+ validation/run_examples.py                    |  30 +
+ 51 files changed, 3975 insertions(+), 122 deletions(-)
+ create mode 100644 docs/user-manual.md
+ create mode 100644 evidence/performance-0.3.0/breakdown.json
+ create mode 100644 evidence/performance-0.3.0/cumulative/full-domain.json
+ create mode 100644 evidence/performance-0.3.0/cumulative/full-domain2.json
+ create mode 100644 evidence/performance-0.3.0/cumulative/full-invalid.json
+ create mode 100644 evidence/performance-0.3.0/cumulative/full-one.json
+ create mode 100644 evidence/performance-0.3.0/cumulative/full-parallel.json
+ create mode 100644 evidence/performance-0.3.0/cumulative/full-serial.json
+ create mode 100644 evidence/performance-0.3.0/cumulative/full-trace.json
+ create mode 100644 evidence/performance-0.3.0/cumulative/lean-domain.json
+ create mode 100644 evidence/performance-0.3.0/cumulative/lean-domain2.json
+ create mode 100644 evidence/performance-0.3.0/cumulative/lean-serial.json
+ create mode 100644 evidence/performance-0.3.0/cumulative/matrix-domain.json
+ create mode 100644 evidence/performance-0.3.0/cumulative/matrix-serial.json
+ create mode 100644 evidence/performance-0.3.0/cumulative/supplement-full-domain2-confirm41.json
+ create mode 100644 evidence/performance-0.3.0/cumulative/supplement-lean-domain2-confirm41.json
+ create mode 100644 evidence/performance-0.3.0/cumulative/supplement-matrix-domain2.json
+ create mode 100644 evidence/performance-0.3.0/cumulative/supplement-matrix-invalid.json
+ create mode 100644 evidence/performance-0.3.0/python-call-costs-0.2.0.json
+ create mode 100644 evidence/performance-0.3.0/python-call-costs-0.3.0.json
+ create mode 100644 evidence/performance-0.3.0/python-optimization.json
+ create mode 100644 examples/breakdown.rs
+ create mode 100644 examples/matrix_scan.rs
+ create mode 100644 examples/outputs/matrix_scan.txt
+ create mode 100644 examples/python/README.md
+ create mode 100644 examples/python/cycle_comparison.py
+ create mode 100644 examples/python/extraction_map.py
+ create mode 100644 examples/python/optimize_fcmaes_minimize.py
+ create mode 100644 examples/python/optimize_fcmaes_population.py
+ create mode 100644 examples/python/optimize_scipy.py
+ create mode 100644 examples/python/outputs/cycle_comparison.txt
+ create mode 100644 examples/python/outputs/extraction_map.txt
+ create mode 100644 examples/python/outputs/optimize_fcmaes_minimize.txt
+ create mode 100644 examples/python/outputs/optimize_fcmaes_population.txt
+ create mode 100644 examples/python/outputs/optimize_scipy.txt
+ create mode 100644 examples/python/outputs/property_tables.txt
+ create mode 100644 examples/python/outputs/robust_design.txt
+ create mode 100644 examples/python/outputs/sensitivity.txt
+ create mode 100644 examples/python/property_tables.py
+ create mode 100644 examples/python/robust_design.py
+ create mode 100644 examples/python/sensitivity.py
+ create mode 100644 validation/python_call_costs.py
+ create mode 100644 validation/run_examples.py
+
+diff --git a/Cargo.lock b/Cargo.lock
+index 874dbd8..bf9a441 100644
+--- a/Cargo.lock
++++ b/Cargo.lock
+@@ -251,7 +251,7 @@ checksum = "adb6935a6f5c20170eeceb1a3835a49e12e19d792f6dd344ccc76a985ca5a6ca"
+ 
+ [[package]]
+ name = "thermo-craft"
+-version = "0.2.0"
++version = "0.3.0"
+ dependencies = [
+  "pyo3",
+  "serde",
+diff --git a/Cargo.toml b/Cargo.toml
+index 44856a1..94402b9 100644
+--- a/Cargo.toml
++++ b/Cargo.toml
+@@ -1,10 +1,32 @@
+ [package]
+ name = "thermo-craft"
+-version = "0.2.0"
++version = "0.3.0"
+ edition = "2024"
+ rust-version = "1.88"
+ description = "Bounded thermo-craft research evaluator"
+ license = "MIT"
++# Ship source, docs, examples, models and validation; release evidence,
++# packages and patch series live in the release ZIP only.
++include = [
++  "/.gitignore",
++  "/Cargo.lock",
++  "/Cargo.toml",
++  "/LICENSE",
++  "/README.md",
++  "/pyproject.toml",
++  "/src/*.rs",
++  "/examples/*.rs",
++  "/examples/outputs/*.txt",
++  "/examples/python/*.py",
++  "/examples/python/README.md",
++  "/examples/python/outputs/*.txt",
++  "/python/thermo_craft/*.py",
++  "/python/thermo_craft/*.json",
++  "/models/*.json",
++  "/docs/*.md",
++  "/validation/*.py",
++  "/evidence/validation.json",
++]
+ 
+ [lib]
+ crate-type = ["rlib", "cdylib"]
+diff --git a/README.md b/README.md
+index 0f3778b..fcfabd4 100644
+--- a/README.md
++++ b/README.md
+@@ -1,23 +1,29 @@
+-# thermo-craft 0.2.0
++# thermo-craft 0.3.0
+ 
+-A bounded research evaluator. See the [model card](docs/model.md) for units,
+-equations and supported behavior. The accompanying implementation log
+-records which milestones ran and which use a bounded fallback.
+-See the [tutorial](docs/tutorial.md) and [architecture](docs/architecture.md).
+-The [0.1.0 implementation record](docs/implementation-0.1.0.md) preserves the original scope.
++A bounded research evaluator for IAPWS-IF97 water and steam properties
++(regions 1, 2 and 4) and a fixed steam Rankine cycle, simple or with two
++open feedwater heaters. See the [user manual](docs/user-manual.md) for
++installation, the model reference and all interfaces, the
++[tutorial](docs/tutorial.md) for a short walk-through, the
++[model card](docs/model.md) for units, equations and scope, and the
++[architecture guide](docs/architecture.md) for the implementation and
++measured performance. The [0.3.0 performance log](thermo-craft-performance-log-0.3.0.md)
++records this release; the [0.1.0 implementation record](docs/implementation-0.1.0.md)
++preserves the original scope.
+ 
+-## Rust CLI and native example
++## Rust CLI and native examples
+ 
+ ```sh
+ cargo run --release --locked -- describe
+ cargo run --release --locked -- run models/request.json
+ cargo run --release --locked --example sweep -- models/example.json
++cargo run --release --locked --example matrix_scan -- models/example.json
+ ```
+ 
+ The CLI uses versioned JSON with exact model-byte SHA-256, candidate IDs and
+ explicit work and worker limits. `run -` accepts stdin. Exit 1 indicates a
+ rejected request. Exit 2 retains classified candidate records when at least
+-one candidate is incomplete or infeasible. Output traces are opt-in.
++one candidate is incomplete or infeasible.
+ 
+ ## Python
+ 
+@@ -33,16 +39,25 @@ prepared = Prepared(case["model"])
+ row = prepared.evaluate(case["parameters"], trace=True)
+ assert row["status"] == "complete"
+ print(row["score"])
++
++scores, statuses, steps = prepared.score_matrix([case["parameters"], [2e5, 1.5e6]])
++print(scores, statuses, steps)
+ ```
+ 
+-`Prepared.batch` crosses into native code once per batch. A set of scoped
+-workers evaluates candidates in isolation and returns records in input order.
+-The local Python campaign commits results to SQLite, preserves interrupted
++`Prepared.batch` and `Prepared.scores` cross into native code once per batch
++with JSON; `Prepared.score_matrix` takes parameter rows (lists or a 2-D
++NumPy array) and returns scores, statuses and steps without JSON, which is
++the fastest path for optimizers. Native evaluation releases the GIL; workers
++evaluate candidates in isolation and return results in input order. The
++local Python campaign commits results to SQLite, preserves interrupted
+ attempts and reuses completed records by candidate, scenario, settings and
+-build identity. Fixed-work replay is scoped to the tested build.
+-Run `validation/run_campaign.py MODULE models/campaign.json campaign.sqlite`
++build identity. Run `validation/run_campaign.py MODULE models/campaign.json campaign.sqlite`
+ with the installed package to evaluate or resume the included manifest.
+ 
++[`examples/python/`](examples/python/README.md) holds application examples
++(property tables, an extraction-pressure map, cycle comparison, sensitivity)
++and optimization examples with SciPy and fcmaes, each with saved output.
++
+ ## Verify and rebuild
+ 
+ ```sh
+@@ -53,7 +68,7 @@ maturin sdist --out dist
+ maturin build --release --locked --out dist
+ ```
+ 
+-Independent numerical scripts use Python 3.12. The oscillator and population
+-oracles use NumPy 2.3.5 and SciPy 1.17.0. The optional
+-`validation/optimize.py thermo_craft` demonstrates an in-process SciPy DE objective.
+-The native sweep needs only the Rust crate. See `evidence/` for actual runs.
++Independent numerical scripts use Python 3.12. The examples use NumPy 2.3.5,
++SciPy 1.17.0 and fcmaes 2.1.0. `validation/optimize.py thermo_craft` is a
++short in-process SciPy differential-evolution run. The native sweep needs
++only the Rust crate. See `evidence/` for actual runs.
+diff --git a/docs/architecture.md b/docs/architecture.md
+index 735705c..3c8616c 100644
+--- a/docs/architecture.md
++++ b/docs/architecture.md
+@@ -1,104 +1,344 @@
+ # Thermo Craft architecture
+ 
+-Version 0.2.0. Evaluate bounded IF97 water properties and optimize two extraction pressures in a fixed Rankine cycle.
++Version 0.3.0. Evaluate bounded IF97 water properties and optimize two
++extraction pressures in a fixed Rankine cycle. This document describes the
++implementation as of 0.3.0 and its measured performance. The
++[user manual](user-manual.md) documents the interfaces, the
++[model card](model.md) the equations and scope.
+ 
+ ## Evaluation pipeline
+ 
+ ```mermaid
+ flowchart TD
+-    P["Prepared model"] --> B["Candidate batch"]
+-    B --> V["Validate IDs and budgets"]
+-    V -->|Single worker or candidate| S["Inline evaluation"]
+-    V -->|Multiple workers| W["Scoped worker evaluation"]
+-    S --> D["Domain kernel and work counter"]
++    P["Prepared model"] --> J["JSON candidates (full or lean)"]
++    P --> M["Parameter matrix (score_matrix)"]
++    J --> V["Validate budget, IDs, sizes and traces"]
++    M --> W["Validate budget, rows and dimension"]
++    V --> D["dispatch: inline, or calling thread plus up to CPUs - 1 scoped workers"]
+     W --> D
+-    D --> R["Ordered typed result"]
+-    R -->|Full| F["Metrics and optional trace"]
+-    R -->|Lean| L["Score and status"]
++    D --> K["Domain kernel and work counter"]
++    K --> R["Ordered results"]
++    R -->|Full| F["Typed metrics, written as JSON with static keys"]
++    R -->|Lean| L["Records with null metrics"]
++    R -->|Matrix| X["MatrixScore: status, steps, score"]
+ ```
+ 
+ | Boundary | Location | Responsibility |
+ | --- | --- | --- |
+-| Request and CLI | `src/main.rs`, `src/lib.rs`, `models/request.json` | Versioned request schema, exact model-byte hash, typed validation, JSON output and exit code |
+-| Python boundary | `python/thermo_craft/__init__.py`, PyO3 in `src/lib.rs` | Encode once per batch, release the Python GIL during native evaluation, decode the typed result envelope |
+-| Prepared engine | `src/lib.rs` | Own immutable domain data, enforce batch rules, dispatch candidates and retain ordered result rows |
+-| Domain | `src/domain.rs` | Bind the candidate, execute model logic, classify status and compute a minimization objective |
+-| Campaign | `python/thermo_craft/campaign.py` | Local SQLite replay, attempt journal and complete-result caching |
+-| Verification | `validation/`, `examples/`, `evidence/` | Independent checks, executable examples and paired performance observations |
++| Request and CLI | `src/main.rs`, `src/lib.rs` (`run`, `capabilities`), `models/request.json` | Versioned request schema, exact model-byte hash, typed validation, `Value` output with sorted keys and exit code |
++| Python boundary | `python/thermo_craft/__init__.py`, PyO3 module in `src/lib.rs` | `batch`/`scores`: encode once per batch, decode the result envelope; `score_matrix`: rows in, three lists out, no JSON. Every native call releases the GIL |
++| Prepared engine | `src/lib.rs` | Own immutable domain data, enforce batch rules, dispatch candidates, classify failures, write ordered results |
++| Domain | `src/domain.rs` | Bind the candidate, run the cycle or property query, check feasibility, return the score and typed metrics |
++| Property routines | `src/if97.rs`, `src/if97_coefficients.rs` | Gibbs sums, saturation, wet states, inverse states at fixed pressure |
++| Campaign | `python/thermo_craft/campaign.py` | Local SQLite replay, attempt journal and result cache |
++| Verification | `validation/`, `examples/`, `evidence/` | Independent checks, executable examples, paired performance observations |
+ 
+ ## Data and execution contracts
+ 
+-`Prepared::new` hashes the model bytes, deserializes the model and
+-validates its bounds before building domain caches. The Python
+-wrapper encodes models with sorted keys and finite JSON numbers.
+-Two inputs that differ in their serialized representation can
+-have different provenance hashes. Result and request schema tags
+-remain at 0.1. Package version is reported separately.
+-
+-Every batch validates candidate count (1–4096), unique IDs, parameter
+-vector length (up to 64), requested workers (1–64) and trace count
+-(up to 16). Parallel workers claim indexes through an atomic cursor.
+-Each assigned index owns a result slot written once. After workers
+-join, output is serialized in input order. Single-worker or singleton
+-calls run inline. The typed prepared envelope borrows candidate IDs
+-until serialization completes. The CLI retains its full `Value` API.
+-
+-`Work` counts domain-defined steps per candidate. Its fast branch
+-handles unmonitored steps below the limit. Monitored steps check
+-the cancel file, then batch deadline, then work budget. Domain
+-checks can still reject an invalid candidate before it takes a step.
+-Cancellation and deadlines are cooperative. The wall clock can
+-change which candidates finish, while fixed-work replays should agree
+-independent of worker count. Candidate parallelism creates scoped
+-threads per batch. Concurrent callers should account for total
+-worker demand when choosing batch settings.
+-
+-Full records contain domain metrics and any requested trace.
+-`scores_json` in Rust and `Prepared.scores` in Python return the
+-same record keys with null metrics and reject traced candidates.
+-Both retain per-candidate limits, diagnostics needed for feasibility,
+-numeric score checks and failure status. Full replay restores
+-inspection details for the selected candidate.
++`Prepared::new` hashes the model bytes with SHA-256, deserializes the model
++(unknown fields rejected) and validates it before building the domain
++caches: the turbine inlet state and the condenser saturation pair. The
++Python wrapper encodes models, candidates and budgets with sorted keys,
++compact separators and no NaN or infinity. Two inputs with different
++serialized bytes can therefore have different provenance hashes. Result
++and request schema tags remain at 0.1; the package version is reported
++separately.
++
++Every JSON batch validates the budget (workers 1-64, `max_steps`
++1-100,000,000, `wall_ms` 1-86,400,000), the candidate count (1-4,096),
++unique non-empty IDs of at most 128 bytes, parameter vectors of at most 64
++values and at most 16 traced candidates. `score_matrix` applies the same
++budget and count rules to its rows, requires a rectangular row-major buffer
++and a dimension of at most 64, and has no IDs. The domain receives a
++parameter slice in both cases.
++
++**Dispatch.** `dispatch` runs `min(workers, candidates, CPUs)` threads,
++where the CPU count is `std::thread::available_parallelism()` read once per
++process. One thread means inline evaluation on the calling thread.
++Otherwise the calling thread runs one worker loop next to the spawned
++scoped threads; all claim indexes from an atomic cursor and write each
++result into its own slot, so output is assembled in input order without
++sorting. `workers` is therefore an upper bound, and results do not depend
++on it.
++
++**Work and budgets.** `Work` counts domain-defined logical steps per
++candidate. The unmonitored fast path increments a counter. With
++`wall_ms` or `cancel_file` every step checks the cancel file, then the
++batch deadline, then the step budget. Domain checks can reject an invalid
++candidate before it takes a step. Cancellation and deadlines are
++cooperative; fixed-work results agree across worker counts, while
++`wall_limit` and `cancelled` outcomes depend on timing.
++
++**Three result paths share one outcome function.** `Prepared::outcome`
++runs the domain and maps a nonfinite score to `invalid`. Full records
++(`evaluate_json`, Python `batch`) carry typed metrics; lean records
++(`scores_json`, Python `scores`) build no metrics and reject traced
++candidates; the matrix path (`score_matrix`) returns
++`MatrixScore { status, steps, score }`. Status, steps and score are the
++same in all three; the score is the same bit for bit. Unit tests check this
++for valid, infeasible and invalid rows, `max_steps` limits, a cancel file,
++a deadline and several worker counts.
++
++**Typed metrics and direct JSON.** The domain returns a `Metrics` enum
++(skipped, property state, cycle) instead of a `serde_json::Value` tree.
++Its structs declare fields in sorted key order, so the JSON is
++byte-identical to the 0.2.0 sorted maps. `evaluate_json` and `scores_json`
++write the envelope, records and metrics with static key bytes; numbers,
++strings, IDs, details and failure values go through
++`serde_json::to_writer`, so escaping and number formatting are
++serde_json's. The derived `Serialize` impls remain for the CLI, whose
++`run` converts the batch to a `Value` (sorted keys), and as the reference
++in a byte-equality unit test. Library and Python results list record
++fields as `id`, `status`, `steps`, `score`, `metrics`, `detail`.
++
++In thermo-craft the `trace` flag adds no fields: full records already
++contain every metric. It is validated and counted for engine
++compatibility.
+ 
+ ## Domain internals
+ 
+ | Layer | Responsibility |
+ | --- | --- |
+-| `domain.rs` | Validate the model, prepare inlet and condenser states, solve pressure stages and heater balances, enforce exhaust and power checks |
+-| `if97.rs` | Evaluate Gibbs terms, saturation states, mixture states and inverse temperature at fixed pressure |
+-| `if97_coefficients.rs` | Coefficient tables for the bounded formulation |
+-
+-The cycle reuses inlet and condenser states. The regenerative case
+-creates saturation pairs at the two extraction pressures, steps
+-through three turbine stages and three pumps, then solves for the
+-open-heater mixing fractions. It returns negative efficiency only
+-after applying the same whole-cycle and local heater energy checks.
+-
+-An inverse state first tests the target against the saturated liquid
+-and vapor properties. Wet targets interpolate directly. A single-phase
+-target uses a fixed forty-step bisection with a logical work check at
+-every step. The pressure powers are reused within that inverse call.
+-The ideal vapor terms reuse a short positive/negative temperature
+-power table. Property-specific probes compute the Gibbs value only
+-for entropy and skip pressure derivatives in both scalar searches.
+-A full thermodynamic state is reconstructed after the bracket closes.
+-This retains state reporting, phase handling and feasibility checks
+-while reducing repeated arithmetic. These are bounded property
+-routines, with no Region 3 or arbitrary plant topology.
++| `domain.rs` | Validate the model, prepare inlet and condenser states, solve pressure stages and heater balances, enforce exhaust and power checks, build typed metrics |
++| `if97.rs` | Power tables, grouped Gibbs sums and derivatives, saturation pairs, wet states, inverse states at fixed pressure, the hot-end floor table |
++| `if97_coefficients.rs` | IAPWS R7-97(2012) coefficient tables for regions 1, 2 and 4 |
++
++The cycle reuses the prepared inlet and condenser states. The regenerative
++case creates saturation pairs at the two extraction pressures, steps
++through three turbine stages and three pumps, then solves the open-heater
++mixing fractions. It returns minus the efficiency only after the
++whole-cycle and local heater energy checks pass.
++
++**Gibbs sums.** `curvature_terms` evaluates gamma and its derivatives in
++pi and tau (and the second tau derivative when asked) for regions 1 and 2.
++The coefficient tables are grouped by pressure exponent at compile time:
++each short reduced-temperature series is summed first and then scaled by
++its pressure power, and the value and pressure derivative share one inner
++sum. Compile-time term tables hold the power-table indices of y^J,
++y^(J-1) and y^(J-2) and the factors n*J and n*J*(J-1). Power tables
++(reduced temperature, its inverse for region 1, and pressure) are built
++from x^1..x^8 and then x^k = x^(k-8) * x^8, so eight short independent
++multiplication chains replace one long chain. The region 2 ideal-gas part
++uses the same precomputed factors.
++
++**Inverse states.** `invert` finds the state at a saturation pair's
++pressure with a given enthalpy or entropy. A target between the saturated
++liquid and vapor values is a wet state from the lever rule and charges no
++steps. A single-phase target is bracketed between the saturation
++temperature and 273.16 K (liquid) or 1073.15 K (vapor):
++
++- The bracket value at the saturation temperature is taken from the
++  saturation pair; it repeats that state's computation exactly (a unit
++  test checks bit equality).
++- For vapor targets a process-wide table of h and s at 1073.15 K on 64
++  log-spaced pressures gives a floor (both fall with pressure at fixed
++  temperature); a target below the floor is inside the bracket, so the
++  exact hot-end evaluation is skipped. Otherwise it is evaluated and
++  compared as before, so the `infeasible` classification is unchanged. A
++  unit test checks the floors on 20,000 pressures.
++- The solve is a safeguarded Newton iteration using cp (enthalpy) or
++  cp/T (entropy) from the second tau derivative, starting from the secant
++  through the bracket ends; a step that leaves the current bracket falls
++  back to bisection. It stops after a Newton step of at most 1e-6 K, three
++  or four evaluations in the workloads, leaving an error far below the
++  2^-41 bracket width of the 40-step bisection used up to 0.2.0. A
++  test-only bisection reference bounds the difference.
++- The 40 logical steps of that bisection are still charged, before the
++  solve, with the same limit, cancel and deadline checks, so step counts
++  and `max_steps` outcomes are unchanged.
++
++A full thermodynamic state is reconstructed at the solved temperature.
++These are bounded property routines, with no region 3 and no arbitrary
++plant topology.
++
++## Structural changes in 0.3.0
++
++| Round | Change |
++| ---: | --- |
++| 1 | Typed score-matrix API (`Prepared::score_matrix`, `MatrixScore`, Python `score_matrix`); shared `outcome` and `dispatch` for all paths |
++| 2 | Safeguarded Newton inverse with a second reduced-temperature derivative, still charging 40 steps |
++| 3 | Typed metrics enum instead of `serde_json::Value` trees |
++| 4 | Near bracket value taken from the saturation pair; inverse pressure derived from the pair |
++| 5 | Power tables from short independent multiplication chains |
++| 6 | Gibbs terms grouped by pressure exponent at compile time |
++| 7 | Compile-time term factors and combined power-table indices |
++| 8 | Dispatch on the calling thread, capped at the CPU count |
++| 9 | Hot-end floor table skips the far bracket evaluation |
++| 10 | Result JSON written directly with static keys |
++
++`Evaluation` became crate-private because it now carries the domain's
++typed metrics. Rounds 2, 5, 6 and 9 change values in their last bits;
++rounds 3, 4, 7, 8 and 10 are bit-identical. The
++[0.3.0 performance log](../thermo-craft-performance-log-0.3.0.md) lists
++each round's measurement.
+ 
+ ## Persistence and boundaries of evidence
+ 
+ The local campaign hashes the installed extension bytes plus each
+-scenario, model, candidate and work settings to locate reusable
+-records. SQLite stores completed, invalid and infeasible results,
+-and keeps an append-only journal of attempts. Cancelled or time-
+-limited attempts remain in the journal and can be retried. SQLite
+-commits each chunk atomically. A new extension build changes the
+-cache namespace. The current workflow is local and exposes no
+-distributed worker protocol.
+-
+-The package contains source, a source distribution, and a validated
+-Linux x86-64 wheel. The included performance log distinguishes the
+-native prepared boundary, complete Python search and clean build.
+-See the [tutorial](tutorial.md) for exact commands and
+-[the model card](model.md) for equations and research scope.
++scenario, model, candidate and work settings to locate reusable records.
++SQLite stores completed, invalid and infeasible results and keeps an
++append-only journal of attempts. Cancelled or time-limited attempts remain
++in the journal and can be retried. SQLite commits each chunk atomically. A
++new extension build changes the cache namespace. The workflow is local and
++exposes no distributed worker protocol.
++
++The package contains source, a source distribution, and a validated Linux
++x86-64 wheel. The crate and source distribution ship source, docs,
++examples, models and validation scripts; release evidence, packages and
++patch series are in the release ZIP.
++
++## Performance
++
++All numbers in this section were measured for this release on one host:
++**2 vCPUs, Intel(R) Xeon(R) Processor @ 2.10GHz (KVM guest), Rust 1.97.0,
++CPython 3.12.3**. The host was shared with other jobs, and every
++measurement ran under an exclusive CPU lock. Do not compare these numbers
++with the 0.2.0 log, which was measured on another host (AMD EPYC 9V74,
++4 CPUs, Rust 1.88).
++
++### 0.2.0 to 0.3.0
++
++`validation/performance_pair.py --samples 11` with the saved 0.2.0
++benchmark binary and the round-10 binary, alternating process order. Times
++are median milliseconds per prepared call. "Paired median" is the median of
++the 11 adjacent before/after ratios, which is robust to slow host-speed
++drift. The `parallel` workload requests 4 workers on this 2-vCPU host;
++0.2.0 starts four threads, 0.3.0 runs two (the calling thread and one
++worker). The matrix rows use 0.2.0 lean scores as the baseline, since
++0.2.0 has no matrix API. Evidence: `evidence/performance-0.3.0/cumulative/`.
++
++| Workload | Case | 0.2.0 ms | 0.3.0 ms | Before / after | Paired median |
++| --- | --- | ---: | ---: | ---: | ---: |
++| `one` | 1 full record | 0.0473 | 0.0063 | 7.52x | 8.04x |
++| `serial` | 96 full records, one worker | 3.5064 | 0.3369 | 10.41x | 10.20x |
++| `parallel` | 96 full records, 4 workers requested | 2.6053 | 0.3588 | 7.26x | 7.37x |
++| `trace` | 12 traced full records | 0.4143 | 0.0445 | 9.30x | 9.92x |
++| `invalid` | 1,024 invalid candidates, 63 values each | 1.4739 | 1.4503 | 1.02x | 1.02x |
++| `domain` | 48 full records, 950 K inlet | 2.4193 | 0.2184 | 11.08x | 10.87x |
++| `domain2` | 48 full property records | 0.1131 | 0.0313 | 3.62x | 2.74x |
++| lean `serial` | 96 lean records | 3.2052 | 0.2149 | 14.91x | 13.73x |
++| lean `domain` | 48 lean records, 950 K | 1.9426 | 0.1408 | 13.80x | 13.58x |
++| lean `domain2` | 48 lean property records | 0.0517 | 0.0328 | 1.58x | 1.50x |
++| matrix `serial` | 96 matrix rows (baseline: 0.2.0 lean) | 2.9197 | 0.2026 | 14.41x | 14.61x |
++| matrix `domain` | 48 matrix rows, 950 K (baseline: 0.2.0 lean) | 1.8976 | 0.1333 | 14.23x | 14.52x |
++
++Supplementary rows (same binaries): matrix `domain2` 0.0341 -> 0.0073 ms
++(4.70x) and matrix `invalid` 1.4337 -> 0.0389 ms (36.8x) against 0.2.0 lean
++(`supplement-matrix-*.json`). The two `domain2` rows take about 30 us per
++call, where process-level noise is large: the official lean `domain2`
++median (0.0328 ms) is above the full one, while 41-sample confirmations
++give 0.0236 ms lean and 0.0314 ms full (`supplement-*-domain2-confirm41.json`).
++
++### Where a call's time goes
++
++`examples/breakdown.rs` times the phases through the public API, with the
++phases interleaved in 25 rounds; the table shows the minimum in
++microseconds per call (`evidence/performance-0.3.0/breakdown.json` also has
++medians). *decode* parses the candidate JSON; *matrix* is `score_matrix` on
++the same values, that is domain evaluation without JSON; *lean* is
++`scores_json`; *full* is `evaluate_json`.
++
++| Workload | Candidates | decode | matrix | lean | full | Domain share of full |
++| --- | ---: | ---: | ---: | ---: | ---: | ---: |
++| `one` | 1 | 0.13 | 1.71 | 2.13 | 3.46 | 49% |
++| `serial` | 96 | 11.6 | 158.5 | 183.3 | 305.3 | 52% |
++| `domain` | 48 | 6.4 | 106.6 | 117.2 | 183.3 | 58% |
++| `domain2` | 48 | 6.1 | 6.7 | 16.8 | 23.6 | 28% |
++| `invalid` | 1,024 | 1,016.6 | 31.7 | 1,228.5 | 1,236.1 | 3% |
++
++- A regenerative candidate costs about 1.65 us of domain evaluation
++  (serial; 2.2 us at the 950 K inlet with four single-phase inverses).
++- Lean JSON adds about 0.25 us per candidate: decode plus the lean
++  envelope.
++- A full record adds about 1.3 us of metric construction and JSON writing
++  on top of lean; number formatting is most of it (about 55 numbers per
++  record).
++- A property query costs about 0.14 us of domain time; its JSON is more
++  than twice that.
++- `invalid` is dominated by parsing 64,512 JSON numbers; the domain
++  rejects each candidate in about 30 ns.
++- Preparing the example model costs 1.07 us.
++
++### Per-call cost of full, lean and matrix calls
++
++Native (from the breakdown above): one candidate costs 1.71 us (matrix),
++2.13 us (lean) or 3.46 us (full); per candidate in a 96-batch, 1.65, 1.91
++and 3.18 us.
++
++Python, installed wheels on one CPU (`taskset -c 0`), microseconds per call,
++minimum of 25 interleaved rounds (`validation/python_call_costs.py`;
++`python-call-costs-0.3.0.json`, `python-call-costs-0.2.0.json`):
++
++| Call | 0.2.0 | 0.3.0 |
++| --- | ---: | ---: |
++| `evaluate` (one full record) | 59.2 | 27.4 |
++| `scores` (one candidate) | 35.7 | 10.0 |
++| `score_matrix` (one row) | - | 4.7 |
++| `batch` (96 full records) | 4,816 | 1,931 |
++| `scores` (96 candidates) | 2,747 | 362 |
++| `score_matrix` (96 rows) | - | 190 |
++| `Prepared(model)` | 6.2 | 5.8 |
++
++In Python the JSON boundary dominates full records: decoding the 96-record
++result costs far more than the native evaluation. `score_matrix` is within
++about 30 us of the native cost for 96 rows.
++
++### Worker scaling
++
++From the same breakdown, minimum microseconds per call; on this host at
++most two threads run, so 2 and 4 requested workers behave alike:
++
++| Batch | API | 1 worker | 2 workers | 4 workers requested |
++| --- | --- | ---: | ---: | ---: |
++| 96 candidates | matrix | 153 | 143 | 126 |
++| 96 candidates | full | 300 | 309 | 287 |
++| 1,024 candidates | matrix | 1,749 | 1,048 | 1,016 |
++| 1,024 candidates | full | 3,560 | 3,011 | 2,878 |
++
++Starting a thread costs tens of microseconds on this VM, so a 96-candidate
++batch gains little. A 1,024-row matrix call runs 1.7x faster on two
++threads. Full records gain less because results are written to JSON on
++one thread after evaluation.
++
++### Installed Python optimization
++
++`validation/optimize_performance.py`: seeded SciPy differential evolution
++(48 objective calls) plus a traced replay of the winner, seven interleaved
++runs per configuration on CPU 0. The 0.3.0 wheel was built with maturin
++from the extracted 0.3.0 sdist; the 0.2.0 wheel is the delivered one.
++Median milliseconds; the total median is computed per run
++(`python-optimization.json`).
++
++| Configuration | Prepare ms | Search ms | Replay ms | Total ms | 0.2.0 full / total |
++| --- | ---: | ---: | ---: | ---: | ---: |
++| v0.2.0-full | 0.091 | 8.662 | 0.099 | 8.863 | 1.00x |
++| v0.2.0-scores | 0.083 | 6.699 | 0.135 | 6.911 | 1.28x |
++| v0.3.0-full | 0.084 | 6.642 | 0.049 | 6.768 | 1.31x |
++| v0.3.0-scores | 0.093 | 5.790 | 0.067 | 5.942 | 1.49x |
++| v0.3.0-matrix | 0.094 | 4.637 | 0.091 | 4.836 | 1.83x |
++
++All runs made 48 evaluations with 0 failures and selected
++`[362432.0581474683, 2033861.965363634]`. The replay score is
++-0.38412704852860363 with 0.2.0 and -0.38412704852854795 with 0.3.0
++(relative difference 1.4e-13). With 48 evaluations of about 2 us each,
++SciPy's own per-generation work is most of the remaining search time.
++
++### What dominates now and which API to use
++
++- **Optimizers** should use `score_matrix`, ideally one call per
++  population: the per-row cost in Python is then close to the native
++  domain cost, while a one-row call still pays about 3 us of Python
++  overhead.
++- **JSON users** who need IDs and details but not metrics should use
++  `scores`; it avoids the metrics and most of the decode cost.
++- **Full records** are for inspection and replay. Their cost is now
++  dominated by JSON (writing natively, parsing in Python), not by the
++  thermodynamics.
++- **Workers**: keep `workers=1` for batches of up to a few hundred
++  candidates; for large matrix batches set `workers` to the number of idle
++  CPUs. Requests above the CPU count are capped.
++- **Remaining native cost** in a regenerative candidate is the Gibbs
++  evaluations: four for the two saturation pairs, then per single-phase
++  inverse three (enthalpy) or four (entropy) Newton evaluations and one
++  reconstruction; 17 for the packaged example, 22 at the 950 K inlet. The
++  `invalid` workload is bound by JSON number parsing and changed little.
+diff --git a/docs/model.md b/docs/model.md
+index b34ce5e..b78d966 100644
+--- a/docs/model.md
++++ b/docs/model.md
+@@ -1,12 +1,13 @@
+ # Bounded water and steam cycle model
+ 
+ Public units are pascals, kelvin, joules per kilogram, joules per kilogram
+-kelvin and cubic metres per kilogram. The property adapter covers
++kelvin and cubic meters per kilogram. The property adapter covers
+ IAPWS IF97 regions 1, 2 and 4 within 1 kPa to 16 MPa and 273.16 K to
+ 1073.15 K. The selected pressure ceiling keeps saturation below the
+ region-3 boundary. A P/T pair at saturation requires a quality input.
+ Wet enthalpy, entropy and volume use the mass-fraction lever rule.
+-Single-phase inverse states use a bounded bisection on temperature.
++Single-phase inverse states use a bracketed, safeguarded Newton solve on
++temperature that charges the logical work of a 40-step bisection.
+ The property example verifies published values in SI. It covers the
+ subcooled, superheated, saturation and wet paths.
+ 
+diff --git a/docs/tutorial.md b/docs/tutorial.md
+index 2e503b1..4ad8c88 100644
+--- a/docs/tutorial.md
++++ b/docs/tutorial.md
+@@ -1,6 +1,7 @@
+ # Thermo Craft tutorial
+ 
+-Evaluate bounded IF97 water properties and optimize two extraction pressures in a fixed Rankine cycle. This guide uses the examples shipped with version 0.2.0.
++Evaluate bounded IF97 water properties and optimize two extraction pressures in a fixed Rankine cycle. This guide uses the examples shipped with version 0.3.0. The
++[user manual](user-manual.md) is the complete reference.
+ 
+ ## 1. Install and run the example
+ 
+@@ -105,15 +106,29 @@ print(replay["score"], replay["metrics"])
+ Replace the duplicate vectors with distinct choices for a real search.
+ Use `batch` if you need the full metrics for every row. `scores` returns
+ ordered records with score, status, steps and detail, and `metrics: null`.
+-It rejects any candidate with `trace: true`. A one-worker batch or a
+-singleton runs inline. Larger batches can try two or four workers.
+-Measure before setting a worker count for a real workload.
++It rejects any candidate with `trace: true`. An optimizer that needs only
++the objective can skip JSON entirely with `score_matrix`, which takes
++parameter rows and returns scores (NaN when not complete), statuses and
++steps:
++
++```python
++rows = [case["parameters"], [200000.0, 1200000.0], [2e6, 1e6]]
++values, statuses, steps = prepared.score_matrix(rows, workers=2)
++print(values, statuses, steps)
++```
++
++A one-worker batch or a singleton runs inline. `workers` is an upper
++bound: the engine never starts more threads than there are CPUs, and the
++calling thread is one of them. Workers pay off for batches of several
++hundred candidates; measure before setting a worker count for a real
++workload.
+ 
+ The optional differential-evolution driver times preparation, seeded
+ search and traced replay as one run. Install SciPy for this example.
+ 
+ ```sh
+ python -m pip install scipy
++python validation/optimize_performance.py thermo_craft --matrix
+ python validation/optimize_performance.py thermo_craft --scores
+ python validation/optimize_performance.py thermo_craft
+ ```
+@@ -121,6 +136,7 @@ python validation/optimize_performance.py thermo_craft
+ The driver uses small local bounds and a short fixed search budget.
+ For a scientific result, use problem-specific bounds, an explicit
+ feasibility penalty or constraint policy, and a held-out evaluation.
++`examples/python/` has complete SciPy and fcmaes examples.
+ 
+ ## 4. Run and resume a local campaign
+ 
+@@ -147,27 +163,36 @@ target/release/thermo-craft run models/request.json
+ target/release/examples/sweep models/example.json
+ target/release/examples/performance models/example.json serial
+ CRAFT_SCORES=1 target/release/examples/performance models/example.json serial
++CRAFT_MATRIX=1 target/release/examples/performance models/example.json serial
++target/release/examples/breakdown models/example.json
+ ```
+ 
+ The CLI reads a request file or standard input with `run -`. Exit code
+ 0 indicates complete rows, 1 indicates a rejected request and 2
+ indicates one or more unsuccessful rows in a well-formed request.
+ The benchmark prints elapsed seconds per prepared batch after warm-up.
+-Use `parallel` for four workers, `trace` for traced evaluations,
+-or `domain` and `domain2` for the package's supplemental cases.
++`CRAFT_SCORES` selects the lean API and `CRAFT_MATRIX` the matrix API.
++Use `parallel` for four requested workers, `trace` for traced evaluations,
++or `domain` and `domain2` for the package's supplemental cases. The
++`breakdown` example prints where a call's time goes (decode, domain,
++lean and full encoding) and worker scaling, as JSON.
+ With a previous benchmark executable built from the baseline and this
+ one, `validation/performance_pair.py BEFORE AFTER models/example.json serial`
+-checks output parity and times both. See the included performance log
+-and raw evidence for the exact workloads and comparison boundaries.
++checks output parity and times both; `--before-scores`, `--after-scores`,
++`--before-matrix` and `--after-matrix` select the API per side. See the
++included performance log and raw evidence for the exact workloads and
++comparison boundaries.
+ 
+ ## 6. Verify results
+ 
+ ```sh
+ cargo test --release --locked
+-cargo clippy --locked --all-targets --features python -- -D warnings
++cargo clippy --release --locked --all-targets --features python -- -D warnings
+ python validation/validate.py target/release/thermo-craft
+ ```
+ 
+-Consult the [model card](model.md) for supported inputs, the
+-[architecture guide](architecture.md) for data flow and numerical
+-assumptions, and the [source notes](sources.md) for references.
++Consult the [user manual](user-manual.md) for every interface, status
++and error message, the [model card](model.md) for supported inputs, the
++[architecture guide](architecture.md) for data flow, numerical
++assumptions and performance, and the [source notes](sources.md) for
++references.
+diff --git a/docs/user-manual.md b/docs/user-manual.md
+new file mode 100644
+index 0000000..5309bd7
+--- /dev/null
++++ b/docs/user-manual.md
+@@ -0,0 +1,989 @@
++# thermo-craft user manual
++
++Version 0.3.0. This manual is for researchers and engineers who use the
++model: it covers installation, the model and request formats, every status
++and error message, the Python, Rust and command-line interfaces, and how to
++get reproducible and fast results. The [model card](model.md) states the
++equations and research scope, the [architecture guide](architecture.md)
++describes the implementation and its measured performance, and the
++[tutorial](tutorial.md) is a shorter walk-through.
++
++Every `python` block in this manual runs as written, in order, in one
++session; `validation/release_checks.py` executes them against the installed
++wheel. Shell examples were run from the project root on Linux, and their
++output is copied from those runs.
++
++## Contents
++
++1. [What the model does](#1-what-the-model-does)
++2. [Installation](#2-installation)
++3. [Concepts](#3-concepts)
++4. [Model reference](#4-model-reference)
++5. [Request and result schemas](#5-request-and-result-schemas)
++6. [Statuses and error messages](#6-statuses-and-error-messages)
++7. [Budgets](#7-budgets)
++8. [Python API](#8-python-api)
++9. [Application scenarios](#9-application-scenarios)
++10. [Optimization](#10-optimization)
++11. [Rust API](#11-rust-api)
++12. [Command-line interface](#12-command-line-interface)
++13. [Reproducibility and provenance](#13-reproducibility-and-provenance)
++14. [Performance tips](#14-performance-tips)
++15. [Troubleshooting](#15-troubleshooting)
++
++## 1. What the model does
++
++thermo-craft evaluates two kinds of model:
++
++- **`property`**: water and steam properties from IAPWS-IF97 (R7-97(2012))
++  regions 1 (compressed liquid), 2 (vapor) and 4 (saturation), bounded to
++  1 kPa-16 MPa and 273.16-1073.15 K. The upper pressure keeps saturation
++  below region 3.
++- **`rankine`**: a closed steam Rankine cycle with fixed boiler and
++  condenser pressures and a superheated turbine inlet. Either the simple
++  cycle (one expansion, one pump) or a regenerative cycle with two open
++  feedwater heaters, three expansion stages and three pumps, whose two
++  extraction pressures are the candidate parameters.
++
++The model does not cover IF97 region 3 or 5, closed feedwater heaters,
++reheat, arbitrary plant topologies or part-load behavior. All public
++quantities are SI: Pa, K, J/kg, J/(kg K) and m^3/kg.
++
++## 2. Installation
++
++### 2.1 From the bundled wheel
++
++The wheel in `packages/` targets Linux x86-64 with the CPython 3.10+ stable
++ABI (`abi3`); it was tested with CPython 3.12. It has no Python
++dependencies.
++
++```sh
++python3 -m venv .venv
++. .venv/bin/activate
++python -m pip install --no-deps packages/thermo_craft-0.3.0-cp310-abi3-manylinux_2_34_x86_64.whl
++```
++
++The examples in `examples/python/` also use NumPy, SciPy and fcmaes:
++
++```sh
++python -m pip install numpy==2.3.5 scipy==1.17.0 fcmaes
++```
++
++### 2.2 From source
++
++Building needs Rust 1.88 or later and maturin 1.9.6. The crate's
++dependencies are pinned in `Cargo.lock`; Cargo needs them from its registry
++or cache.
++
++```sh
++python -m pip install 'maturin==1.9.6'
++maturin sdist --out dist                      # source distribution
++maturin build --release --locked --out dist   # wheel for this machine
++python -m pip install --no-deps dist/thermo_craft-0.3.0-*.whl
++```
++
++The source distribution `packages/thermo_craft-0.3.0.tar.gz` also builds:
++`maturin build --release --locked` inside the extracted directory gives the
++manylinux-tagged wheel, and `python -m pip wheel --no-deps thermo_craft-0.3.0.tar.gz`
++(which fetches maturin 1.9.6 for an isolated build) gives a wheel tagged
++`linux_x86_64`. On the release host both contained the same native
++extension as the bundled wheel.
++
++### 2.3 Rust command-line tool and crate
++
++```sh
++cargo build --release --locked --bins --examples
++target/release/thermo-craft describe
++```
++
++The crate archive `packages/thermo-craft-0.3.0.crate` is a gzipped tar
++file; unpack it to use it as a path or vendored dependency. The library
++name is `thermo_craft`.
++
++### 2.4 Checking an installation
++
++```python
++import json
++import thermo_craft
++from thermo_craft import Prepared, load_example
++
++case = load_example()
++prepared = Prepared(case["model"])
++row = prepared.evaluate(case["parameters"], trace=True)
++assert row["status"] == "complete", row
++print(row["id"], row["status"], row["steps"], round(row["score"], 6))
++print(prepared.batch([{"id": "v", "parameters": case["parameters"]}])["version"])
++```
++
++## 3. Concepts
++
++- **Model**: a JSON object (a Python `dict`) selecting a `kind` and its
++  fixed inputs. `Prepared(model)` validates it once, hashes its exact
++  serialized bytes and precomputes fixed states (turbine inlet, condenser
++  saturation pair).
++- **Candidate**: an `id` and a `parameters` vector, evaluated against a
++  prepared model. Property queries and extraction pressures are candidates.
++- **Record**: the outcome of one candidate: `id`, `status`, `steps`,
++  `score`, `metrics` and `detail`.
++- **Status**: `complete`, or why the candidate has no score (section 6).
++  Invalid and infeasible candidates are normal results, not exceptions.
++- **Score**: the number an optimizer minimizes. For a cycle it is minus the
++  thermal efficiency; for a property query it is the specific enthalpy in
++  J/kg. Only complete records have a score.
++- **Steps**: the logical work a candidate used (section 4.6). The step count
++  is part of the result contract and identical across releases, worker
++  counts and APIs.
++- **Budget**: per-call limits on workers, steps, wall time and a cancel
++  file (section 7).
++- **Three call styles** on the same prepared model and the same evaluator:
++  - *full* (`batch`, `evaluate`, `evaluate_json`): records with all metrics;
++  - *lean* (`scores`, `scores_json`): the same records with
++    `metrics: null`;
++  - *matrix* (`score_matrix`): parameter rows in, three lists out
++    (scores, statuses, steps), with no JSON in either direction.
++
++  Status, steps and score are identical in all three (score bit for bit).
++
++## 4. Model reference
++
++Unknown fields are rejected everywhere (`deny_unknown_fields`). Numbers are
++JSON numbers; the Python wrapper refuses NaN and infinity in models,
++candidates and budgets.
++
++### 4.1 `kind: "property"`
++
++| Field | Type | Required | Meaning |
++| --- | --- | --- | --- |
++| `kind` | string | yes | `"property"` |
++
++No other fields are allowed.
++
++### 4.2 `kind: "rankine"`
++
++| Field | Type | Unit | Required | Bounds and checks | Default |
++| --- | --- | --- | --- | --- | --- |
++| `kind` | string | - | yes | `"rankine"` | - |
++| `boiler_pa` | number | Pa | yes | 1 kPa-16 MPa; greater than `condenser_pa` | - |
++| `condenser_pa` | number | Pa | yes | 1 kPa-16 MPa (saturation range) | - |
++| `inlet_k` | number | K | yes | 273.16-1073.15 K and above the saturation temperature at `boiler_pa` (superheated inlet) | - |
++| `turbine_efficiency` | number | - | yes | 0.1-1.0 (isentropic efficiency of every expansion) | - |
++| `pump_efficiency` | number | - | yes | 0.1-1.0 (applied to every pump) | - |
++| `min_exhaust_quality` | number | - | yes | 0-1 (minimum vapor mass fraction at the turbine exhaust) | - |
++| `extraction` | boolean | - | no | `true`: two open feedwater heaters | `false` |
++
++The packaged example (`models/example.json`, `load_example()`) is an
++8 MPa / 813.15 K / 15 kPa regenerative cycle with turbine efficiency 0.88,
++pump efficiency 0.8 and a 0.75 exhaust-quality limit.
++
++### 4.3 Model errors
++
++`Prepared(model)` raises `ValueError` (Rust: `Err(String)`) with these
++messages:
++
++| Message | Cause |
++| --- | --- |
++| `invalid pressure ordering, efficiency or exhaust limit` | `boiler_pa <= condenser_pa`, an efficiency outside 0.1-1.0, or `min_exhaust_quality` outside 0-1 |
++| `invalid boiler inlet state` | boiler pressure outside 1 kPa-16 MPa, inlet temperature outside 273.16-1073.15 K, or inlet within 1e-7 K of saturation |
++| `invalid condenser pressure` | condenser pressure outside 1 kPa-16 MPa |
++| `boiler outlet must be superheated` | `inlet_k` at or below the saturation temperature of `boiler_pa` |
++| `missing field ...`, `unknown field ...`, `unknown variant ...`, `invalid type ...` | JSON shape errors from the parser, for example ``unknown variant `brayton`, expected `property` or `rankine` `` |
++
++```python
++model = case["model"]
++for bad in (model | {"boiler_pa": 10e3}, model | {"inlet_k": 500.0},
++            model | {"condenser_pa": 500.0}, model | {"kind": "brayton"},
++            {k: v for k, v in model.items() if k != "inlet_k"}):
++    try:
++        Prepared(bad)
++    except ValueError as error:
++        print(type(error).__name__, str(error)[:60])
++```
++
++### 4.4 Candidate parameters
++
++| Model | `parameters` | Meaning |
++| --- | --- | --- |
++| `property` | `[p_pa, t_k]` | single-phase state at pressure and temperature |
++| `property` | `[p_pa, quality, 0]` | saturated state at pressure with vapor mass fraction `quality` in 0-1; the third value must be exactly 0 |
++| `rankine`, `extraction: false` | `[]` | the simple cycle has no candidate parameters |
++| `rankine`, `extraction: true` | `[low_pa, high_pa]` | extraction pressures of the low- and high-pressure heaters; feasible only if condenser < low < high < boiler |
++
++A P/T pair within 1e-7 K of saturation is rejected: give the quality form
++instead.
++
++```python
++properties = Prepared({"kind": "property"})
++liquid = properties.evaluate([3e6, 300.0])          # compressed liquid, region 1
++vapor = properties.evaluate([3500.0, 700.0])        # superheated vapor, region 2
++wet = properties.evaluate([1e5, 0.5, 0.0])          # wet steam, region 4
++for row in (liquid, vapor, wet):
++    s = row["metrics"]["state"]
++    print(row["status"], s["t_k"], round(s["h_j_kg"]), s["quality"])
++assert liquid["score"] == liquid["metrics"]["state"]["h_j_kg"]
++```
++
++### 4.5 Scores and metrics
++
++**Property records.** `score` is the specific enthalpy `h_j_kg`.
++`metrics` is `{"state": STATE}`.
++
++**State objects** (`STATE`):
++
++| Field | Unit | Meaning |
++| --- | --- | --- |
++| `h_j_kg` | J/kg | specific enthalpy |
++| `p_pa` | Pa | pressure |
++| `quality` | - | vapor mass fraction for saturated and wet states, `null` for single-phase states |
++| `s_j_kg_k` | J/(kg K) | specific entropy |
++| `t_k` | K | temperature |
++| `v_m3_kg` | m^3/kg | specific volume |
++
++Wet enthalpy, entropy and volume follow the lever rule between the
++saturated liquid and vapor.
++
++**Cycle records.** `score` is minus the thermal efficiency. All per-mass
++quantities refer to one kilogram of boiler flow:
++
++| Metric | Unit | Meaning |
++| --- | --- | --- |
++| `efficiency` | - | `net_work_j_kg / heat_in_j_kg` |
++| `gross_work_j_kg` | J/kg | turbine work of all stages, weighted by the stage mass flows |
++| `pump_work_j_kg` | J/kg | pump work, `v * dp / pump_efficiency` per pump with the inlet saturated-liquid volume |
++| `net_work_j_kg` | J/kg | gross minus pump work; must be positive |
++| `heat_in_j_kg` | J/kg | boiler heat input; must be positive |
++| `heat_rejected_j_kg` | J/kg | condenser heat rejection; must be positive |
++| `energy_residual_j_kg` | J/kg | heat in minus heat rejected minus net work; must be within 1e-6 of heat in |
++| `exhaust_quality` | - | vapor fraction at the turbine exhaust (1 if the exhaust is superheated) |
++| `condenser_mass_fraction` | - | mass flow through the last stage and condenser (1 for the simple cycle) |
++| `extractions_low_high` | - | bleed mass fractions `[low, high]` (`[0, 0]` for the simple cycle) |
++| `heater_residuals_j_kg` | J/kg | mixing energy residuals of the `[low, high]` heaters; must be within 1e-6 of heat in |
++| `states` | - | list of `STATE` objects |
++
++`states` lists, for the regenerative cycle: turbine inlet, high-pressure
++stage outlet (high bleed), intermediate stage outlet (low bleed), exhaust,
++condensate (saturated liquid at the condenser), low-heater outlet and
++high-heater outlet (saturated liquid at each extraction pressure). For the
++simple cycle: turbine inlet, exhaust and condensate.
++
++```python
++row = prepared.evaluate(case["parameters"])
++m = row["metrics"]
++print(sorted(m))
++print(round(m["efficiency"], 6), round(m["exhaust_quality"], 4), m["extractions_low_high"])
++assert abs(m["net_work_j_kg"] - (m["gross_work_j_kg"] - m["pump_work_j_kg"])) < 1e-6
++assert abs(sum(m["extractions_low_high"]) + m["condenser_mass_fraction"] - 1) < 1e-12
++print(len(m["states"]), [s["quality"] for s in m["states"]])
++```
++
++### 4.6 Logical steps
++
++Every candidate charges one step on entry. Each turbine stage solves two
++states at its outlet pressure: the isentropic reference (from entropy) and
++the actual outlet (from enthalpy). An outlet inside the wet region is found
++directly by the lever rule and charges nothing; a single-phase outlet
++charges 40 steps. The packaged example therefore takes 1 + 3 x 40 = 121
++steps (high stage: both states superheated; intermediate stage: wet
++reference, superheated outlet; exhaust: wet). Property queries take 1 step.
++
++Since 0.3.0 the single-phase solve is a bracketed Newton iteration that
++needs three or four Gibbs evaluations; it still charges the 40 steps of the
++bisection it replaced, so step counts, `max_steps` outcomes and cached
++campaign results are unchanged.
++
++```python
++for n in (120, 121):
++    limited = prepared.evaluate(case["parameters"], max_steps=n)
++    print(n, limited["status"], limited["steps"])
++```
++
++## 5. Request and result schemas
++
++### 5.1 Candidate
++
++```json
++{"id": "c-001", "parameters": [300000.0, 2000000.0], "trace": false}
++```
++
++| Field | Type | Rules |
++| --- | --- | --- |
++| `id` | string | 1-128 bytes, unique within the batch |
++| `parameters` | array of numbers | at most 64 values |
++| `trace` | boolean | optional, default `false`; at most 16 traced candidates per batch |
++
++In thermo-craft full records already carry every metric, so `trace: true`
++adds no fields; it is accepted for engine compatibility, counts toward the
++16-trace limit, and is rejected by the lean API.
++
++### 5.2 Budget
++
++| Field | Type | Range | Default | Effect |
++| --- | --- | --- | --- | --- |
++| `workers` | integer | 1-64 | 1 | upper bound on evaluation threads |
++| `max_steps` | integer | 1-100,000,000 | 1,000,000 | logical steps per candidate |
++| `wall_ms` | integer | 1-86,400,000 | none | batch deadline in milliseconds |
++| `cancel_file` | string (path) | - | none | stop when this file exists |
++
++In Python the budget is passed as keyword arguments; in Rust and the CLI as
++a JSON object. Section 7 describes each limit.
++
++### 5.3 Request (CLI)
++
++```json
++{
++  "schema": "thermo-craft.request/0.1",
++  "model": {"kind": "property"},
++  "candidates": [{"id": "steam", "parameters": [1000000.0, 600.0]}],
++  "budget": {"workers": 1}
++}
++```
++
++`budget` is optional. `models/request.json` is a complete regenerative
++example.
++
++### 5.4 Result
++
++```json
++{
++  "model_sha256": "7ddb3d78...",
++  "records": [
++    {"id": "steam", "status": "complete", "steps": 1, "score": 3108976.8117186152,
++     "metrics": {"state": {"h_j_kg": 3108976.8117186152, "p_pa": 1000000.0, "quality": null,
++                           "s_j_kg_k": 7222.372649758314, "t_k": 600.0, "v_m3_kg": 0.2712072554629714}},
++     "detail": null}
++  ],
++  "schema": "thermo-craft.result/0.1",
++  "version": "0.3.0"
++}
++```
++
++Records are in candidate order. `score` is `null` unless `status` is
++`complete`; `detail` is `null` for complete records and a message
++otherwise; `metrics` is `null` in lean results and for failed candidates.
++The schema tags stay at 0.1 because the JSON shape is unchanged since
++0.1.0; `version` is the package version. The matrix API is not part of the
++JSON schema.
++
++### 5.5 Batch limits and request errors
++
++A request that breaks a batch rule fails as a whole (Python `ValueError`,
++Rust `Err`, CLI exit 1). No candidate is evaluated.
++
++| Message | Cause |
++| --- | --- |
++| `invalid budget or batch size` | 0 or more than 4,096 candidates, or a budget value out of range |
++| `invalid or duplicate candidate id, or parameter vector exceeds limit` | empty, longer than 128 bytes or repeated `id`, or more than 64 parameters |
++| `at most 16 traced candidates per batch` | more than 16 candidates with `trace: true` |
++| `scores mode accepts untraced candidates only` | a traced candidate passed to `scores` / `scores_json` |
++| ``unknown field `...` `` / ``missing field `...` `` | candidate or budget shape error |
++| `unsupported request schema` | CLI request `schema` is not `thermo-craft.request/0.1` |
++| `request exceeds 16 MiB` | CLI input larger than 16 MiB |
++| `matrix rows must be between 1 and 4096` | `score_matrix` with 0 or more than 4,096 rows |
++| `parameter count is not a multiple of the row count` | Rust `score_matrix` with a ragged flat buffer |
++| `parameter vector exceeds limit` | `score_matrix` rows longer than 64 |
++| `ragged parameter rows` | Python `score_matrix` rows of different lengths |
++| `score_matrix expects a 2-D array of parameter rows` | Python `score_matrix` given an array that is not 2-D |
++
++```python
++x = case["parameters"]
++attempts = {
++    "no candidates": lambda: prepared.batch([]),
++    "duplicate id": lambda: prepared.batch([{"id": "a", "parameters": x}] * 2),
++    "65 parameters": lambda: prepared.batch([{"id": "a", "parameters": [1.0] * 65}]),
++    "17 traces": lambda: prepared.batch(
++        [{"id": str(i), "parameters": x, "trace": True} for i in range(17)]),
++    "lean trace": lambda: prepared.scores([{"id": "a", "parameters": x, "trace": True}]),
++    "workers 0": lambda: prepared.batch([{"id": "a", "parameters": x}], workers=0),
++    "unknown budget": lambda: prepared.batch([{"id": "a", "parameters": x}], bogus=1),
++    "ragged rows": lambda: prepared.score_matrix([[1.0, 2.0], [1.0]]),
++}
++for name, call in attempts.items():
++    try:
++        call()
++    except ValueError as error:
++        print(f"{name}: {str(error)[:70]}")
++```
++
++## 6. Statuses and error messages
++
++| Status | Meaning | Score | Typical action |
++| --- | --- | --- | --- |
++| `complete` | evaluated and passed every check | yes | use the score |
++| `invalid` | the candidate does not fit the model (wrong length, out-of-range property query, nonfinite objective) | no | fix the input; never retry unchanged |
++| `infeasible` | well formed, but the cycle violates a physical or design constraint | no | penalize in a search |
++| `work_limit` | the candidate reached `max_steps` | no | raise `max_steps` |
++| `cancelled` | the cancel file existed at a step check | no | remove the file and retry |
++| `wall_limit` | the batch deadline passed at a step check | no | raise `wall_ms` or use smaller batches |
++
++The first three are fixed for given inputs and are cached by the campaign;
++the last three depend on the budget or the clock.
++
++Candidate `detail` messages:
++
++| Status | `detail` | Cause |
++| --- | --- | --- |
++| `invalid` | `pressure outside 1 kPa to 16 MPa` | property query or saturation pressure out of range |
++| `invalid` | `temperature outside 273.16 to 1073.15 K` | property query temperature out of range |
++| `invalid` | `P/T pair on saturation boundary requires quality` | temperature within 1e-7 K of saturation |
++| `invalid` | `quality outside [0,1]` | quality form with quality out of range |
++| `invalid` | `expected [pressure_pa, temperature_k] or [pressure_pa, quality, 0]` | property vector of another shape |
++| `invalid` | `simple Rankine model has no candidate parameters` | non-empty vector for `extraction: false` |
++| `invalid` | `expected low and high extraction pressure in Pa` | regenerative vector without exactly two values |
++| `invalid` | `nonfinite objective` | the score was not finite |
++| `infeasible` | `expected condenser < low extraction < high extraction < boiler` | extraction pressures out of order (also any NaN pressure) |
++| `infeasible` | `turbine exhaust violates minimum quality` | exhaust quality below `min_exhaust_quality` |
++| `infeasible` | `open-heater mix has no feasible extraction fraction` | a heater balance would need a bleed fraction outside [0, 1) |
++| `infeasible` | `inverse state outside bounded IF97 envelope` | an expansion target outside 273.16-1073.15 K at its pressure |
++| `infeasible` | `cycle fails power, heat or balance checks` | non-positive heat or work, or an energy residual above 1e-6 of heat input |
++| `work_limit` | `candidate step budget reached` | `max_steps` reached |
++| `cancelled` | `cancel file exists` | cancel file present |
++| `wall_limit` | `batch deadline reached` | `wall_ms` elapsed |
++
++The last three `infeasible` checks guard the numerics. The expansions of a
++superheated inlet into this fixed topology stay inside the envelope and
++give bleed fractions in range, so valid plants do not normally report them.
++
++```python
++checks = [
++    ([2e6, 1e6], "high below low"),
++    ([10e3, 2e6], "low below the condenser"),
++    ([3e5, 2e6, 1.0], "three values"),
++]
++for parameters, label in checks:
++    r = prepared.evaluate(parameters)
++    print(f"{label:24} {r['status']:10} {r['steps']} {r['detail']}")
++strict = Prepared(model | {"min_exhaust_quality": 0.9})
++r = strict.evaluate(case["parameters"])
++print(r["status"], r["steps"], r["detail"])
++```
++
++## 7. Budgets
++
++**`workers`** is an upper bound on threads for one call. The engine runs
++`min(workers, candidates, available CPUs)` threads, one of them the calling
++thread; with one thread (or one candidate) it evaluates inline. Records
++always come back in input order with the same values whatever the worker
++count. The CPU count comes from `std::thread::available_parallelism()`,
++which respects CPU affinity and cgroup quotas, and is read once per process.
++
++**`max_steps`** limits each candidate separately (section 4.6). A candidate
++that needs exactly `max_steps` steps completes; one more step would end it
++with `work_limit` and `steps == max_steps`.
++
++**`wall_ms`** sets one deadline for the whole call, measured from the start
++of evaluation. Candidates check it at every logical step; those still
++running or not yet started when it passes end as `wall_limit`. Which
++candidates finish depends on the machine and load, so do not cache
++`wall_limit` results.
++
++**`cancel_file`** names a file whose existence stops evaluation at the next
++step check. Create it from another process or thread to stop a long batch;
++candidates that have not taken a step yet report `cancelled` with 0 steps.
++
++Budgets with `wall_ms` or `cancel_file` are *monitored*: every step checks
++the file system or the clock, which costs time. Leave them unset for the
++fastest evaluation.
++
++```python
++import os
++import tempfile
++
++rows = [case["parameters"]] * 8
++same = prepared.score_matrix(rows, workers=1) == prepared.score_matrix(rows, workers=4)
++print("results independent of workers:", same)
++with tempfile.TemporaryDirectory() as folder:
++    flag = os.path.join(folder, "stop")
++    open(flag, "w").close()
++    print(prepared.evaluate(case["parameters"], cancel_file=flag)["status"])
++    os.remove(flag)
++    print(prepared.evaluate(case["parameters"], cancel_file=flag)["status"])
++deadline = prepared.scores([{"id": str(i), "parameters": case["parameters"]} for i in range(64)],
++                           wall_ms=60_000)
++print({r["status"] for r in deadline["records"]})
++```
++
++## 8. Python API
++
++```python
++from thermo_craft import Prepared, load_example
++from thermo_craft import campaign
++```
++
++### 8.1 `Prepared(model)`
++
++Validates and prepares a model (`dict`). The model is encoded as JSON with
++sorted keys and compact separators before it reaches native code, and the
++SHA-256 of those bytes is reported as `model_sha256`. Raises `ValueError`
++for any model error (section 4.3). A prepared model is immutable and can be
++shared by threads; every evaluation method releases the GIL while native
++code runs.
++
++### 8.2 `Prepared.evaluate(parameters, *, trace=False, **budget)`
++
++Evaluates one candidate with id `"one"` and returns its full record
++(`dict`). Convenient for replays and interactive work.
++
++### 8.3 `Prepared.batch(candidates, **budget)`
++
++Evaluates a list of candidate dicts in one native call and returns the full
++result envelope (`model_sha256`, `records`, `schema`, `version`).
++
++### 8.4 `Prepared.scores(candidates, **budget)`
++
++Same as `batch`, with `metrics: null` in every record and no metric
++construction. Rejects traced candidates. Use it when you need IDs, details
++and JSON-shaped records but not the metrics.
++
++### 8.5 `Prepared.score_matrix(rows, **budget)`
++
++Evaluates untraced candidates given as a list of equal-length parameter
++lists or a 2-D NumPy array (any object with `tolist()` and `ndim == 2`),
++without JSON. Returns three lists in row order: `scores` (float, NaN for
++every row that is not complete), `statuses` (str) and `steps` (int).
++Rows are numbered by position; there are no IDs and no duplicate check.
++At most 4,096 rows of at most 64 values per call; rows may be empty
++(dimension 0) for the simple cycle.
++
++```python
++import math
++
++rows = [case["parameters"], [2e6, 1e6], [250e3, 1.8e6]]
++scores, statuses, steps = prepared.score_matrix(rows, workers=2)
++lean = prepared.scores([{"id": str(i), "parameters": r} for i, r in enumerate(rows)])
++for score, status, used, record in zip(scores, statuses, steps, lean["records"]):
++    assert (status, used) == (record["status"], record["steps"])
++    assert score == record["score"] or (math.isnan(score) and record["score"] is None)
++print(statuses, steps)
++simple = Prepared(model | {"extraction": False})
++print(simple.score_matrix([[], []]))
++```
++
++With NumPy:
++
++```python
++import numpy as np
++
++grid = np.array([[lo, hi] for lo in (2e5, 3e5, 4e5) for hi in (1.5e6, 2e6, 2.5e6)])
++scores, statuses, _ = prepared.score_matrix(grid)
++best = int(np.nanargmin(scores))
++print(grid[best].tolist(), -scores[best])
++```
++
++### 8.6 `load_example()`
++
++Returns the packaged `{"model": ..., "parameters": ...}` fixture (the
++regenerative example of section 4.2 and its validated grid winner).
++
++### 8.7 `thermo_craft.campaign`
++
++`campaign.run(database, scenarios, candidates, *, workers=1, chunk_size=16, **budget)`
++evaluates every candidate against every scenario and returns rows in
++scenario-major order. Each row is
++`{"scenario", "key", "build_sha256", "model_sha256", "record"}`.
++
++- `database`: path of an SQLite file, created if missing (WAL mode).
++- `scenarios`: list of `{"id": str, "model": dict}`.
++- `candidates`: list of candidate dicts (section 5.1).
++- `chunk_size`: candidates per native call and per SQLite transaction
++  (1-256).
++- `budget`: passed to `Prepared.batch`; `cancel_file` is excluded from the
++  cache identity.
++
++Each record is keyed by the SHA-256 of the installed native extension, the
++scenario id, the model, the candidate and the budget settings. `complete`,
++`invalid` and `infeasible` records are cached in the `results` table and
++reused by later runs with the same key; every evaluated record, including
++`cancelled`, `wall_limit` and `work_limit`, is appended to the `attempts`
++journal. A rerun therefore resumes interrupted work and replays finished
++work without evaluating it again. Duplicate scenario or candidate IDs raise
++`ValueError`. `campaign.digest(value)` is the hash used for keys.
++
++```python
++import sqlite3
++from thermo_craft import campaign
++
++scenarios = [{"id": "nominal", "model": model},
++             {"id": "summer", "model": model | {"condenser_pa": 25e3}}]
++pairs = [[2e5, 1.5e6], [3e5, 2e6], [4e5, 2.5e6]]
++candidates = [{"id": f"pair-{k}", "parameters": p} for k, p in enumerate(pairs)]
++with tempfile.TemporaryDirectory() as folder:
++    database = os.path.join(folder, "campaign.sqlite")
++    flag = os.path.join(folder, "stop")
++    open(flag, "w").close()
++    interrupted = campaign.run(database, scenarios, candidates, cancel_file=flag)
++    print({row["record"]["status"] for row in interrupted})
++    os.remove(flag)
++    first = campaign.run(database, scenarios, candidates, workers=2)
++    again = campaign.run(database, scenarios, candidates, workers=1)
++    assert first == again
++    with sqlite3.connect(database) as connection:
++        cached = connection.execute("SELECT count(*) FROM results").fetchone()[0]
++        attempts = connection.execute("SELECT count(*) FROM attempts").fetchone()[0]
++    print(cached, attempts)
++    for row in first:
++        print(row["scenario"], row["record"]["id"], round(-row["record"]["score"], 5))
++```
++
++The same workflow is available as a script for JSON manifests:
++
++```sh
++python validation/run_campaign.py thermo_craft models/campaign.json campaign.sqlite
++```
++
++## 9. Application scenarios
++
++The scripts in [`examples/python/`](../examples/python/README.md) answer
++complete questions and save their output in `examples/python/outputs/`.
++This section shows the core of each scenario.
++
++### 9.1 Property tables
++
++A saturation table from the quality form, and superheated enthalpies with a
++finite-difference cp from `score_matrix` (the score of a property query is
++h). Full script: `examples/python/property_tables.py`.
++
++```python
++table = properties.batch([{"id": f"{p:g}-{x}", "parameters": [p, x, 0.0]}
++                          for p in (1e4, 1e5, 1e6) for x in (0.0, 1.0)])["records"]
++for f, g in zip(table[0::2], table[1::2]):
++    f, g = f["metrics"]["state"], g["metrics"]["state"]
++    print(f"p {f['p_pa']:9.0f} Pa  T_sat {f['t_k']:8.3f} K  h_fg {(g['h_j_kg'] - f['h_j_kg']) / 1e3:7.1f} kJ/kg")
++h, _, _ = properties.score_matrix([[1e6, 699.5], [1e6, 700.5]])
++print("cp at 1 MPa, 700 K:", round((h[1] - h[0]) / 1e3, 4), "kJ/(kg K)")
++```
++
++### 9.2 The simple cycle
++
++Set `extraction` to `false` and pass an empty vector.
++
++```python
++simple = Prepared(model | {"extraction": False})
++r = simple.evaluate([])
++print(r["status"], r["steps"], round(r["metrics"]["efficiency"], 5),
++      round(r["metrics"]["exhaust_quality"], 4), len(r["metrics"]["states"]))
++```
++
++### 9.3 Extraction-pressure study
++
++Scan both pressures, find the infeasible region and the best design, and
++compare with the simple cycle. Full script with a text map:
++`examples/python/extraction_map.py`.
++
++```python
++from collections import Counter
++
++low = [50e3 * (30 ** (k / 11)) for k in range(12)]
++high = [0.5e6 * (12 ** (k / 11)) for k in range(12)]
++rows = [[a, b] for a in low for b in high]
++scores, statuses, _ = prepared.score_matrix(rows, workers=2)
++print(Counter(statuses))
++k = min(range(len(rows)), key=lambda i: scores[i] if statuses[i] == "complete" else 1.0)
++best = prepared.evaluate(rows[k])["metrics"]
++print([round(v) for v in rows[k]], round(best["efficiency"], 5),
++      round(best["efficiency"] - r["metrics"]["efficiency"], 5))
++```
++
++### 9.4 Design and operating scenarios
++
++Compare boiler conditions, or a plant across seasons, by preparing one
++model per scenario. `examples/python/cycle_comparison.py` compares simple
++and regenerative cycles over boiler pressure and inlet temperature.
++
++```python
++for boiler, inlet in ((4e6, 723.15), (8e6, 813.15), (12e6, 873.15)):
++    scenario = model | {"boiler_pa": boiler, "inlet_k": inlet}
++    eta = -Prepared(scenario).score_matrix([[3e5, 2e6]])[0][0]
++    eta_simple = Prepared(scenario | {"extraction": False}).evaluate([])["metrics"]["efficiency"]
++    print(f"{boiler / 1e6:4.0f} MPa {inlet:7.2f} K  regenerative {eta:.4f}  simple {eta_simple:.4f}")
++```
++
++### 9.5 Sensitivity
++
++Perturb one model input at a time and re-prepare. Full script with all
++inputs and a condenser-pressure study: `examples/python/sensitivity.py`.
++
++```python
++def efficiency(m, parameters=case["parameters"]):
++    s, st, _ = Prepared(m).score_matrix([parameters])
++    return -s[0] if st[0] == "complete" else math.nan
++
++for key in ("turbine_efficiency", "inlet_k", "condenser_pa"):
++    step = 1e-3 * model[key]
++    slope = (efficiency(model | {key: model[key] + step})
++             - efficiency(model | {key: model[key] - step})) / (2 * step)
++    print(f"{key:20} d(eta)/dx = {slope:.4e}  elasticity {slope * model[key] / efficiency(model):.3f}")
++```
++
++### 9.6 Constraint effects
++
++The exhaust-quality limit is the active constraint for wet, high-pressure
++designs. Count how much of a grid it removes:
++
++```python
++for limit in (0.75, 0.88, 0.895):
++    _, st, _ = Prepared(model | {"min_exhaust_quality": limit}).score_matrix(rows)
++    print(limit, Counter(st))
++```
++
++## 10. Optimization
++
++For an optimizer, the objective is the score of a `complete` record, and
++every other status needs a penalty larger than any feasible score. Cycle
++scores are minus efficiency, so any value above 0 works; a penalty that
++grows with the violation (for example how far the low pressure exceeds the
++high one) helps an optimizer back into the feasible region. Search in
++log-pressure space: the optimum is broad and spans decades.
++
++Use `score_matrix` for objectives: a population-based optimizer can score a
++whole generation in one call (and use native workers), and a scalar
++objective can score a single row. Replay the winner with `evaluate` to
++inspect it.
++
++```python
++def penalized(rows, scores, statuses):
++    return [s if st == "complete" else 1.0 + max(0.0, math.log10(r[0] / r[1]))
++            for r, s, st in zip(rows, scores, statuses)]
++
++def population(log_rows):
++    rows = (10.0 ** np.asarray(log_rows)).tolist()
++    scores, statuses, _ = prepared.score_matrix(rows, workers=2)
++    return penalized(rows, scores, statuses)
++
++print([round(v, 4) for v in population([[5.5, 6.3], [6.3, 5.5]])])
++```
++
++SciPy's `differential_evolution` in vectorized mode passes the population
++as an array of shape (dimensions, population):
++
++```python
++from scipy.optimize import differential_evolution
++
++bounds = [(math.log10(20e3), math.log10(3e6)), (math.log10(0.2e6), math.log10(7.5e6))]
++result = differential_evolution(lambda xt: np.array(population(xt.T)), bounds, vectorized=True,
++                                updating="deferred", popsize=10, maxiter=30, seed=1,
++                                polish=False, tol=1e-12)
++print([round(10 ** v) for v in result.x], round(-result.fun, 6))
++```
++
++fcmaes optimizers with an ask/tell interface score each population with one
++call:
++
++```python
++from loguru import logger
++from scipy.optimize import Bounds
++from fcmaes import cmaes
++
++logger.remove()
++es = cmaes.Cmaes(Bounds(*zip(*bounds)), [5.5, 6.3], input_sigma=0.3, popsize=12,
++                 max_evaluations=480, rg=np.random.default_rng(2),
++                 randn=np.random.RandomState(2).randn)  # seeds the normal samples too
++while True:
++    xs = es.ask()
++    if es.tell(np.array(population(xs))) != 0:
++        break
++best = es.result()
++print([round(10 ** v) for v in best.x], round(-best.fun, 6))
++```
++
++Standard minimizers such as `fcmaes.bitecpp.minimize`, `fcmaes.de.minimize`
++or `scipy.optimize.minimize` call a scalar objective:
++
++```python
++from fcmaes import bitecpp
++
++def objective(x):
++    return population([x])[0]
++
++result = bitecpp.minimize(objective, Bounds(*zip(*bounds)), max_evaluations=400,
++                          rg=np.random.default_rng(3))
++print(result.nfev, [round(10 ** v) for v in result.x], round(-result.fun, 6))
++```
++
++The optimization examples cover more: SciPy with a Nelder-Mead polish
++(`optimize_scipy.py`), fcmaes CMA-ES and DE ask/tell with native workers
++(`optimize_fcmaes_population.py`), BiteOpt and DE minimizers with graded
++penalties and a strict exhaust limit (`optimize_fcmaes_minimize.py`), and a
++worst-case robust design across operating scenarios (`robust_design.py`).
++
++## 11. Rust API
++
++The library crate is `thermo_craft`.
++
++```rust
++pub struct Prepared { /* private */ }
++impl Prepared {
++    pub fn new(model: &str) -> Result<Self, String>;
++    pub fn model_sha256(&self) -> &str;
++    pub fn evaluate_json(&self, candidates: &str, budget: &str) -> Result<String, String>;
++    pub fn scores_json(&self, candidates: &str, budget: &str) -> Result<String, String>;
++    pub fn score_matrix(&self, rows: usize, parameters: &[f64], budget: &str)
++        -> Result<Vec<MatrixScore>, String>;
++}
++#[derive(Clone, Debug, PartialEq)]
++pub struct MatrixScore { pub status: &'static str, pub steps: u64, pub score: Option<f64> }
++pub fn run(request: &str) -> Result<serde_json::Value, String>;   // CLI request
++pub fn capabilities() -> serde_json::Value;                       // `describe`
++```
++
++- `candidates` is a JSON array of candidates and `budget` a JSON object
++  (`"{}"` for defaults); both return the result envelope of section 5.4.
++- `score_matrix` takes `rows` candidates stored row-major in `parameters`;
++  each row has `parameters.len() / rows` values (0 is allowed). It applies
++  the same budget parsing, limits, worker dispatch, deadlines, cancellation
++  and failure classification as `scores_json`, and its status, steps and
++  score equal the JSON results bit for bit. `score` is `Some` only for
++  `"complete"`.
++- `Candidate`, `Work`, `Failure`, `invalid` and `infeasible` are public for
++  the domain code inside the crate; applications do not need them.
++
++`examples/matrix_scan.rs` is a complete program:
++
++```sh
++cargo run --release --locked --example matrix_scan -- models/example.json
++```
++
++```text
++model sha256 c365d173c54842e093a18c9108be103b21c11d7b4fa943fff8a45eb32420001e
++1600 candidates, statuses {"complete": 1476, "infeasible": 124}
++best low 371.6 kPa, high 2.0311 MPa, efficiency 0.384123, steps 161
++```
++
++## 12. Command-line interface
++
++```text
++thermo-craft describe
++thermo-craft run FILE      # or `run -` to read standard input
++```
++
++`describe` prints the capabilities. `run` reads one request (at most
++16 MiB) and prints one line of JSON. Exit status 0 means every record is
++complete, 2 means the request was valid but at least one record is not
++complete, and 1 means the request was rejected; a rejection prints
++`{"detail": ..., "status": "rejected"}` on standard error.
++
++```sh
++target/release/thermo-craft describe
++```
++
++```text
++{"batch":true,"models":["bounded_if97_regions_1_2_4","closed_rankine","two_open_heater_rankine"],"schema":"thermo-craft.capabilities/0.1","version":"0.3.0","worker_limit":64}
++```
++
++```sh
++echo '{"schema":"thermo-craft.request/0.1","model":{"kind":"property"},"candidates":[{"id":"steam","parameters":[1000000.0,600.0]}]}' | target/release/thermo-craft run -; echo "exit $?"
++```
++
++```text
++{"model_sha256":"7ddb3d78443097ec230bc8437cf61ae65e1e816c5e8acb5420495f78d0e669da","records":[{"detail":null,"id":"steam","metrics":{"state":{"h_j_kg":3108976.8117186152,"p_pa":1000000.0,"quality":null,"s_j_kg_k":7222.372649758314,"t_k":600.0,"v_m3_kg":0.2712072554629714}},"score":3108976.8117186152,"status":"complete","steps":1}],"schema":"thermo-craft.result/0.1","version":"0.3.0"}
++exit 0
++```
++
++A request with an unsuccessful record exits with 2:
++
++```sh
++echo '{"schema":"thermo-craft.request/0.1","model":{"kind":"property"},"candidates":[{"id":"ok","parameters":[1e5,400.0]},{"id":"hot","parameters":[1e5,2000.0]}]}' | target/release/thermo-craft run - | python -c "import json,sys; [print(r['id'], r['status'], r['detail']) for r in json.load(sys.stdin)['records']]"; echo "exit ${PIPESTATUS[1]}"
++```
++
++```text
++ok complete None
++hot invalid temperature outside 273.16 to 1073.15 K
++exit 2
++```
++
++A rejected request exits with 1:
++
++```sh
++echo '{"schema":"thermo-craft.request/0.2","model":{"kind":"property"},"candidates":[]}' | target/release/thermo-craft run -; echo "exit $?"
++```
++
++```text
++{"detail":"unsupported request schema","status":"rejected"}
++exit 1
++```
++
++The packaged regenerative request:
++
++```sh
++target/release/thermo-craft run models/request.json | python -c "import json,sys; r=json.load(sys.stdin)['records'][0]; print(r['id'], r['status'], r['steps'], r['score'], r['metrics']['exhaust_quality'])"
++```
++
++```text
++example complete 121 -0.38408189269858095 0.8925963835552144
++```
++
++The CLI result goes through a `serde_json::Value`, so its keys are sorted;
++the library and Python results list record fields in the order `id`,
++`status`, `steps`, `score`, `metrics`, `detail`. Both are the same JSON
++object.
++
++## 13. Reproducibility and provenance
++
++- **Model identity.** `model_sha256` hashes the exact model bytes. Python
++  encodes models with sorted keys and compact separators, so equal dicts
++  give equal hashes. Bytes that differ (key order, spacing, `8e6` versus
++  `8000000.0`) give different hashes in Rust and the CLI.
++- **Determinism.** For a given build, model and candidate, status, steps,
++  score and metrics are deterministic, independent of worker count, API
++  style and batch composition. Only `wall_limit` and `cancelled` outcomes
++  depend on timing.
++- **Across releases.** The 0.3.0 numerical changes (Newton inverse, power
++  tables, summation order) move values only in their last bits: every
++  0.3.0 round was checked against its predecessor with relative tolerance
++  5e-10 (absolute 5e-7 for quantities in J/kg and 1e-10 otherwise),
++  record order, statuses, details and steps unchanged, and the
++  independent IF97 and cycle validation passed. Store the package version
++  with results that must be reproduced exactly.
++- **Campaign cache.** Cache keys include the SHA-256 of the installed
++  native extension, so a new build never reuses old cached results.
++- **Validation.** `python validation/validate.py target/release/thermo-craft`
++  checks official IF97 points, saturation consistency, pump and turbine
++  balances, the regenerative winner and held-out stress cases;
++  `evidence/validation.json` holds the last run.
++
++```python
++a = Prepared({"kind": "property"}).batch([{"id": "a", "parameters": [1e6, 600.0]}])
++b = Prepared(dict(kind="property")).batch([{"id": "a", "parameters": [1e6, 600.0]}])
++print(a["model_sha256"] == b["model_sha256"], a["model_sha256"][:16])
++```
++
++## 14. Performance tips
++
++Measured on a 2-vCPU Intel Xeon host with Rust 1.97 and CPython 3.12; see
++the Performance section of the [architecture guide](architecture.md) for
++the full tables and evidence files.
++
++- **Use `score_matrix` in optimization loops.** It skips JSON in both
++  directions. Natively a regenerative candidate costs about 1.7 us; a full
++  record about 3.2 us, of which about half is metric construction and JSON
++  writing. From Python on one CPU, a one-row call cost 4.7 us with
++  `score_matrix`, 10 us with `scores` and 27 us with `evaluate`.
++- **Batch many candidates per call.** Natively the fixed cost of a call is
++  well under a microsecond, but each Python call adds a few microseconds,
++  and full results must be decoded from JSON in Python: 96 full records
++  took 1.9 ms from Python against 0.19 ms for 96 matrix rows.
++- **Request full records only for inspection.** Replay winners with
++  `evaluate`.
++- **Workers help large batches.** Thread start-up costs tens of
++  microseconds, so a 96-candidate batch gains little from a second worker,
++  while a 1,024-row matrix call ran 1.7x faster with two workers on two
++  vCPUs. More threads than CPUs are never started.
++- **Leave `wall_ms` and `cancel_file` unset** when you do not need them;
++  monitored budgets check the clock or the file system at every step.
++- **Prepare once.** `Prepared(model)` costs about 1 us natively and about
++  6 us from Python; keep one prepared model per scenario instead of
++  re-preparing inside a loop.
++
++## 15. Troubleshooting
++
++| Symptom | Cause and fix |
++| --- | --- |
++| `ValueError` from `Prepared(...)` | A model error (section 4.3); the message names the problem. |
++| `ValueError: Out of range float values are not JSON compliant` | NaN or infinity in a model, candidate or budget passed to `batch`, `scores` or `evaluate`. `score_matrix` accepts NaN and reports the row as `infeasible` (cycle) or `invalid` (property). |
++| Every regenerative candidate is `infeasible` with the ordering message | Pressures in kPa or MPa instead of Pa, or swapped low and high values. |
++| Many `infeasible` records with `turbine exhaust violates minimum quality` | The exhaust is too wet for `min_exhaust_quality`; raise the inlet temperature, lower the boiler pressure, or relax the limit. |
++| `invalid` with `P/T pair on saturation boundary requires quality` | The temperature equals the saturation temperature; use `[p, quality, 0]`. |
++| `work_limit` | `max_steps` is below the candidate's step count (section 4.6). |
++| `cancelled` with 0 steps | The cancel file existed before evaluation; delete it. |
++| `score_matrix` raises for an empty list or more than 4,096 rows | Split populations into chunks of at most 4,096 rows. |
++| The wheel does not install | Its tag is Linux x86-64, CPython 3.10+ ABI; build from source (section 2.2) elsewhere. |
++| A campaign re-evaluates everything | The native extension changed (new build), or the model, scenario ID, candidate or budget settings differ. |
++| CLI output has keys in a different order than Python | Both are the same JSON object (section 12). |
+diff --git a/evidence/performance-0.3.0/breakdown.json b/evidence/performance-0.3.0/breakdown.json
+new file mode 100644
+index 0000000..2c24e7b
+--- /dev/null
++++ b/evidence/performance-0.3.0/breakdown.json
+@@ -0,0 +1,166 @@
++{
++  "host": {
++    "cpus": 2,
++    "cpu_model": "Intel(R) Xeon(R) Processor @ 2.10GHz",
++    "rustc": "rustc 1.97.0 (2d8144b78 2026-07-07)",
++    "note": "shared by five agents; measured inside the CPU lock"
++  },
++  "command": "target/release/examples/breakdown models/example.json",
++  "available_parallelism": 2,
++  "phases": {
++    "domain": {
++      "candidates": 48,
++      "decode": {
++        "median_us": 7.08425,
++        "min_us": 6.366125
++      },
++      "full": {
++        "median_us": 188.241125,
++        "min_us": 183.334
++      },
++      "lean": {
++        "median_us": 122.68024999999999,
++        "min_us": 117.207125
++      },
++      "matrix": {
++        "median_us": 110.7135,
++        "min_us": 106.58025
++      }
++    },
++    "domain2": {
++      "candidates": 48,
++      "decode": {
++        "median_us": 6.836625,
++        "min_us": 6.10125
++      },
++      "full": {
++        "median_us": 25.346625,
++        "min_us": 23.6155
++      },
++      "lean": {
++        "median_us": 18.276375,
++        "min_us": 16.766625
++      },
++      "matrix": {
++        "median_us": 6.947625,
++        "min_us": 6.7296249999999995
++      }
++    },
++    "invalid": {
++      "candidates": 1024,
++      "decode": {
++        "median_us": 1080.8821249999999,
++        "min_us": 1016.5985000000001
++      },
++      "full": {
++        "median_us": 1305.5452500000001,
++        "min_us": 1236.1067500000001
++      },
++      "lean": {
++        "median_us": 1309.6665,
++        "min_us": 1228.465
++      },
++      "matrix": {
++        "median_us": 33.706125,
++        "min_us": 31.645749999999996
++      }
++    },
++    "one": {
++      "candidates": 1,
++      "decode": {
++        "median_us": 0.14269,
++        "min_us": 0.13195
++      },
++      "full": {
++        "median_us": 3.676915,
++        "min_us": 3.4613925
++      },
++      "lean": {
++        "median_us": 2.2546975,
++        "min_us": 2.130575
++      },
++      "matrix": {
++        "median_us": 1.7765175000000002,
++        "min_us": 1.7127550000000002
++      }
++    },
++    "serial": {
++      "candidates": 96,
++      "decode": {
++        "median_us": 12.587875,
++        "min_us": 11.54725
++      },
++      "full": {
++        "median_us": 329.50625,
++        "min_us": 305.280125
++      },
++      "lean": {
++        "median_us": 196.86637499999998,
++        "min_us": 183.327125
++      },
++      "matrix": {
++        "median_us": 172.626375,
++        "min_us": 158.4555
++      }
++    }
++  },
++  "prepare": {
++    "median_us": 1.2098575,
++    "min_us": 1.073375
++  },
++  "unit": "microseconds per call; min and median of 25 timed loops",
++  "worker_scaling": {
++    "large_1024": {
++      "full_workers_1": {
++        "median_us": 3898.78325,
++        "min_us": 3559.54975
++      },
++      "full_workers_2": {
++        "median_us": 3296.19025,
++        "min_us": 3010.873
++      },
++      "full_workers_4": {
++        "median_us": 3305.132,
++        "min_us": 2877.54425
++      },
++      "matrix_workers_1": {
++        "median_us": 1910.99325,
++        "min_us": 1748.8052500000001
++      },
++      "matrix_workers_2": {
++        "median_us": 1172.394,
++        "min_us": 1047.655
++      },
++      "matrix_workers_4": {
++        "median_us": 1311.54125,
++        "min_us": 1015.922
++      }
++    },
++    "serial_96": {
++      "full_workers_1": {
++        "median_us": 323.56125000000003,
++        "min_us": 299.77500000000003
++      },
++      "full_workers_2": {
++        "median_us": 346.80575,
++        "min_us": 309.28299999999996
++      },
++      "full_workers_4": {
++        "median_us": 338.85725,
++        "min_us": 286.747
++      },
++      "matrix_workers_1": {
++        "median_us": 167.9845,
++        "min_us": 152.8405
++      },
++      "matrix_workers_2": {
++        "median_us": 162.5385,
++        "min_us": 142.91299999999998
++      },
++      "matrix_workers_4": {
++        "median_us": 154.8295,
++        "min_us": 126.27450000000002
++      }
++    }
++  }
++}
+\ No newline at end of file
+diff --git a/evidence/performance-0.3.0/cumulative/full-domain.json b/evidence/performance-0.3.0/cumulative/full-domain.json
+new file mode 100644
+index 0000000..84c51eb
+--- /dev/null
++++ b/evidence/performance-0.3.0/cumulative/full-domain.json
+@@ -0,0 +1,37 @@
++{
++  "workload": "domain",
++  "before_api": "full",
++  "after_api": "full",
++  "before_seconds": [
++    0.0022087032,
++    0.0029513043999999998,
++    0.0028913626,
++    0.0024193494,
++    0.0032172226,
++    0.0027202402,
++    0.0022513746,
++    0.0022217732,
++    0.0021676542,
++    0.0022754834,
++    0.003015761
++  ],
++  "after_seconds": [
++    0.0002134832,
++    0.0002184056,
++    0.00024096220000000002,
++    0.0002896194,
++    0.00033182860000000004,
++    0.0003259292,
++    0.00020000679999999997,
++    0.00020432279999999997,
++    0.000202999,
++    0.00019496999999999998,
++    0.00025399440000000004
++  ],
++  "medians_seconds": [
++    0.0024193494,
++    0.0002184056
++  ],
++  "speedup": 11.077323108931273,
++  "paired_median_speedup": 10.873838847157538
++}
+diff --git a/evidence/performance-0.3.0/cumulative/full-domain2.json b/evidence/performance-0.3.0/cumulative/full-domain2.json
+new file mode 100644
+index 0000000..0061698
+--- /dev/null
++++ b/evidence/performance-0.3.0/cumulative/full-domain2.json
+@@ -0,0 +1,37 @@
++{
++  "workload": "domain2",
++  "before_api": "full",
++  "after_api": "full",
++  "before_seconds": [
++    8.51276e-05,
++    8.10878e-05,
++    7.3742e-05,
++    0.00010875819999999999,
++    9.30438e-05,
++    0.00011997360000000001,
++    0.0001256626,
++    0.0001301942,
++    0.0001131064,
++    0.00012240219999999998,
++    0.00011983020000000001
++  ],
++  "after_seconds": [
++    3.0342200000000002e-05,
++    2.9639e-05,
++    3.08292e-05,
++    2.9708600000000002e-05,
++    3.1485999999999996e-05,
++    5.6656999999999996e-05,
++    4.8473e-05,
++    4.8659400000000004e-05,
++    3.1263e-05,
++    2.91742e-05,
++    4.98026e-05
++  ],
++  "medians_seconds": [
++    0.0001131064,
++    3.1263e-05
++  ],
++  "speedup": 3.6178997537024595,
++  "paired_median_speedup": 2.7358480380579646
++}
+diff --git a/evidence/performance-0.3.0/cumulative/full-invalid.json b/evidence/performance-0.3.0/cumulative/full-invalid.json
+new file mode 100644
+index 0000000..3add4be
+--- /dev/null
++++ b/evidence/performance-0.3.0/cumulative/full-invalid.json
+@@ -0,0 +1,37 @@
++{
++  "workload": "invalid",
++  "before_api": "full",
++  "after_api": "full",
++  "before_seconds": [
++    0.0014324586666666667,
++    0.0014479918333333331,
++    0.0016571415,
++    0.0015026876666666665,
++    0.001395136,
++    0.0014739243333333335,
++    0.0017957666666666668,
++    0.0015249656666666666,
++    0.0015624406666666665,
++    0.0013986844999999998,
++    0.0014478913333333331
++  ],
++  "after_seconds": [
++    0.0014014805,
++    0.0014265673333333333,
++    0.001632349,
++    0.0014544428333333333,
++    0.0014036575,
++    0.0014441026666666666,
++    0.0017632168333333333,
++    0.0017411786666666667,
++    0.0019346928333333331,
++    0.0014503363333333334,
++    0.0014026568333333333
++  ],
++  "medians_seconds": [
++    0.0014739243333333335,
++    0.0014503363333333334
++  ],
++  "speedup": 1.0162638137498683,
++  "paired_median_speedup": 1.0151882348688914
++}
+diff --git a/evidence/performance-0.3.0/cumulative/full-one.json b/evidence/performance-0.3.0/cumulative/full-one.json
+new file mode 100644
+index 0000000..76c440d
+--- /dev/null
++++ b/evidence/performance-0.3.0/cumulative/full-one.json
+@@ -0,0 +1,37 @@
++{
++  "workload": "one",
++  "before_api": "full",
++  "after_api": "full",
++  "before_seconds": [
++    4.78165e-05,
++    4.6204424999999996e-05,
++    4.6000925000000004e-05,
++    4.5661125000000004e-05,
++    4.863395e-05,
++    3.7621025e-05,
++    4.7347e-05,
++    4.9811075e-05,
++    5.1225649999999996e-05,
++    4.1824725e-05,
++    5.064945e-05
++  ],
++  "after_seconds": [
++    6.61915e-06,
++    5.41285e-06,
++    5.448e-06,
++    9.156075e-06,
++    6.325125e-06,
++    6.5683e-06,
++    3.63275e-06,
++    8.14195e-06,
++    6.126325e-06,
++    3.8241500000000005e-06,
++    6.29745e-06
++  ],
++  "medians_seconds": [
++    4.7347e-05,
++    6.29745e-06
++  ],
++  "speedup": 7.5184400034934775,
++  "paired_median_speedup": 8.042850677655242
++}
+diff --git a/evidence/performance-0.3.0/cumulative/full-parallel.json b/evidence/performance-0.3.0/cumulative/full-parallel.json
+new file mode 100644
+index 0000000..bbffd4a
+--- /dev/null
++++ b/evidence/performance-0.3.0/cumulative/full-parallel.json
+@@ -0,0 +1,37 @@
++{
++  "workload": "parallel",
++  "before_api": "full",
++  "after_api": "full",
++  "before_seconds": [
++    0.00224974625,
++    0.00229165575,
++    0.002610851,
++    0.00263416975,
++    0.0028004625,
++    0.002431385,
++    0.002402197,
++    0.00294851125,
++    0.00260530075,
++    0.0027145355,
++    0.00260483925
++  ],
++  "after_seconds": [
++    0.0002966295,
++    0.000297147,
++    0.00034632075,
++    0.00036600275,
++    0.00037982625,
++    0.00035181875,
++    0.0004101705,
++    0.000325304,
++    0.00041953725,
++    0.0003588375,
++    0.000487468
++  ],
++  "medians_seconds": [
++    0.00260530075,
++    0.0003588375
++  ],
++  "speedup": 7.260391542132582,
++  "paired_median_speedup": 7.3730093694156205
++}
+diff --git a/evidence/performance-0.3.0/cumulative/full-serial.json b/evidence/performance-0.3.0/cumulative/full-serial.json
+new file mode 100644
+index 0000000..c230677
+--- /dev/null
++++ b/evidence/performance-0.3.0/cumulative/full-serial.json
+@@ -0,0 +1,37 @@
++{
++  "workload": "serial",
++  "before_api": "full",
++  "after_api": "full",
++  "before_seconds": [
++    0.0043551825,
++    0.00330464825,
++    0.00338811525,
++    0.00332631375,
++    0.00344886325,
++    0.00345688775,
++    0.00350639325,
++    0.0035581625,
++    0.00357489425,
++    0.00389206925,
++    0.00388779175
++  ],
++  "after_seconds": [
++    0.00041940675,
++    0.000323985,
++    0.000336855,
++    0.00053222775,
++    0.000317942,
++    0.00033140525,
++    0.00031951275,
++    0.0004766635,
++    0.000321991,
++    0.00046484325,
++    0.0004332165
++  ],
++  "medians_seconds": [
++    0.00350639325,
++    0.000336855
++  ],
++  "speedup": 10.409206483501803,
++  "paired_median_speedup": 10.200003858203312
++}
+diff --git a/evidence/performance-0.3.0/cumulative/full-trace.json b/evidence/performance-0.3.0/cumulative/full-trace.json
+new file mode 100644
+index 0000000..62b5726
+--- /dev/null
++++ b/evidence/performance-0.3.0/cumulative/full-trace.json
+@@ -0,0 +1,37 @@
++{
++  "workload": "trace",
++  "before_api": "full",
++  "after_api": "full",
++  "before_seconds": [
++    0.00046265216666666666,
++    0.0004772951666666667,
++    0.000466211,
++    0.00040122300000000003,
++    0.00041146583333333335,
++    0.00042499883333333333,
++    0.0004100011666666667,
++    0.0004069873333333333,
++    0.00040181283333333336,
++    0.0004142763333333333,
++    0.0004561445
++  ],
++  "after_seconds": [
++    6.1747e-05,
++    4.6879666666666664e-05,
++    4.3893499999999996e-05,
++    4.428483333333333e-05,
++    3.953483333333333e-05,
++    5.234883333333333e-05,
++    4.45435e-05,
++    4.6172166666666665e-05,
++    4.020983333333333e-05,
++    3.915483333333333e-05,
++    4.5974500000000005e-05
++  ],
++  "medians_seconds": [
++    0.0004142763333333333,
++    4.45435e-05
++  ],
++  "speedup": 9.300489035063103,
++  "paired_median_speedup": 9.921684847034768
++}
+diff --git a/evidence/performance-0.3.0/cumulative/lean-domain.json b/evidence/performance-0.3.0/cumulative/lean-domain.json
+new file mode 100644
+index 0000000..f2f8667
+--- /dev/null
++++ b/evidence/performance-0.3.0/cumulative/lean-domain.json
+@@ -0,0 +1,37 @@
++{
++  "workload": "domain",
++  "before_api": "scores",
++  "after_api": "scores",
++  "before_seconds": [
++    0.0019138834,
++    0.0018881056,
++    0.0018830216000000001,
++    0.0026653594,
++    0.0025371324000000002,
++    0.0019506852000000002,
++    0.0019009218000000001,
++    0.0020467940000000002,
++    0.002490467,
++    0.0019130814,
++    0.0019425516
++  ],
++  "after_seconds": [
++    0.0001390262,
++    0.000140761,
++    0.0001338154,
++    0.0001400698,
++    0.0002234626,
++    0.0002104494,
++    0.0001399866,
++    0.000160063,
++    0.0001664254,
++    0.0001589884,
++    0.0001282074
++  ],
++  "medians_seconds": [
++    0.0019425516,
++    0.000140761
++  ],
++  "speedup": 13.800353791177955,
++  "paired_median_speedup": 13.57931259134803
++}
+diff --git a/evidence/performance-0.3.0/cumulative/lean-domain2.json b/evidence/performance-0.3.0/cumulative/lean-domain2.json
+new file mode 100644
+index 0000000..24cf72b
+--- /dev/null
++++ b/evidence/performance-0.3.0/cumulative/lean-domain2.json
+@@ -0,0 +1,37 @@
++{
++  "workload": "domain2",
++  "before_api": "scores",
++  "after_api": "scores",
++  "before_seconds": [
++    3.73264e-05,
++    4.8307200000000004e-05,
++    4.81408e-05,
++    3.2576399999999995e-05,
++    0.0001353894,
++    5.7704e-05,
++    4.9604399999999996e-05,
++    6.0233e-05,
++    6.11296e-05,
++    5.48344e-05,
++    5.1716800000000006e-05
++  ],
++  "after_seconds": [
++    2.9618199999999997e-05,
++    3.28164e-05,
++    3.0184400000000002e-05,
++    2.20682e-05,
++    2.3695000000000003e-05,
++    2.1966e-05,
++    3.3009599999999996e-05,
++    3.6785e-05,
++    3.89628e-05,
++    3.78496e-05,
++    3.73316e-05
++  ],
++  "medians_seconds": [
++    5.1716800000000006e-05,
++    3.28164e-05
++  ],
++  "speedup": 1.5759437354493486,
++  "paired_median_speedup": 1.5027264795695798
++}
+diff --git a/evidence/performance-0.3.0/cumulative/lean-serial.json b/evidence/performance-0.3.0/cumulative/lean-serial.json
+new file mode 100644
+index 0000000..dae6f92
+--- /dev/null
++++ b/evidence/performance-0.3.0/cumulative/lean-serial.json
+@@ -0,0 +1,37 @@
++{
++  "workload": "serial",
++  "before_api": "scores",
++  "after_api": "scores",
++  "before_seconds": [
++    0.004590772,
++    0.00470484475,
++    0.0046619975,
++    0.00309578825,
++    0.0032052175,
++    0.0028094055,
++    0.0027540725,
++    0.00344801,
++    0.00393082875,
++    0.0028158865,
++    0.00286302075
++  ],
++  "after_seconds": [
++    0.000408226,
++    0.00040954325,
++    0.00021492775,
++    0.00021284325,
++    0.00021815475,
++    0.00020457425,
++    0.000213537,
++    0.00020963825,
++    0.00021725625,
++    0.0002223525,
++    0.000213795
++  ],
++  "medians_seconds": [
++    0.0032052175,
++    0.00021492775
++  ],
++  "speedup": 14.912999833665035,
++  "paired_median_speedup": 13.732938040833584
++}
+diff --git a/evidence/performance-0.3.0/cumulative/matrix-domain.json b/evidence/performance-0.3.0/cumulative/matrix-domain.json
+new file mode 100644
+index 0000000..a00af0e
+--- /dev/null
++++ b/evidence/performance-0.3.0/cumulative/matrix-domain.json
+@@ -0,0 +1,37 @@
++{
++  "workload": "domain",
++  "before_api": "scores",
++  "after_api": "matrix",
++  "before_seconds": [
++    0.0018418824000000001,
++    0.0022711566,
++    0.0018975972,
++    0.001891168,
++    0.0018455166,
++    0.0018789502,
++    0.0027060254,
++    0.0021336746,
++    0.0022757952000000002,
++    0.0020198806,
++    0.0018908354
++  ],
++  "after_seconds": [
++    0.0001242972,
++    0.00014708360000000002,
++    0.0001268568,
++    0.0001122418,
++    0.000127083,
++    0.00011897559999999999,
++    0.00020911520000000002,
++    0.00024082280000000002,
++    0.0001873638,
++    0.0001892876,
++    0.0001333332
++  ],
++  "medians_seconds": [
++    0.0018975972,
++    0.0001333332
++  ],
++  "speedup": 14.231993231993231,
++  "paired_median_speedup": 14.522135926913906
++}
+diff --git a/evidence/performance-0.3.0/cumulative/matrix-serial.json b/evidence/performance-0.3.0/cumulative/matrix-serial.json
+new file mode 100644
+index 0000000..ffc841f
+--- /dev/null
++++ b/evidence/performance-0.3.0/cumulative/matrix-serial.json
+@@ -0,0 +1,37 @@
++{
++  "workload": "serial",
++  "before_api": "scores",
++  "after_api": "matrix",
++  "before_seconds": [
++    0.00289178025,
++    0.00291966775,
++    0.003156933,
++    0.003263641,
++    0.0035560085,
++    0.00355014625,
++    0.003322125,
++    0.00270749825,
++    0.0026236975,
++    0.00268354075,
++    0.0027486915
++  ],
++  "after_seconds": [
++    0.00019795525,
++    0.00020259975,
++    0.00032094725,
++    0.0002418955,
++    0.0003128935,
++    0.00021625375,
++    0.00017468875,
++    0.000208781,
++    0.000163461,
++    0.00016973625,
++    0.00017293875
++  ],
++  "medians_seconds": [
++    0.00291966775,
++    0.00020259975
++  ],
++  "speedup": 14.411013587134239,
++  "paired_median_speedup": 14.608252370169522
++}
+diff --git a/evidence/performance-0.3.0/cumulative/supplement-full-domain2-confirm41.json b/evidence/performance-0.3.0/cumulative/supplement-full-domain2-confirm41.json
+new file mode 100644
+index 0000000..121f244
+--- /dev/null
++++ b/evidence/performance-0.3.0/cumulative/supplement-full-domain2-confirm41.json
+@@ -0,0 +1,97 @@
++{
++  "workload": "domain2",
++  "before_api": "full",
++  "after_api": "full",
++  "before_seconds": [
++    8.3198e-05,
++    7.216199999999999e-05,
++    6.89876e-05,
++    9.51632e-05,
++    8.11842e-05,
++    7.432040000000001e-05,
++    7.83468e-05,
++    7.07366e-05,
++    7.59508e-05,
++    7.058700000000001e-05,
++    6.75908e-05,
++    7.3993e-05,
++    6.96172e-05,
++    6.99792e-05,
++    7.76824e-05,
++    6.94808e-05,
++    7.7587e-05,
++    7.38564e-05,
++    7.91694e-05,
++    0.0001014978,
++    0.0001768452,
++    0.000100169,
++    0.0001640046,
++    9.967179999999999e-05,
++    9.635480000000001e-05,
++    9.45174e-05,
++    7.93602e-05,
++    8.79638e-05,
++    8.8893e-05,
++    8.16212e-05,
++    7.57706e-05,
++    7.3176e-05,
++    6.98444e-05,
++    0.0001087616,
++    0.00013980539999999998,
++    9.34876e-05,
++    9.831799999999999e-05,
++    7.476959999999999e-05,
++    6.866e-05,
++    9.40158e-05,
++    7.55114e-05
++  ],
++  "after_seconds": [
++    3.0199399999999998e-05,
++    2.82246e-05,
++    3.16388e-05,
++    2.8908599999999996e-05,
++    2.8149e-05,
++    3.0279599999999997e-05,
++    2.8395e-05,
++    2.7300399999999997e-05,
++    3.11992e-05,
++    2.8455400000000002e-05,
++    3.64374e-05,
++    2.79572e-05,
++    3.12194e-05,
++    3.93254e-05,
++    3.02236e-05,
++    5.19308e-05,
++    2.96294e-05,
++    2.82922e-05,
++    3.32416e-05,
++    4.2760200000000004e-05,
++    5.240279999999999e-05,
++    4.1556999999999995e-05,
++    4.07474e-05,
++    4.06254e-05,
++    5.3673999999999995e-05,
++    4.1866199999999996e-05,
++    3.1371399999999996e-05,
++    2.88826e-05,
++    3.2574e-05,
++    2.8552800000000002e-05,
++    3.52494e-05,
++    2.88486e-05,
++    3.36992e-05,
++    3.1251e-05,
++    4.5803800000000004e-05,
++    4.45514e-05,
++    3.99e-05,
++    2.9163000000000002e-05,
++    2.6971e-05,
++    3.87942e-05,
++    3.92938e-05
++  ],
++  "medians_seconds": [
++    7.83468e-05,
++    3.1371399999999996e-05
++  ],
++  "speedup": 2.4973957171181396,
++  "paired_median_speedup": 2.5296990252267992
++}
+diff --git a/evidence/performance-0.3.0/cumulative/supplement-lean-domain2-confirm41.json b/evidence/performance-0.3.0/cumulative/supplement-lean-domain2-confirm41.json
+new file mode 100644
+index 0000000..b441dfd
+--- /dev/null
++++ b/evidence/performance-0.3.0/cumulative/supplement-lean-domain2-confirm41.json
+@@ -0,0 +1,97 @@
++{
++  "workload": "domain2",
++  "before_api": "scores",
++  "after_api": "scores",
++  "before_seconds": [
++    5.34746e-05,
++    3.24304e-05,
++    3.33622e-05,
++    3.0757400000000005e-05,
++    2.9486e-05,
++    0.00010845559999999999,
++    3.77616e-05,
++    3.0413400000000003e-05,
++    3.32104e-05,
++    5.1690199999999995e-05,
++    3.1922e-05,
++    3.71186e-05,
++    5.723660000000001e-05,
++    3.7324e-05,
++    3.0631e-05,
++    9.15292e-05,
++    3.3928000000000004e-05,
++    3.53464e-05,
++    5.400999999999999e-05,
++    9.993580000000001e-05,
++    3.0540199999999996e-05,
++    4.7068400000000005e-05,
++    5.3996600000000004e-05,
++    5.6467e-05,
++    6.43584e-05,
++    3.13062e-05,
++    3.2541e-05,
++    3.4821e-05,
++    3.54494e-05,
++    5.73976e-05,
++    3.40428e-05,
++    3.1217e-05,
++    3.28668e-05,
++    3.02404e-05,
++    3.07916e-05,
++    4.08104e-05,
++    2.9968e-05,
++    2.87334e-05,
++    3.0119199999999998e-05,
++    2.97186e-05,
++    3.2061e-05
++  ],
++  "after_seconds": [
++    2.3976e-05,
++    2.3621e-05,
++    3.32534e-05,
++    2.1227e-05,
++    2.26732e-05,
++    3.33002e-05,
++    2.20456e-05,
++    2.2114e-05,
++    2.44016e-05,
++    3.43844e-05,
++    2.2848000000000002e-05,
++    2.2267200000000003e-05,
++    3.98104e-05,
++    3.90278e-05,
++    2.25352e-05,
++    2.11072e-05,
++    2.22968e-05,
++    2.20298e-05,
++    2.30972e-05,
++    2.21008e-05,
++    2.4168e-05,
++    2.19364e-05,
++    4.22952e-05,
++    4.28946e-05,
++    2.4205999999999998e-05,
++    2.4264e-05,
++    2.54448e-05,
++    4.0450399999999995e-05,
++    2.5395399999999997e-05,
++    2.2534e-05,
++    2.5283800000000003e-05,
++    2.3551e-05,
++    2.20774e-05,
++    2.21282e-05,
++    3.52886e-05,
++    2.36512e-05,
++    2.8049e-05,
++    2.0482e-05,
++    2.1276199999999998e-05,
++    2.1519200000000002e-05,
++    2.1957800000000002e-05
++  ],
++  "medians_seconds": [
++    3.3928000000000004e-05,
++    2.3551e-05
++  ],
++  "speedup": 1.4406182327714325,
++  "paired_median_speedup": 1.3971463585434172
++}
+diff --git a/evidence/performance-0.3.0/cumulative/supplement-matrix-domain2.json b/evidence/performance-0.3.0/cumulative/supplement-matrix-domain2.json
+new file mode 100644
+index 0000000..8c2acff
+--- /dev/null
++++ b/evidence/performance-0.3.0/cumulative/supplement-matrix-domain2.json
+@@ -0,0 +1,37 @@
++{
++  "workload": "domain2",
++  "before_api": "scores",
++  "after_api": "matrix",
++  "before_seconds": [
++    3.21088e-05,
++    3.9577200000000005e-05,
++    3.0460799999999998e-05,
++    3.09932e-05,
++    3.41444e-05,
++    9.032880000000001e-05,
++    2.9753400000000002e-05,
++    7.16678e-05,
++    3.82948e-05,
++    3.03892e-05,
++    6.3059e-05
++  ],
++  "after_seconds": [
++    7.0832e-06,
++    7.2724e-06,
++    7.4208e-06,
++    7.1013999999999995e-06,
++    7.061000000000001e-06,
++    1.5713e-05,
++    6.6642000000000005e-06,
++    8.6402e-06,
++    1.16458e-05,
++    7.1344e-06,
++    1.93068e-05
++  ],
++  "medians_seconds": [
++    3.41444e-05,
++    7.2724e-06
++  ],
++  "speedup": 4.695066277982509,
++  "paired_median_speedup": 4.4646619249122175
++}
+diff --git a/evidence/performance-0.3.0/cumulative/supplement-matrix-invalid.json b/evidence/performance-0.3.0/cumulative/supplement-matrix-invalid.json
+new file mode 100644
+index 0000000..46f6840
+--- /dev/null
++++ b/evidence/performance-0.3.0/cumulative/supplement-matrix-invalid.json
+@@ -0,0 +1,37 @@
++{
++  "workload": "invalid",
++  "before_api": "scores",
++  "after_api": "matrix",
++  "before_seconds": [
++    0.0016041293333333333,
++    0.0014614959999999998,
++    0.0014192451666666668,
++    0.0014061445000000002,
++    0.0014336569999999999,
++    0.0014300535,
++    0.0014366418333333333,
++    0.0014159961666666667,
++    0.0015235446666666665,
++    0.0014190593333333335,
++    0.0015075161666666668
++  ],
++  "after_seconds": [
++    4.924833333333333e-05,
++    3.9841833333333335e-05,
++    3.93145e-05,
++    3.67825e-05,
++    3.739716666666667e-05,
++    4.0039999999999996e-05,
++    3.89455e-05,
++    3.5270833333333335e-05,
++    3.486966666666667e-05,
++    3.70915e-05,
++    3.913183333333334e-05
++  ],
++  "medians_seconds": [
++    0.0014336569999999999,
++    3.89455e-05
++  ],
++  "speedup": 36.81187813739712,
++  "paired_median_speedup": 38.228627744171824
++}
+diff --git a/evidence/performance-0.3.0/python-call-costs-0.2.0.json b/evidence/performance-0.3.0/python-call-costs-0.2.0.json
+new file mode 100644
+index 0000000..6b9160a
+--- /dev/null
++++ b/evidence/performance-0.3.0/python-call-costs-0.2.0.json
+@@ -0,0 +1,25 @@
++{
++  "unit": "microseconds per call; min and median of 25 interleaved rounds",
++  "calls": {
++    "one_full_evaluate": {
++      "min_us": 59.16163250049067,
++      "median_us": 63.18272500038802
++    },
++    "one_lean_scores": {
++      "min_us": 35.70871750071092,
++      "median_us": 37.93605749933704
++    },
++    "batch96_full": {
++      "min_us": 4816.116849997343,
++      "median_us": 5245.669999976599
++    },
++    "batch96_lean": {
++      "min_us": 2746.5156000289426,
++      "median_us": 2937.0404499786673
++    },
++    "prepare": {
++      "min_us": 6.179942502058111,
++      "median_us": 6.4669450011933804
++    }
++  }
++}
+diff --git a/evidence/performance-0.3.0/python-call-costs-0.3.0.json b/evidence/performance-0.3.0/python-call-costs-0.3.0.json
+new file mode 100644
+index 0000000..b0a52dd
+--- /dev/null
++++ b/evidence/performance-0.3.0/python-call-costs-0.3.0.json
+@@ -0,0 +1,33 @@
++{
++  "unit": "microseconds per call; min and median of 25 interleaved rounds",
++  "calls": {
++    "one_full_evaluate": {
++      "min_us": 27.357164999557426,
++      "median_us": 29.91752749949228
++    },
++    "one_lean_scores": {
++      "min_us": 10.033669998392725,
++      "median_us": 10.93305749918727
++    },
++    "one_matrix": {
++      "min_us": 4.695022500982304,
++      "median_us": 4.8963475001073675
++    },
++    "batch96_full": {
++      "min_us": 1931.279300015376,
++      "median_us": 2099.9501000005694
++    },
++    "batch96_lean": {
++      "min_us": 362.26395000085176,
++      "median_us": 380.59190001149545
++    },
++    "batch96_matrix": {
++      "min_us": 189.9477500046487,
++      "median_us": 200.45974997628946
++    },
++    "prepare": {
++      "min_us": 5.745617499997024,
++      "median_us": 6.196439999257564
++    }
++  }
++}
+diff --git a/evidence/performance-0.3.0/python-optimization.json b/evidence/performance-0.3.0/python-optimization.json
+new file mode 100644
+index 0000000..6b25a6b
+--- /dev/null
++++ b/evidence/performance-0.3.0/python-optimization.json
+@@ -0,0 +1,563 @@
++{
++  "host": {
++    "cpus": 2,
++    "cpu_model": "Intel(R) Xeon(R) Processor @ 2.10GHz",
++    "python": "CPython 3.12.3",
++    "rustc": "rustc 1.97.0",
++    "affinity": "taskset -c 0",
++    "note": "measured inside the shared CPU lock"
++  },
++  "command": "validation/optimize_performance.py thermo_craft [--scores|--matrix], 7 interleaved runs per configuration",
++  "wheels": {
++    "v0.2.0": "packages/thermo_craft-0.2.0-cp310-abi3-manylinux_2_34_x86_64.whl (from the 0.2.0 delivery)",
++    "v0.3.0": "built with maturin 1.9.6 from the extracted 0.3.0 sdist, sha256 0be6990235859c10b5280ee538ef3131e1413950eaeb1bfee01f9403c08d5d77"
++  },
++  "runs": {
++    "v0.2.0-full": [
++      {
++        "mode": "full",
++        "total_seconds": 0.008843365999382513,
++        "prepare_seconds": 9.935699927154928e-05,
++        "search_seconds": 0.008645156000056886,
++        "replay_seconds": 9.885300005407771e-05,
++        "evaluations": 48,
++        "failures": 0,
++        "best": [
++          362432.0581474683,
++          2033861.965363634
++        ],
++        "score": -0.38412704852860363
++      },
++      {
++        "mode": "full",
++        "total_seconds": 0.0077059730001565185,
++        "prepare_seconds": 7.683300009375671e-05,
++        "search_seconds": 0.007548542000222369,
++        "replay_seconds": 8.059799984039273e-05,
++        "evaluations": 48,
++        "failures": 0,
++        "best": [
++          362432.0581474683,
++          2033861.965363634
++        ],
++        "score": -0.38412704852860363
++      },
++      {
++        "mode": "full",
++        "total_seconds": 0.00921954800014646,
++        "prepare_seconds": 9.258099998987745e-05,
++        "search_seconds": 0.008970728999884159,
++        "replay_seconds": 0.00015623800027242396,
++        "evaluations": 48,
++        "failures": 0,
++        "best": [
++          362432.0581474683,
++          2033861.965363634
++        ],
++        "score": -0.38412704852860363
++      },
++      {
++        "mode": "full",
++        "total_seconds": 0.008669274000567384,
++        "prepare_seconds": 8.949900075094774e-05,
++        "search_seconds": 0.008481979999487521,
++        "replay_seconds": 9.77950003289152e-05,
++        "evaluations": 48,
++        "failures": 0,
++        "best": [
++          362432.0581474683,
++          2033861.965363634
++        ],
++        "score": -0.38412704852860363
++      },
++      {
++        "mode": "full",
++        "total_seconds": 0.009408058000190067,
++        "prepare_seconds": 9.096400026464835e-05,
++        "search_seconds": 0.009229332999893813,
++        "replay_seconds": 8.776100003160536e-05,
++        "evaluations": 48,
++        "failures": 0,
++        "best": [
++          362432.0581474683,
++          2033861.965363634
++        ],
++        "score": -0.38412704852860363
++      },
++      {
++        "mode": "full",
++        "total_seconds": 0.013944231000095897,
++        "prepare_seconds": 0.00019053600044571795,
++        "search_seconds": 0.01362724699993123,
++        "replay_seconds": 0.00012644799971894827,
++        "evaluations": 48,
++        "failures": 0,
++        "best": [
++          362432.0581474683,
++          2033861.965363634
++        ],
++        "score": -0.38412704852860363
++      },
++      {
++        "mode": "full",
++        "total_seconds": 0.00886338500004058,
++        "prepare_seconds": 7.936400015751133e-05,
++        "search_seconds": 0.008661834999657003,
++        "replay_seconds": 0.00012218600022606552,
++        "evaluations": 48,
++        "failures": 0,
++        "best": [
++          362432.0581474683,
++          2033861.965363634
++        ],
++        "score": -0.38412704852860363
++      }
++    ],
++    "v0.2.0-scores": [
++      {
++        "mode": "scores",
++        "total_seconds": 0.007108351000169932,
++        "prepare_seconds": 8.333100049640052e-05,
++        "search_seconds": 0.006866368999908445,
++        "replay_seconds": 0.00015865099976508645,
++        "evaluations": 48,
++        "failures": 0,
++        "best": [
++          362432.0581474683,
++          2033861.965363634
++        ],
++        "score": -0.38412704852860363
++      },
++      {
++        "mode": "scores",
++        "total_seconds": 0.006752770999810309,
++        "prepare_seconds": 7.594700036861468e-05,
++        "search_seconds": 0.00651336199916841,
++        "replay_seconds": 0.0001634620002732845,
++        "evaluations": 48,
++        "failures": 0,
++        "best": [
++          362432.0581474683,
++          2033861.965363634
++        ],
++        "score": -0.38412704852860363
++      },
++      {
++        "mode": "scores",
++        "total_seconds": 0.007082222000462934,
++        "prepare_seconds": 0.00011059400003432529,
++        "search_seconds": 0.0068506930001603905,
++        "replay_seconds": 0.00012093500026821857,
++        "evaluations": 48,
++        "failures": 0,
++        "best": [
++          362432.0581474683,
++          2033861.965363634
++        ],
++        "score": -0.38412704852860363
++      },
++      {
++        "mode": "scores",
++        "total_seconds": 0.0065579030006119865,
++        "prepare_seconds": 6.965500051592244e-05,
++        "search_seconds": 0.006366849000187358,
++        "replay_seconds": 0.00012139899990870617,
++        "evaluations": 48,
++        "failures": 0,
++        "best": [
++          362432.0581474683,
++          2033861.965363634
++        ],
++        "score": -0.38412704852860363
++      },
++      {
++        "mode": "scores",
++        "total_seconds": 0.007208287000139535,
++        "prepare_seconds": 7.9957000707509e-05,
++        "search_seconds": 0.006953608999538119,
++        "replay_seconds": 0.000174720999893907,
++        "evaluations": 48,
++        "failures": 0,
++        "best": [
++          362432.0581474683,
++          2033861.965363634
++        ],
++        "score": -0.38412704852860363
++      },
++      {
++        "mode": "scores",
++        "total_seconds": 0.006836933000158751,
++        "prepare_seconds": 8.626999988337047e-05,
++        "search_seconds": 0.00661542499983625,
++        "replay_seconds": 0.0001352380004391307,
++        "evaluations": 48,
++        "failures": 0,
++        "best": [
++          362432.0581474683,
++          2033861.965363634
++        ],
++        "score": -0.38412704852860363
++      },
++      {
++        "mode": "scores",
++        "total_seconds": 0.006911436000336835,
++        "prepare_seconds": 8.906899984140182e-05,
++        "search_seconds": 0.006698762999803876,
++        "replay_seconds": 0.0001236040006915573,
++        "evaluations": 48,
++        "failures": 0,
++        "best": [
++          362432.0581474683,
++          2033861.965363634
++        ],
++        "score": -0.38412704852860363
++      }
++    ],
++    "v0.3.0-full": [
++      {
++        "mode": "full",
++        "total_seconds": 0.006489575000159675,
++        "prepare_seconds": 0.00010076299986394588,
++        "search_seconds": 0.006341656000586227,
++        "replay_seconds": 4.7155999709502794e-05,
++        "evaluations": 48,
++        "failures": 0,
++        "best": [
++          362432.0581474683,
++          2033861.965363634
++        ],
++        "score": -0.38412704852854795
++      },
++      {
++        "mode": "full",
++        "total_seconds": 0.006767689999833237,
++        "prepare_seconds": 7.713000013609417e-05,
++        "search_seconds": 0.00664210600007209,
++        "replay_seconds": 4.845399962505326e-05,
++        "evaluations": 48,
++        "failures": 0,
++        "best": [
++          362432.0581474683,
++          2033861.965363634
++        ],
++        "score": -0.38412704852854795
++      },
++      {
++        "mode": "full",
++        "total_seconds": 0.006235225000637001,
++        "prepare_seconds": 8.20519999251701e-05,
++        "search_seconds": 0.006108474000029673,
++        "replay_seconds": 4.469900068215793e-05,
++        "evaluations": 48,
++        "failures": 0,
++        "best": [
++          362432.0581474683,
++          2033861.965363634
++        ],
++        "score": -0.38412704852854795
++      },
++      {
++        "mode": "full",
++        "total_seconds": 0.00666435699986323,
++        "prepare_seconds": 0.00011600299967540195,
++        "search_seconds": 0.006484821000412921,
++        "replay_seconds": 6.353299977490678e-05,
++        "evaluations": 48,
++        "failures": 0,
++        "best": [
++          362432.0581474683,
++          2033861.965363634
++        ],
++        "score": -0.38412704852854795
++      },
++      {
++        "mode": "full",
++        "total_seconds": 0.007894502999988617,
++        "prepare_seconds": 0.00010280800051987171,
++        "search_seconds": 0.007733585999631032,
++        "replay_seconds": 5.810899983771378e-05,
++        "evaluations": 48,
++        "failures": 0,
++        "best": [
++          362432.0581474683,
++          2033861.965363634
++        ],
++        "score": -0.38412704852854795
++      },
++      {
++        "mode": "full",
++        "total_seconds": 0.006885240999508824,
++        "prepare_seconds": 8.388700007344596e-05,
++        "search_seconds": 0.006748355999661726,
++        "replay_seconds": 5.299799977365183e-05,
++        "evaluations": 48,
++        "failures": 0,
++        "best": [
++          362432.0581474683,
++          2033861.965363634
++        ],
++        "score": -0.38412704852854795
++      },
++      {
++        "mode": "full",
++        "total_seconds": 0.006860384999527014,
++        "prepare_seconds": 7.907199960754951e-05,
++        "search_seconds": 0.0067324350002309075,
++        "replay_seconds": 4.8877999688556883e-05,
++        "evaluations": 48,
++        "failures": 0,
++        "best": [
++          362432.0581474683,
++          2033861.965363634
++        ],
++        "score": -0.38412704852854795
++      }
++    ],
++    "v0.3.0-scores": [
++      {
++        "mode": "scores",
++        "total_seconds": 0.005598638999799732,
++        "prepare_seconds": 8.119399990391685e-05,
++        "search_seconds": 0.005451951999930316,
++        "replay_seconds": 6.549299996549962e-05,
++        "evaluations": 48,
++        "failures": 0,
++        "best": [
++          362432.0581474683,
++          2033861.965363634
++        ],
++        "score": -0.38412704852854795
++      },
++      {
++        "mode": "scores",
++        "total_seconds": 0.007397203000437003,
++        "prepare_seconds": 9.698600024421467e-05,
++        "search_seconds": 0.007196905000455445,
++        "replay_seconds": 0.00010331199973734329,
++        "evaluations": 48,
++        "failures": 0,
++        "best": [
++          362432.0581474683,
++          2033861.965363634
++        ],
++        "score": -0.38412704852854795
++      },
++      {
++        "mode": "scores",
++        "total_seconds": 0.0060776199998144875,
++        "prepare_seconds": 8.443799924862105e-05,
++        "search_seconds": 0.005927101999986917,
++        "replay_seconds": 6.60800005789497e-05,
++        "evaluations": 48,
++        "failures": 0,
++        "best": [
++          362432.0581474683,
++          2033861.965363634
++        ],
++        "score": -0.38412704852854795
++      },
++      {
++        "mode": "scores",
++        "total_seconds": 0.0051872000003641006,
++        "prepare_seconds": 9.318400043412112e-05,
++        "search_seconds": 0.005026961999647028,
++        "replay_seconds": 6.705400028295116e-05,
++        "evaluations": 48,
++        "failures": 0,
++        "best": [
++          362432.0581474683,
++          2033861.965363634
++        ],
++        "score": -0.38412704852854795
++      },
++      {
++        "mode": "scores",
++        "total_seconds": 0.005652011000165658,
++        "prepare_seconds": 9.535600020171842e-05,
++        "search_seconds": 0.005479138999362476,
++        "replay_seconds": 7.751600060146302e-05,
++        "evaluations": 48,
++        "failures": 0,
++        "best": [
++          362432.0581474683,
++          2033861.965363634
++        ],
++        "score": -0.38412704852854795
++      },
++      {
++        "mode": "scores",
++        "total_seconds": 0.005942378000327153,
++        "prepare_seconds": 8.580500070820563e-05,
++        "search_seconds": 0.0057902629996533506,
++        "replay_seconds": 6.630999996559694e-05,
++        "evaluations": 48,
++        "failures": 0,
++        "best": [
++          362432.0581474683,
++          2033861.965363634
++        ],
++        "score": -0.38412704852854795
++      },
++      {
++        "mode": "scores",
++        "total_seconds": 0.006044087999725889,
++        "prepare_seconds": 9.834800039243419e-05,
++        "search_seconds": 0.005819201999656798,
++        "replay_seconds": 0.0001265379996766569,
++        "evaluations": 48,
++        "failures": 0,
++        "best": [
++          362432.0581474683,
++          2033861.965363634
++        ],
++        "score": -0.38412704852854795
++      }
++    ],
++    "v0.3.0-matrix": [
++      {
++        "mode": "matrix",
++        "total_seconds": 0.004835996000110754,
++        "prepare_seconds": 8.534799962944817e-05,
++        "search_seconds": 0.004656320000322012,
++        "replay_seconds": 9.432800015929388e-05,
++        "evaluations": 48,
++        "failures": 0,
++        "best": [
++          362432.0581474683,
++          2033861.965363634
++        ],
++        "score": -0.38412704852854795
++      },
++      {
++        "mode": "matrix",
++        "total_seconds": 0.0047249540002667345,
++        "prepare_seconds": 9.391000003233785e-05,
++        "search_seconds": 0.004541092000181379,
++        "replay_seconds": 8.99520000530174e-05,
++        "evaluations": 48,
++        "failures": 0,
++        "best": [
++          362432.0581474683,
++          2033861.965363634
++        ],
++        "score": -0.38412704852854795
++      },
++      {
++        "mode": "matrix",
++        "total_seconds": 0.00389603699932195,
++        "prepare_seconds": 0.00010761999965325231,
++        "search_seconds": 0.0037080430001878995,
++        "replay_seconds": 8.037399948079837e-05,
++        "evaluations": 48,
++        "failures": 0,
++        "best": [
++          362432.0581474683,
++          2033861.965363634
++        ],
++        "score": -0.38412704852854795
++      },
++      {
++        "mode": "matrix",
++        "total_seconds": 0.00551755700053036,
++        "prepare_seconds": 7.305899998755194e-05,
++        "search_seconds": 0.005266606000077445,
++        "replay_seconds": 0.0001778920004653628,
++        "evaluations": 48,
++        "failures": 0,
++        "best": [
++          362432.0581474683,
++          2033861.965363634
++        ],
++        "score": -0.38412704852854795
++      },
++      {
++        "mode": "matrix",
++        "total_seconds": 0.005336659999557014,
++        "prepare_seconds": 9.442800001124851e-05,
++        "search_seconds": 0.005151364000084868,
++        "replay_seconds": 9.086799946089741e-05,
++        "evaluations": 48,
++        "failures": 0,
++        "best": [
++          362432.0581474683,
++          2033861.965363634
++        ],
++        "score": -0.38412704852854795
++      },
++      {
++        "mode": "matrix",
++        "total_seconds": 0.004601910000019416,
++        "prepare_seconds": 7.761600045341766e-05,
++        "search_seconds": 0.004434135999872524,
++        "replay_seconds": 9.015799969347427e-05,
++        "evaluations": 48,
++        "failures": 0,
++        "best": [
++          362432.0581474683,
++          2033861.965363634
++        ],
++        "score": -0.38412704852854795
++      },
++      {
++        "mode": "matrix",
++        "total_seconds": 0.00484117799987871,
++        "prepare_seconds": 0.00010576499971648445,
++        "search_seconds": 0.004637450000700483,
++        "replay_seconds": 9.796299946174258e-05,
++        "evaluations": 48,
++        "failures": 0,
++        "best": [
++          362432.0581474683,
++          2033861.965363634
++        ],
++        "score": -0.38412704852854795
++      }
++    ]
++  },
++  "median_ms": {
++    "v0.2.0-full": {
++      "prepare": 0.09096400026464835,
++      "search": 8.661834999657003,
++      "replay": 0.09885300005407771,
++      "total": 8.86338500004058
++    },
++    "v0.2.0-scores": {
++      "prepare": 0.08333100049640052,
++      "search": 6.698762999803876,
++      "replay": 0.1352380004391307,
++      "total": 6.911436000336835
++    },
++    "v0.3.0-full": {
++      "prepare": 0.08388700007344596,
++      "search": 6.64210600007209,
++      "replay": 0.048877999688556883,
++      "total": 6.767689999833237
++    },
++    "v0.3.0-scores": {
++      "prepare": 0.09318400043412112,
++      "search": 5.790262999653351,
++      "replay": 0.06705400028295116,
++      "total": 5.942378000327153
++    },
++    "v0.3.0-matrix": {
++      "prepare": 0.09391000003233785,
++      "search": 4.637450000700483,
++      "replay": 0.09086799946089741,
++      "total": 4.835996000110754
++    }
++  },
++  "agree": true,
++  "evaluations": 48,
++  "failures": 0,
++  "best": [
++    362432.0581474683,
++    2033861.965363634
++  ],
++  "scores": {
++    "v0.2.0-full": -0.38412704852860363,
++    "v0.2.0-scores": -0.38412704852860363,
++    "v0.3.0-full": -0.38412704852854795,
++    "v0.3.0-scores": -0.38412704852854795,
++    "v0.3.0-matrix": -0.38412704852854795
++  }
++}
+\ No newline at end of file
+diff --git a/examples/breakdown.rs b/examples/breakdown.rs
+new file mode 100644
+index 0000000..1e7078d
+--- /dev/null
++++ b/examples/breakdown.rs
+@@ -0,0 +1,192 @@
++//! Where a prepared call's time goes, measured through the public API only.
++//!
++//! `decode` parses the candidate JSON, `matrix` is `score_matrix` on the same
++//! values (domain evaluation without JSON), `lean` is `scores_json` and `full`
++//! is `evaluate_json`. Each figure is the minimum and the median of 25 timed
++//! loops, in microseconds per call. Run with `--release`:
++//! `cargo run --release --locked --example breakdown -- models/example.json`.
++use serde_json::{Value, json};
++use std::{hint::black_box, time::Instant};
++use thermo_craft::{Candidate, Prepared};
++
++/// A named call returning a size, kept alive so `black_box` sees its result.
++type Case<'a> = (&'static str, Box<dyn FnMut() -> usize + 'a>);
++
++/// Time several calls in interleaved rounds so slow host phases hit all of them.
++fn time(calls: u32, mut cases: Vec<Case<'_>>) -> Value {
++    let mut samples = vec![Vec::new(); cases.len()];
++    for (_, f) in &mut cases {
++        black_box(f());
++    }
++    for _ in 0..25 {
++        for (k, (_, f)) in cases.iter_mut().enumerate() {
++            let start = Instant::now();
++            for _ in 0..calls {
++                black_box(f());
++            }
++            samples[k].push(start.elapsed().as_secs_f64() * 1e6 / f64::from(calls));
++        }
++    }
++    let mut out = serde_json::Map::new();
++    for ((name, _), mut values) in cases.into_iter().zip(samples) {
++        values.sort_by(f64::total_cmp);
++        out.insert(
++            name.into(),
++            json!({"min_us": values[0], "median_us": values[12]}),
++        );
++    }
++    Value::Object(out)
++}
++
++struct Workload {
++    prepared: Prepared,
++    count: usize,
++    candidates: String,
++    matrix: Vec<f64>,
++}
++
++fn workload(example: &Value, name: &str) -> Workload {
++    let mut model = example["model"].clone();
++    let mut parameters = example["parameters"].clone();
++    let count = match name {
++        "one" => 1,
++        "serial" => 96,
++        "invalid" => 1024,
++        "large" => 1024,
++        "domain" => {
++            model["inlet_k"] = json!(950.0);
++            48
++        }
++        "domain2" => {
++            model = json!({"kind": "property"});
++            parameters = json!([1000000.0, 750.0]);
++            48
++        }
++        _ => panic!("unknown workload"),
++    };
++    let rows: Vec<Vec<f64>> = (0..count)
++        .map(|i| {
++            let mut values: Vec<f64> = serde_json::from_value(parameters.clone()).unwrap();
++            if name == "invalid" {
++                values = vec![1.0; 63];
++            } else if let Some(first) = values.first_mut() {
++                *first *= 1.0 + (i % 13) as f64 * 0.003;
++            }
++            values
++        })
++        .collect();
++    let candidates: Vec<_> = rows
++        .iter()
++        .enumerate()
++        .map(|(i, row)| json!({"id": format!("candidate-{i:04}"), "parameters": row}))
++        .collect();
++    Workload {
++        prepared: Prepared::new(&model.to_string()).unwrap(),
++        count,
++        candidates: Value::from(candidates).to_string(),
++        matrix: rows.concat(),
++    }
++}
++
++fn main() {
++    let path = std::env::args().nth(1).expect("example JSON");
++    let example: Value = serde_json::from_str(&std::fs::read_to_string(path).unwrap()).unwrap();
++    let mut phases = serde_json::Map::new();
++    for name in ["one", "serial", "domain", "domain2", "invalid"] {
++        let w = workload(&example, name);
++        let calls = if w.count == 1 { 400 } else { 8 };
++        let budget = "{}";
++        let mut timed = time(
++            calls,
++            vec![
++                (
++                    "decode",
++                    Box::new(|| {
++                        serde_json::from_str::<Vec<Candidate>>(&w.candidates)
++                            .unwrap()
++                            .len()
++                    }),
++                ),
++                (
++                    "matrix",
++                    Box::new(|| {
++                        w.prepared
++                            .score_matrix(w.count, &w.matrix, budget)
++                            .unwrap()
++                            .len()
++                    }),
++                ),
++                (
++                    "lean",
++                    Box::new(|| w.prepared.scores_json(&w.candidates, budget).unwrap().len()),
++                ),
++                (
++                    "full",
++                    Box::new(|| {
++                        w.prepared
++                            .evaluate_json(&w.candidates, budget)
++                            .unwrap()
++                            .len()
++                    }),
++                ),
++            ],
++        );
++        timed["candidates"] = json!(w.count);
++        phases.insert(name.into(), timed);
++    }
++    let mut scaling = serde_json::Map::new();
++    for name in ["serial", "large"] {
++        let w = workload(&example, name);
++        let budgets: Vec<String> = [1, 2, 4]
++            .iter()
++            .map(|workers| json!({"workers": workers}).to_string())
++            .collect();
++        let mut cases: Vec<Case<'_>> = Vec::new();
++        for (budget, (matrix, full)) in budgets.iter().zip([
++            ("matrix_workers_1", "full_workers_1"),
++            ("matrix_workers_2", "full_workers_2"),
++            ("matrix_workers_4", "full_workers_4"),
++        ]) {
++            let w = &w;
++            cases.push((
++                matrix,
++                Box::new(move || {
++                    w.prepared
++                        .score_matrix(w.count, &w.matrix, budget)
++                        .unwrap()
++                        .len()
++                }),
++            ));
++            cases.push((
++                full,
++                Box::new(move || {
++                    w.prepared
++                        .evaluate_json(&w.candidates, budget)
++                        .unwrap()
++                        .len()
++                }),
++            ));
++        }
++        let rows = time(4, cases);
++        scaling.insert(format!("{name}_{}", w.count), rows);
++    }
++    let model = example["model"].to_string();
++    let prepare = time(
++        400,
++        vec![(
++            "prepare",
++            Box::new(|| usize::from(Prepared::new(&model).is_ok())),
++        )],
++    );
++    println!(
++        "{}",
++        serde_json::to_string_pretty(&json!({
++            "unit": "microseconds per call; min and median of 25 timed loops",
++            "available_parallelism": std::thread::available_parallelism().map_or(1, usize::from),
++            "prepare": prepare["prepare"],
++            "phases": phases,
++            "worker_scaling": scaling,
++        }))
++        .unwrap()
++    );
++}
+diff --git a/examples/matrix_scan.rs b/examples/matrix_scan.rs
+new file mode 100644
+index 0000000..1a0f32f
+--- /dev/null
++++ b/examples/matrix_scan.rs
+@@ -0,0 +1,45 @@
++//! Scan extraction pressures with the typed score-matrix API (no JSON per candidate).
++//!
++//! `cargo run --release --locked --example matrix_scan -- models/example.json`
++use serde_json::Value;
++use std::collections::BTreeMap;
++use thermo_craft::Prepared;
++
++fn main() -> Result<(), String> {
++    let path = std::env::args()
++        .nth(1)
++        .ok_or("example JSON path required")?;
++    let text = std::fs::read_to_string(path).map_err(|e| e.to_string())?;
++    let example: Value = serde_json::from_str(&text).map_err(|e| e.to_string())?;
++    let prepared = Prepared::new(&example["model"].to_string())?;
++    let n = 40;
++    let log_space = |a: f64, b: f64, k: usize| a * (b / a).powf(k as f64 / (n - 1) as f64);
++    // Row-major matrix: one [low_pa, high_pa] row per candidate.
++    let mut parameters = Vec::with_capacity(2 * n * n);
++    for i in 0..n {
++        for j in 0..n {
++            parameters.extend([log_space(50e3, 1.5e6, i), log_space(0.5e6, 6e6, j)]);
++        }
++    }
++    let rows = prepared.score_matrix(n * n, &parameters, r#"{"workers":2}"#)?;
++    let mut statuses = BTreeMap::new();
++    for row in &rows {
++        *statuses.entry(row.status).or_insert(0) += 1;
++    }
++    let (best, row) = rows
++        .iter()
++        .enumerate()
++        .filter_map(|(k, row)| row.score.map(|score| (k, score)))
++        .min_by(|a, b| a.1.total_cmp(&b.1))
++        .ok_or("no feasible candidate")?;
++    println!("model sha256 {}", prepared.model_sha256());
++    println!("{} candidates, statuses {statuses:?}", rows.len());
++    println!(
++        "best low {:.1} kPa, high {:.4} MPa, efficiency {:.6}, steps {}",
++        parameters[2 * best] / 1e3,
++        parameters[2 * best + 1] / 1e6,
++        -row,
++        rows[best].steps
++    );
++    Ok(())
++}
+diff --git a/examples/outputs/matrix_scan.txt b/examples/outputs/matrix_scan.txt
+new file mode 100644
+index 0000000..cddac80
+--- /dev/null
++++ b/examples/outputs/matrix_scan.txt
+@@ -0,0 +1,3 @@
++model sha256 c365d173c54842e093a18c9108be103b21c11d7b4fa943fff8a45eb32420001e
++1600 candidates, statuses {"complete": 1476, "infeasible": 124}
++best low 371.6 kPa, high 2.0311 MPa, efficiency 0.384123, steps 161
+diff --git a/examples/python/README.md b/examples/python/README.md
+new file mode 100644
+index 0000000..baf119a
+--- /dev/null
++++ b/examples/python/README.md
+@@ -0,0 +1,47 @@
++# thermo-craft examples
++
++Runnable Python examples for the bounded IF97 property model and the fixed
++Rankine cycle. Each script is self-contained and finishes in about a second
++on a 2-vCPU host. The saved output of `<name>.py` is in
++[`outputs/<name>.txt`](outputs/). Regenerate all outputs from the project
++root with an installed wheel:
++
++```sh
++python validation/run_examples.py
++```
++
++The application examples need only `thermo_craft`. The optimization examples
++also need NumPy and SciPy, and the fcmaes examples need `fcmaes` 2.1.0 (which
++installs `loguru`).
++
++## Application examples
++
++| Script | Question it answers | APIs used |
++| --- | --- | --- |
++| [`property_tables.py`](property_tables.py) | Saturation and superheat tables, cp by finite differences, official IF97 verification points and how out-of-range queries are reported | `batch`, `score_matrix` on the `property` kind |
++| [`extraction_map.py`](extraction_map.py) | How efficiency depends on the two extraction pressures; where the infeasible region is; what the best grid design looks like in detail | `score_matrix` with two workers, `evaluate` replay |
++| [`cycle_comparison.py`](cycle_comparison.py) | Simple versus regenerative cycle over boiler pressure and inlet temperature, and where the exhaust-quality limit binds | simple (`extraction: false`) and regenerative models, `score_matrix` |
++| [`sensitivity.py`](sensitivity.py) | Derivatives and elasticities of efficiency with respect to each model input; cost of keeping a fixed extraction pair as the condenser pressure changes | re-prepared models, `score_matrix` |
++
++## Optimization examples
++
++| Script | Optimizer | Evaluation pattern |
++| --- | --- | --- |
++| [`optimize_scipy.py`](optimize_scipy.py) | SciPy `differential_evolution` (vectorized) and a Nelder-Mead polish | whole population per `score_matrix` call; single-row calls for the polish |
++| [`optimize_fcmaes_population.py`](optimize_fcmaes_population.py) | fcmaes `cmaes.Cmaes` and `de.DE` ask/tell | whole population per `score_matrix` call with `workers=2` |
++| [`optimize_fcmaes_minimize.py`](optimize_fcmaes_minimize.py) | fcmaes `bitecpp.minimize` (BiteOpt) and `de.minimize` | scalar objective with graded and flat failure penalties, nominal and strict exhaust limits |
++| [`robust_design.py`](robust_design.py) | fcmaes `cmaes.Cmaes` ask/tell on a worst-case objective | one `score_matrix` call per scenario per generation |
++
++All optimization examples search in log10 pressure space, map every status
++other than `complete` to a penalty above any feasible score, and replay or
++re-check the winner.
++
++## Rust example
++
++[`../matrix_scan.rs`](../matrix_scan.rs) scans a 40 x 40 pressure grid with
++`Prepared::score_matrix`. Its output is in
++[`../outputs/matrix_scan.txt`](../outputs/matrix_scan.txt):
++
++```sh
++cargo run --release --locked --example matrix_scan -- models/example.json
++```
+diff --git a/examples/python/cycle_comparison.py b/examples/python/cycle_comparison.py
+new file mode 100644
+index 0000000..ce954af
+--- /dev/null
++++ b/examples/python/cycle_comparison.py
+@@ -0,0 +1,73 @@
++"""Simple versus regenerative Rankine cycles across boiler conditions.
++
++Application (scenario comparison): for a matrix of boiler pressures and turbine
++inlet temperatures, compare the simple cycle with the two-open-heater cycle at
++its best extraction pair (coarse grid, then a refined grid), and report how
++the exhaust-quality limit restricts high-pressure, low-temperature designs.
++
++Run: python examples/python/cycle_comparison.py
++"""
++
++import math
++
++from thermo_craft import Prepared
++
++base = {
++    "kind": "rankine",
++    "condenser_pa": 10e3,
++    "turbine_efficiency": 0.87,
++    "pump_efficiency": 0.8,
++    "min_exhaust_quality": 0.86,
++}
++
++
++def geomspace(a, b, n):
++    return [a * (b / a) ** (k / (n - 1)) for k in range(n)]
++
++
++def best_pair(prepared, low_range, high_range, n=24):
++    """Best grid point in log-pressure space; returns (efficiency, [low, high]) or None."""
++    rows = [[lo, hi] for lo in geomspace(*low_range, n) for hi in geomspace(*high_range, n)]
++    scores, _, _ = prepared.score_matrix(rows, workers=2)
++    feasible = [(s, r) for s, r in zip(scores, rows) if not math.isnan(s)]
++    if not feasible:
++        return None
++    score, row = min(feasible)
++    return -score, row
++
++
++print(f"Condenser {base['condenser_pa'] / 1e3:.0f} kPa, turbine efficiency "
++      f"{base['turbine_efficiency']}, minimum exhaust quality {base['min_exhaust_quality']}")
++print(f"{'boiler':>8} {'inlet':>8} | {'simple':>7} {'x_exh':>6} | {'regen':>7} "
++      f"{'low':>8} {'high':>8} {'x_exh':>6} | {'gain':>6}")
++for boiler in (4e6, 8e6, 12e6, 16e6):
++    for inlet in (723.15, 813.15, 873.15):
++        model = base | {"boiler_pa": boiler, "inlet_k": inlet}
++        simple = Prepared(model | {"extraction": False}).evaluate([])
++        if simple["status"] == "complete":
++            s = simple["metrics"]
++            simple_text = f"{s['efficiency']:7.4f} {s['exhaust_quality']:6.3f}"
++        else:
++            simple_text = f"{'(' + simple['status'] + ')':>14}"
++        regen = Prepared(model | {"extraction": True})
++        coarse = best_pair(regen, (20e3, 0.9 * boiler), (50e3, 0.95 * boiler))
++        if coarse is None:
++            print(f"{boiler / 1e6:6.0f}MPa {inlet:8.2f} | {simple_text} | no feasible extraction pair")
++            continue
++        _, (lo, hi) = coarse
++        efficiency, (lo, hi) = best_pair(regen, (lo / 1.6, lo * 1.6), (hi / 1.6, min(hi * 1.6, 0.99 * boiler)))
++        replay = regen.evaluate([lo, hi])["metrics"]
++        gain = (efficiency - s["efficiency"]) * 100 if simple["status"] == "complete" else math.nan
++        bound = "*" if replay["exhaust_quality"] < base["min_exhaust_quality"] + 0.002 else " "
++        print(f"{boiler / 1e6:6.0f}MPa {inlet:8.2f} | {simple_text} | {efficiency:7.4f} "
++              f"{lo / 1e3:6.0f}kPa {hi / 1e6:6.2f}MPa {replay['exhaust_quality']:6.3f}{bound}| {gain:5.2f}pp")
++
++print("* exhaust quality at its limit: the constraint, not the heater balance, sets the optimum")
++
++# Why some simple cycles fail: the exhaust is too wet at high pressure and low temperature.
++row = Prepared(base | {"boiler_pa": 16e6, "inlet_k": 723.15, "extraction": False}).evaluate([])
++print(f"\n16 MPa / 723.15 K simple cycle: {row['status']} - {row['detail']}")
++relaxed = Prepared(base | {"boiler_pa": 16e6, "inlet_k": 723.15, "extraction": False,
++                           "min_exhaust_quality": 0.0}).evaluate([])
++print(f"  with the quality limit removed its exhaust quality would be "
++      f"{relaxed['metrics']['exhaust_quality']:.3f}")
+diff --git a/examples/python/extraction_map.py b/examples/python/extraction_map.py
+new file mode 100644
+index 0000000..8597084
+--- /dev/null
++++ b/examples/python/extraction_map.py
+@@ -0,0 +1,62 @@
++"""Efficiency map over the two feedwater-heater extraction pressures.
++
++Application (parameter study): evaluate a log-spaced grid of low and high
++extraction pressures for the packaged regenerative Rankine cycle with one
++`score_matrix` call per chunk, print a text map of thermal efficiency, count
++the infeasible region, and replay the best grid point with full metrics.
++
++Run: python examples/python/extraction_map.py
++"""
++
++from collections import Counter
++import math
++
++from thermo_craft import Prepared, load_example
++
++case = load_example()
++model = case["model"]
++cycle = Prepared(model)
++
++
++def geomspace(a, b, n):
++    return [a * (b / a) ** (k / (n - 1)) for k in range(n)]
++
++
++low = geomspace(50e3, 1.5e6, 16)   # Pa
++high = geomspace(0.5e6, 6e6, 16)   # Pa
++rows = [[lo, hi] for lo in low for hi in high]
++scores, statuses, steps = cycle.score_matrix(rows, workers=2)
++print(f"{len(rows)} candidates, statuses: {dict(Counter(statuses))}")
++print(f"logical steps per complete candidate: {sorted(set(s for s, st in zip(steps, statuses) if st == 'complete'))}")
++
++print("\nThermal efficiency [%] (rows: low extraction, columns: high extraction; '  .' = infeasible)")
++print("low\\high " + "".join(f"{hi / 1e6:5.2f}" for hi in high) + "  [MPa]")
++for i, lo in enumerate(low):
++    cells = []
++    for j in range(len(high)):
++        score = scores[i * len(high) + j]
++        cells.append("    ." if math.isnan(score) else f"{-100 * score:5.1f}")
++    print(f"{lo / 1e3:6.0f}kPa" + "".join(cells))
++
++best = min(range(len(rows)), key=lambda k: scores[k] if not math.isnan(scores[k]) else math.inf)
++row = cycle.evaluate(rows[best])
++m = row["metrics"]
++print(f"\nBest grid point: low {rows[best][0] / 1e3:.1f} kPa, high {rows[best][1] / 1e6:.3f} MPa")
++print(f"  efficiency           {m['efficiency']:.5f}")
++print(f"  bleed fractions      low {m['extractions_low_high'][0]:.4f}, high {m['extractions_low_high'][1]:.4f}")
++print(f"  condenser mass flow  {m['condenser_mass_fraction']:.4f} per kg boiler flow")
++print(f"  exhaust quality      {m['exhaust_quality']:.4f} (minimum {model['min_exhaust_quality']})")
++print(f"  net work             {m['net_work_j_kg'] / 1e3:.2f} kJ/kg, heat in {m['heat_in_j_kg'] / 1e3:.2f} kJ/kg")
++print(f"  energy residual      {m['energy_residual_j_kg']:.2e} J/kg")
++names = ["turbine inlet", "high bleed", "low bleed", "exhaust", "condensate",
++         "low heater out", "high heater out"]
++for name, s in zip(names, m["states"]):
++    quality = "superheated" if s["quality"] is None else f"x = {s['quality']:.4f}"
++    print(f"  {name:16} p {s['p_pa'] / 1e3:8.1f} kPa  T {s['t_k']:7.2f} K  "
++          f"h {s['h_j_kg'] / 1e3:8.2f} kJ/kg  {quality}")
++
++# The simple cycle (no extraction) is the reference the heaters improve on.
++simple = Prepared(model | {"extraction": False}).evaluate([])
++gain = m["efficiency"] - simple["metrics"]["efficiency"]
++print(f"\nSimple cycle efficiency {simple['metrics']['efficiency']:.5f}; "
++      f"two open heaters add {100 * gain:.2f} percentage points")
+diff --git a/examples/python/optimize_fcmaes_minimize.py b/examples/python/optimize_fcmaes_minimize.py
+new file mode 100644
+index 0000000..2b7bef2
+--- /dev/null
++++ b/examples/python/optimize_fcmaes_minimize.py
+@@ -0,0 +1,64 @@
++"""Standard fcmaes minimizers with failure penalties.
++
++Optimization (fcmaes minimize): `fcmaes.bitecpp.minimize` (BiteOpt) and
++`fcmaes.de.minimize` call a scalar objective once per candidate. The objective
++uses a one-row `score_matrix` call, and every status other than complete maps
++to a penalty: a graded one for ordering violations, which the optimizer can
++descend, and a flat one for physically infeasible cycles. A tighter exhaust
++quality limit makes a large part of the box infeasible.
++
++Run: python examples/python/optimize_fcmaes_minimize.py
++"""
++
++from collections import Counter
++
++import numpy as np
++from loguru import logger
++from scipy.optimize import Bounds
++
++from fcmaes import bitecpp, de
++from thermo_craft import Prepared, load_example
++
++logger.remove()
++
++nominal = load_example()["model"]
++bounds = Bounds([np.log10(20e3), np.log10(0.2e6)], [np.log10(3e6), np.log10(7.5e6)])
++
++
++def make_objective(model):
++    cycle = Prepared(model)
++    seen = Counter()
++
++    def objective(x):
++        scores, statuses, _ = cycle.score_matrix([10.0 ** np.asarray(x)])
++        seen[statuses[0]] += 1
++        if statuses[0] == "complete":
++            return scores[0]
++        low, high = x
++        if low >= high:
++            return 2.0 + (low - high)  # ordering violation: graded penalty
++        return 1.0  # wet exhaust, infeasible heater mix or balance failure
++
++    return cycle, objective, seen
++
++
++for label, model in [("nominal (exhaust quality >= 0.75)", nominal),
++                     ("strict (exhaust quality >= 0.895)", nominal | {"min_exhaust_quality": 0.895})]:
++    print(label)
++    for name, minimize in [
++        ("bitecpp.minimize", lambda f: bitecpp.minimize(f, bounds, max_evaluations=1500,
++                                                       rg=np.random.default_rng(5))),
++        ("de.minimize", lambda f: de.minimize(f, 2, bounds, popsize=16, max_evaluations=1500,
++                                              rg=np.random.default_rng(5))),
++    ]:
++        cycle, objective, seen = make_objective(model)
++        result = minimize(objective)
++        low, high = 10.0 ** result.x
++        if result.fun < 0:
++            row = cycle.evaluate([low, high])
++            detail = (f"efficiency {-result.fun:.7f}, exhaust quality "
++                      f"{row['metrics']['exhaust_quality']:.4f}")
++        else:
++            detail = f"no feasible point found (best penalty {result.fun})"
++        print(f"  {name:17} {result.nfev:5d} evaluations, statuses {dict(seen)}")
++        print(f"  {'':17} low {low / 1e3:8.2f} kPa, high {high / 1e6:.4f} MPa, {detail}")
+diff --git a/examples/python/optimize_fcmaes_population.py b/examples/python/optimize_fcmaes_population.py
+new file mode 100644
+index 0000000..23ff4ff
+--- /dev/null
++++ b/examples/python/optimize_fcmaes_population.py
+@@ -0,0 +1,86 @@
++"""Population optimizers from fcmaes evaluating whole generations natively.
++
++Optimization (fcmaes ask/tell): `fcmaes.cmaes.Cmaes` and `fcmaes.de.DE` ask for
++a population, the population is scored with one `score_matrix` call using two
++native workers (the GIL is released during evaluation), and the penalized
++scores are told back. Variables are log10 extraction pressures in Pa.
++
++Run: python examples/python/optimize_fcmaes_population.py
++"""
++
++from collections import Counter
++
++import numpy as np
++from loguru import logger
++from scipy.optimize import Bounds
++
++from fcmaes import cmaes, de
++from thermo_craft import Prepared, load_example
++
++logger.remove()  # fcmaes logs through loguru; keep the example output quiet
++
++model = load_example()["model"]
++cycle = Prepared(model)
++bounds = Bounds([np.log10(20e3), np.log10(0.2e6)], [np.log10(3e6), np.log10(7.5e6)])
++
++
++def score_population(xs, seen):
++    """Penalized objective for a (popsize, 2) array of log10 pressures."""
++    xs = np.asarray(xs)  # CMA-ES asks for an array, DE for a list of vectors
++    scores, statuses, steps = cycle.score_matrix(10.0 ** xs, workers=2)
++    seen.update(statuses)
++    ys = np.array(scores)
++    failed = np.array([s != "complete" for s in statuses])
++    # Infeasible rows: 1 + how far (in decades) the low pressure exceeds the high one.
++    ys[failed] = 1.0 + np.maximum(0.0, xs[failed, 0] - xs[failed, 1])
++    return ys, sum(steps)
++
++
++def run(name, optimizer):
++    seen, evaluations, steps, generations = Counter(), 0, 0, 0
++    best = (np.inf, None)
++    while True:
++        xs = optimizer.ask()
++        ys, used = score_population(xs, seen)
++        evaluations += len(ys)
++        steps += used
++        generations += 1
++        k = int(np.argmin(ys))
++        if ys[k] < best[0]:
++            best = (ys[k], xs[k].copy())
++        if optimizer.tell(ys) != 0:
++            break
++    low, high = 10.0 ** best[1]
++    print(f"{name}: {generations} generations, {evaluations} evaluations, "
++          f"{steps} logical steps, statuses {dict(seen)}")
++    print(f"  best low {low / 1e3:.2f} kPa, high {high / 1e6:.4f} MPa, efficiency {-best[0]:.7f}")
++    return best
++
++
++x0 = np.array([np.log10(300e3), np.log10(2e6)])
++# Cmaes draws its normal samples through `randn`; seed it too for a reproducible run.
++es = cmaes.Cmaes(bounds, x0, input_sigma=0.3, popsize=16, max_evaluations=1600,
++                 stop_fitness=-1.0, rg=np.random.default_rng(11),
++                 randn=np.random.RandomState(11).randn)
++cma_best = run("fcmaes CMA-ES (ask/tell)", es)
++
++opt = de.DE(2, bounds, popsize=16, rg=np.random.default_rng(11))
++# DE has no evaluation limit of its own here: stop after 60 generations.
++seen, best, evaluations = Counter(), (np.inf, None), 0
++for generation in range(60):
++    xs = opt.ask()
++    ys, _ = score_population(xs, seen)
++    evaluations += len(ys)
++    k = int(np.argmin(ys))
++    if ys[k] < best[0]:
++        best = (ys[k], xs[k].copy())
++    if opt.tell(ys) != 0:
++        break
++low, high = 10.0 ** best[1]
++print(f"fcmaes DE (ask/tell): {generation + 1} generations, {evaluations} evaluations, "
++      f"statuses {dict(seen)}")
++print(f"  best low {low / 1e3:.2f} kPa, high {high / 1e6:.4f} MPa, efficiency {-best[0]:.7f}")
++
++row = cycle.evaluate((10.0 ** cma_best[1]).tolist())
++print(f"Replay of the CMA-ES winner: {row['status']}, efficiency {row['metrics']['efficiency']:.7f}, "
++      f"exhaust quality {row['metrics']['exhaust_quality']:.4f}")
+diff --git a/examples/python/optimize_scipy.py b/examples/python/optimize_scipy.py
+new file mode 100644
+index 0000000..00bf6d1
+--- /dev/null
++++ b/examples/python/optimize_scipy.py
+@@ -0,0 +1,74 @@
++"""Optimize the extraction pressures with SciPy.
++
++Optimization (SciPy): `differential_evolution` in vectorized mode hands a whole
++population to one `score_matrix` call per generation; a Nelder-Mead polish then
++refines the winner one candidate at a time. Variables are log10 pressures in
++Pa. Failed candidates (status other than complete) get a penalty that grows
++with the ordering violation, so the search is pushed back into the feasible
++region instead of seeing a flat plateau.
++
++Run: python examples/python/optimize_scipy.py
++"""
++
++from collections import Counter
++
++import numpy as np
++from scipy.optimize import differential_evolution, minimize
++
++from thermo_craft import Prepared, load_example
++
++case = load_example()
++model = case["model"]
++cycle = Prepared(model)
++bounds = [(np.log10(20e3), np.log10(3e6)), (np.log10(0.2e6), np.log10(7.5e6))]
++statuses_seen = Counter()
++
++
++def penalized(x, scores, statuses):
++    """Score for complete rows; 1 + ordering violation (in decades) otherwise."""
++    out = np.array(scores)
++    for k, status in enumerate(statuses):
++        statuses_seen[status] += 1
++        if status != "complete":
++            low, high = x[k]
++            out[k] = 1.0 + max(0.0, low - high)
++    return out
++
++
++def population_objective(xt):
++    """SciPy's vectorized call: xt has shape (2, S); return S objective values."""
++    x = np.atleast_2d(xt.T)
++    scores, statuses, _ = cycle.score_matrix(10.0 ** x)
++    return penalized(x, scores, statuses)
++
++
++result = differential_evolution(
++    population_objective, bounds, vectorized=True, updating="deferred",
++    popsize=12, maxiter=60, tol=1e-10, seed=7, polish=False,
++)
++print(f"differential_evolution: {result.nit} generations, {result.nfev} vectorized calls, "
++      f"{sum(statuses_seen.values())} candidates")
++print(f"  statuses seen: {dict(statuses_seen)}")
++print(f"  best low {10 ** result.x[0] / 1e3:.2f} kPa, high {10 ** result.x[1] / 1e6:.4f} MPa, "
++      f"efficiency {-result.fun:.7f}")
++
++
++def single_objective(x):
++    return penalized([x], *cycle.score_matrix([10.0 ** x])[:2])[0]
++
++
++statuses_seen.clear()
++polish = minimize(single_objective, result.x, method="Nelder-Mead",
++                  options={"xatol": 1e-7, "fatol": 1e-12, "maxiter": 400})
++print(f"Nelder-Mead polish: {polish.nfev} evaluations, statuses {dict(statuses_seen)}")
++print(f"  best low {10 ** polish.x[0] / 1e3:.2f} kPa, high {10 ** polish.x[1] / 1e6:.4f} MPa, "
++      f"efficiency {-polish.fun:.7f}")
++
++# Replay the winner with full metrics, as a design would be inspected.
++row = cycle.evaluate((10.0 ** polish.x).tolist())
++assert row["status"] == "complete", row
++m = row["metrics"]
++print(f"Replay: efficiency {m['efficiency']:.7f}, exhaust quality {m['exhaust_quality']:.4f}, "
++      f"bleed fractions {m['extractions_low_high'][0]:.4f} / {m['extractions_low_high'][1]:.4f}")
++print(f"Packaged example pair {case['parameters']} has efficiency "
++      f"{-cycle.score_matrix([case['parameters']])[0][0]:.7f}")
+diff --git a/examples/python/outputs/cycle_comparison.txt b/examples/python/outputs/cycle_comparison.txt
+new file mode 100644
+index 0000000..b672bd5
+--- /dev/null
++++ b/examples/python/outputs/cycle_comparison.txt
+@@ -0,0 +1,18 @@
++Condenser 10 kPa, turbine efficiency 0.87, minimum exhaust quality 0.86
++  boiler    inlet |  simple  x_exh |   regen      low     high  x_exh |   gain
++     4MPa   723.15 |  0.3130  0.900 |  0.3480    150kPa   1.00MPa  0.890 |  3.50pp
++     4MPa   813.15 |  0.3250  0.943 |  0.3624    180kPa   1.00MPa  0.928 |  3.74pp
++     4MPa   873.15 |  0.3336  0.969 |  0.3725    162kPa   0.93MPa  0.951 |  3.90pp
++     8MPa   723.15 |   (infeasible) | no feasible extraction pair
++     8MPa   813.15 |  0.3475  0.899 |  0.3921    251kPa   1.82MPa  0.885 |  4.46pp
++     8MPa   873.15 |  0.3556  0.927 |  0.4018    289kPa   1.85MPa  0.909 |  4.62pp
++    12MPa   723.15 |   (infeasible) | no feasible extraction pair
++    12MPa   813.15 |  0.3591  0.870 |  0.3970   2807kPa   6.16MPa  0.860*|  3.79pp
++    12MPa   873.15 |  0.3673  0.900 |  0.4182    414kPa   2.82MPa  0.883 |  5.09pp
++    16MPa   723.15 |   (infeasible) | no feasible extraction pair
++    16MPa   813.15 |   (infeasible) | no feasible extraction pair
++    16MPa   873.15 |  0.3747  0.879 |  0.4295    372kPa   3.49MPa  0.862 |  5.48pp
++* exhaust quality at its limit: the constraint, not the heater balance, sets the optimum
++
++16 MPa / 723.15 K simple cycle: infeasible - turbine exhaust violates minimum quality
++  with the quality limit removed its exhaust quality would be 0.792
+diff --git a/examples/python/outputs/extraction_map.txt b/examples/python/outputs/extraction_map.txt
+new file mode 100644
+index 0000000..b4d1a85
+--- /dev/null
++++ b/examples/python/outputs/extraction_map.txt
+@@ -0,0 +1,38 @@
++256 candidates, statuses: {'complete': 234, 'infeasible': 22}
++logical steps per complete candidate: [81, 121, 161]
++
++Thermal efficiency [%] (rows: low extraction, columns: high extraction; '  .' = infeasible)
++low\high  0.50 0.59 0.70 0.82 0.97 1.14 1.35 1.59 1.88 2.22 2.62 3.09 3.65 4.31 5.08 6.00  [MPa]
++    50kPa 37.6 37.7 37.8 37.9 37.9 38.0 38.0 37.9 37.9 37.8 37.6 37.5 37.2 37.0 36.7 36.3
++    63kPa 37.7 37.8 37.9 38.0 38.0 38.1 38.1 38.0 38.0 37.9 37.8 37.6 37.4 37.1 36.8 36.5
++    79kPa 37.7 37.9 38.0 38.0 38.1 38.1 38.2 38.1 38.1 38.0 37.9 37.7 37.5 37.3 37.0 36.7
++    99kPa 37.7 37.9 38.0 38.1 38.2 38.2 38.2 38.2 38.2 38.1 38.0 37.9 37.7 37.5 37.2 36.8
++   124kPa 37.7 37.9 38.0 38.1 38.2 38.3 38.3 38.3 38.3 38.2 38.1 38.0 37.8 37.6 37.3 37.0
++   155kPa 37.7 37.9 38.0 38.1 38.2 38.3 38.3 38.3 38.3 38.3 38.2 38.1 37.9 37.7 37.4 37.1
++   195kPa 37.7 37.8 38.0 38.1 38.2 38.3 38.4 38.4 38.4 38.3 38.3 38.2 38.0 37.8 37.6 37.3
++   245kPa 37.6 37.8 37.9 38.1 38.2 38.3 38.3 38.4 38.4 38.4 38.3 38.2 38.1 37.9 37.7 37.4
++   307kPa 37.5 37.7 37.9 38.0 38.1 38.2 38.3 38.4 38.4 38.4 38.4 38.3 38.2 38.0 37.8 37.5
++   385kPa 37.3 37.6 37.7 37.9 38.1 38.2 38.3 38.4 38.4 38.4 38.4 38.3 38.2 38.1 37.8 37.6
++   483kPa 37.1 37.4 37.6 37.8 38.0 38.1 38.2 38.3 38.4 38.4 38.4 38.3 38.2 38.1 37.9 37.7
++   606kPa    .    . 37.4 37.6 37.8 37.9 38.1 38.2 38.3 38.3 38.3 38.3 38.2 38.1 38.0 37.7
++   760kPa    .    .    . 37.3 37.6 37.7 37.9 38.0 38.1 38.2 38.2 38.2 38.2 38.1 38.0 37.8
++   953kPa    .    .    .    . 37.3 37.5 37.7 37.8 38.0 38.0 38.1 38.1 38.1 38.0 37.9 37.7
++  1196kPa    .    .    .    .    .    . 37.4 37.6 37.7 37.8 37.9 38.0 38.0 37.9 37.8 37.7
++  1500kPa    .    .    .    .    .    .    . 37.2 37.4 37.5 37.6 37.7 37.7 37.7 37.7 37.5
++
++Best grid point: low 384.8 kPa, high 2.221 MPa
++  efficiency           0.38411
++  bleed fractions      low 0.1262, high 0.1304
++  condenser mass flow  0.7434 per kg boiler flow
++  exhaust quality      0.8925 (minimum 0.75)
++  net work             981.67 kJ/kg, heat in 2555.70 kJ/kg
++  energy residual      1.16e-10 J/kg
++  turbine inlet    p   8000.0 kPa  T  813.15 K  h  3497.48 kJ/kg  superheated
++  high bleed       p   2220.6 kPa  T  629.53 K  h  3147.35 kJ/kg  superheated
++  low bleed        p    384.8 kPa  T  440.58 K  h  2792.55 kJ/kg  superheated
++  exhaust          p     15.0 kPa  T  327.12 K  h  2343.18 kJ/kg  x = 0.8925
++  condensate       p     15.0 kPa  T  327.12 K  h   225.94 kJ/kg  x = 0.0000
++  low heater out   p    384.8 kPa  T  415.37 K  h   598.74 kJ/kg  x = 0.0000
++  high heater out  p   2220.6 kPa  T  490.89 K  h   933.21 kJ/kg  x = 0.0000
++
++Simple cycle efficiency 0.34164; two open heaters add 4.25 percentage points
+diff --git a/examples/python/outputs/optimize_fcmaes_minimize.txt b/examples/python/outputs/optimize_fcmaes_minimize.txt
+new file mode 100644
+index 0000000..0ee763b
+--- /dev/null
++++ b/examples/python/outputs/optimize_fcmaes_minimize.txt
+@@ -0,0 +1,10 @@
++nominal (exhaust quality >= 0.75)
++  bitecpp.minimize   1500 evaluations, statuses {'complete': 1439, 'infeasible': 61}
++                    low   365.92 kPa, high 2.0770 MPa, efficiency 0.3841291, exhaust quality 0.8925
++  de.minimize        1500 evaluations, statuses {'infeasible': 5, 'complete': 1495}
++                    low   365.92 kPa, high 2.0770 MPa, efficiency 0.3841291, exhaust quality 0.8925
++strict (exhaust quality >= 0.895)
++  bitecpp.minimize   1500 evaluations, statuses {'infeasible': 852, 'complete': 648}
++                    low   258.59 kPa, high 4.7160 MPa, efficiency 0.3780003, exhaust quality 0.8950
++  de.minimize        1500 evaluations, statuses {'infeasible': 498, 'complete': 1002}
++                    low   330.60 kPa, high 5.1582 MPa, efficiency 0.3776679, exhaust quality 0.8950
+diff --git a/examples/python/outputs/optimize_fcmaes_population.txt b/examples/python/outputs/optimize_fcmaes_population.txt
+new file mode 100644
+index 0000000..ca1fa7c
+--- /dev/null
++++ b/examples/python/outputs/optimize_fcmaes_population.txt
+@@ -0,0 +1,5 @@
++fcmaes CMA-ES (ask/tell): 39 generations, 624 evaluations, 96384 logical steps, statuses {'complete': 624}
++  best low 365.92 kPa, high 2.0770 MPa, efficiency 0.3841291
++fcmaes DE (ask/tell): 60 generations, 960 evaluations, statuses {'complete': 960}
++  best low 365.92 kPa, high 2.0770 MPa, efficiency 0.3841291
++Replay of the CMA-ES winner: complete, efficiency 0.3841291, exhaust quality 0.8925
+diff --git a/examples/python/outputs/optimize_scipy.txt b/examples/python/outputs/optimize_scipy.txt
+new file mode 100644
+index 0000000..6cb5932
+--- /dev/null
++++ b/examples/python/outputs/optimize_scipy.txt
+@@ -0,0 +1,7 @@
++differential_evolution: 39 generations, 40 vectorized calls, 960 candidates
++  statuses seen: {'complete': 950, 'infeasible': 10}
++  best low 365.93 kPa, high 2.0770 MPa, efficiency 0.3841291
++Nelder-Mead polish: 101 evaluations, statuses {'complete': 101}
++  best low 365.92 kPa, high 2.0770 MPa, efficiency 0.3841291
++Replay: efficiency 0.3841291, exhaust quality 0.8925, bleed fractions 0.1244 / 0.1277
++Packaged example pair [300000.0, 2000000.0] has efficiency 0.3840819
+diff --git a/examples/python/outputs/property_tables.txt b/examples/python/outputs/property_tables.txt
+new file mode 100644
+index 0000000..5ab7769
+--- /dev/null
++++ b/examples/python/outputs/property_tables.txt
+@@ -0,0 +1,28 @@
++Saturation table (IF97 region 4 with regions 1 and 2)
++  p [kPa]  T_sat [K]  h_f [kJ/kg]  h_g [kJ/kg]  h_fg [kJ/kg]      s_f      s_g  v_g [m3/kg]
++     10.0    318.958       191.81      2583.89       2392.07   0.6492   8.1489     14.67056
++    100.0    372.756       417.44      2674.95       2257.51   1.3026   7.3588      1.69402
++   1000.0    453.036       762.68      2777.12       2014.44   2.1384   6.5850      0.19435
++   5000.0    537.093      1154.50      2794.23       1639.73   2.9207   5.9737      0.03945
++  10000.0    584.149      1407.87      2725.47       1317.61   3.3603   5.6159      0.01803
++  15000.0    615.308      1610.15      2610.86       1000.71   3.6844   5.3108      0.01034
++
++Superheated steam at 1 MPa
++  T [K]  h [kJ/kg]  s [kJ/kg K]  v [m3/kg]  cp [kJ/kg K]
++  500.0    2891.28       6.8251    0.22063        2.2819
++  600.0    3108.98       7.2224    0.27121        2.1272
++  700.0    3321.63       7.5502    0.31943        2.1364
++  800.0    3537.41       7.8382    0.36677        2.1823
++  900.0    3758.50       8.0986    0.41368        2.2410
++ 1000.0    3985.77       8.3380    0.46034        2.3049
++
++IAPWS-IF97 verification points
++   3e+06/300: max relative error 1.0e-09
++   8e+07/300: invalid (pressure outside 1 kPa to 16 MPa)
++   3e+06/500: max relative error 2.8e-09
++    3500/300: max relative error 9.6e-10
++    3500/700: max relative error 2.1e-09
++       [3000000.0, 2000.0]:  invalid - temperature outside 273.16 to 1073.15 K
++      [100000.0, 1.2, 0.0]:  invalid - quality outside [0,1]
++[100000.0, 372.7559186113376]:  invalid - P/T pair on saturation boundary requires quality
++      [100000.0, 0.5, 1.0]:  invalid - expected [pressure_pa, temperature_k] or [pressure_pa, quality, 0]
+diff --git a/examples/python/outputs/robust_design.txt b/examples/python/outputs/robust_design.txt
+new file mode 100644
+index 0000000..cae26f7
+--- /dev/null
++++ b/examples/python/outputs/robust_design.txt
+@@ -0,0 +1,7 @@
++Robust pair: low 424.1 kPa, high 2.172 MPa, worst-case efficiency 0.35200
++
++              scenario  own optimum  robust pair   regret   own pair
++   winter, new turbine      0.40179      0.40128  0.0519pp   205 kPa / 1.736 MPa
++   summer, new turbine      0.36873      0.36873  0.0002pp   431 kPa / 2.215 MPa
++      winter, degraded      0.38354      0.38319  0.0345pp   274 kPa / 1.848 MPa
++      summer, degraded      0.35200      0.35200  0.0000pp   424 kPa / 2.172 MPa
+diff --git a/examples/python/outputs/sensitivity.txt b/examples/python/outputs/sensitivity.txt
+new file mode 100644
+index 0000000..4f99a40
+--- /dev/null
++++ b/examples/python/outputs/sensitivity.txt
+@@ -0,0 +1,18 @@
++Nominal optimum: low 366.2 kPa, high 2.0745 MPa, efficiency 0.384129
++
++               input        value  d(eta)/d(input)  elasticity
++           boiler_pa        8e+06       5.4367e-09      0.1132
++        condenser_pa        15000      -1.9344e-06     -0.0755
++             inlet_k       813.15       1.6324e-04      0.3456
++  turbine_efficiency         0.88       3.4447e-01      0.7891
++     pump_efficiency          0.8       3.4500e-03      0.0072
++
++ condenser  eta(nominal pair)  eta(re-optimized)     loss  pair
++       8kPa           0.401481           0.401794  0.0312pp  206 kPa / 1.741 MPa
++      10kPa           0.395518           0.395656  0.0139pp  227 kPa / 1.791 MPa
++      15kPa           0.384129           0.384129  0.0000pp  366 kPa / 2.074 MPa
++      20kPa           0.375579           0.375602  0.0023pp  402 kPa / 2.159 MPa
++      30kPa           0.362793           0.362941  0.0148pp  458 kPa / 2.278 MPa
++
++Keeping the nominal pair costs at most 0.0312 percentage points over this
++condenser range, while the condenser pressure itself moves efficiency by 3.87 points.
+diff --git a/examples/python/property_tables.py b/examples/python/property_tables.py
+new file mode 100644
+index 0000000..294c83b
+--- /dev/null
++++ b/examples/python/property_tables.py
+@@ -0,0 +1,66 @@
++"""Steam property tables from the bounded IF97 model.
++
++Application: build a saturation table and a superheated-steam table, estimate
++cp by finite differences, check official IAPWS-IF97 verification points, and
++show how out-of-range queries are reported.
++
++Run: python examples/python/property_tables.py
++"""
++
++from thermo_craft import Prepared
++
++properties = Prepared({"kind": "property"})
++
++# 1. Saturation table: [p, quality, 0] queries for x = 0 (liquid) and x = 1 (vapor).
++pressures = [1e4, 1e5, 1e6, 5e6, 1e7, 1.5e7]
++queries = [{"id": f"{p:g}-{x}", "parameters": [p, x, 0.0]} for p in pressures for x in (0.0, 1.0)]
++rows = properties.batch(queries)["records"]
++print("Saturation table (IF97 region 4 with regions 1 and 2)")
++print(f"{'p [kPa]':>9} {'T_sat [K]':>10} {'h_f [kJ/kg]':>12} {'h_g [kJ/kg]':>12} "
++      f"{'h_fg [kJ/kg]':>13} {'s_f':>8} {'s_g':>8} {'v_g [m3/kg]':>12}")
++for p, liquid, vapor in zip(pressures, rows[0::2], rows[1::2]):
++    f, g = liquid["metrics"]["state"], vapor["metrics"]["state"]
++    print(f"{p / 1e3:9.1f} {f['t_k']:10.3f} {f['h_j_kg'] / 1e3:12.2f} {g['h_j_kg'] / 1e3:12.2f} "
++          f"{(g['h_j_kg'] - f['h_j_kg']) / 1e3:13.2f} {f['s_j_kg_k'] / 1e3:8.4f} "
++          f"{g['s_j_kg_k'] / 1e3:8.4f} {g['v_m3_kg']:12.5f}")
++
++# 2. Superheated steam at 1 MPa. The score of a property query is h in J/kg, so
++# score_matrix gives enthalpies without JSON; central differences estimate cp.
++temperatures = [500.0, 600.0, 700.0, 800.0, 900.0, 1000.0]
++step = 0.5
++grid = [[1e6, t + d] for t in temperatures for d in (-step, 0.0, step)]
++h, statuses, _ = properties.score_matrix(grid)
++assert set(statuses) == {"complete"}
++states = properties.batch([{"id": str(t), "parameters": [1e6, t]} for t in temperatures])["records"]
++print("\nSuperheated steam at 1 MPa")
++print(f"{'T [K]':>7} {'h [kJ/kg]':>10} {'s [kJ/kg K]':>12} {'v [m3/kg]':>10} {'cp [kJ/kg K]':>13}")
++for k, (t, row) in enumerate(zip(temperatures, states)):
++    s = row["metrics"]["state"]
++    cp = (h[3 * k + 2] - h[3 * k]) / (2 * step)
++    assert h[3 * k + 1] == s["h_j_kg"]
++    print(f"{t:7.1f} {s['h_j_kg'] / 1e3:10.2f} {s['s_j_kg_k'] / 1e3:12.4f} {s['v_m3_kg']:10.5f} "
++          f"{cp / 1e3:13.4f}")
++
++# 3. Official verification points, IAPWS R7-97(2012) Tables 5 and 15 (h, s, v).
++reference = {
++    (3e6, 300.0): (115331.273, 392.294792, 0.00100215168),
++    (80e6, 300.0): None,  # outside the bounded 16 MPa envelope: reported invalid
++    (3e6, 500.0): (975542.239, 2580.41912, 0.00120241800),
++    (3500.0, 300.0): (2549911.45, 8522.38967, 39.4913866),
++    (3500.0, 700.0): (3335683.75, 10174.9996, 92.3015898),
++}
++rows = properties.batch([{"id": f"{p:g}/{t:g}", "parameters": [p, t]} for p, t in reference])
++print("\nIAPWS-IF97 verification points")
++for (point, expected), row in zip(reference.items(), rows["records"]):
++    if expected is None:
++        print(f"{row['id']:>12}: {row['status']} ({row['detail']})")
++        continue
++    s = row["metrics"]["state"]
++    errors = [abs(s[k] / v - 1) for k, v in zip(("h_j_kg", "s_j_kg_k", "v_m3_kg"), expected)]
++    print(f"{row['id']:>12}: max relative error {max(errors):.1e}")
++    assert max(errors) < 5e-8
++
++# 4. Queries the model rejects, with their status and detail.
++bad = [[3e6, 2000.0], [1e5, 1.2, 0.0], [1e5, 372.7559186113376], [1e5, 0.5, 1.0]]
++for row in properties.batch([{"id": str(q), "parameters": q} for q in bad])["records"]:
++    print(f"{row['id']:>26}: {row['status']:>8} - {row['detail']}")
+diff --git a/examples/python/robust_design.py b/examples/python/robust_design.py
+new file mode 100644
+index 0000000..8361202
+--- /dev/null
++++ b/examples/python/robust_design.py
+@@ -0,0 +1,63 @@
++"""Robust extraction pressures across operating scenarios.
++
++Optimization and scenario analysis: choose one extraction pair that maximizes
++the worst-case efficiency over four operating scenarios (summer and winter
++condenser pressure, new and degraded turbine). Each generation of an fcmaes
++CMA-ES search is scored for all scenarios with one `score_matrix` call per
++scenario. The robust pair is then compared with each scenario's own optimum.
++
++Run: python examples/python/robust_design.py
++"""
++
++import numpy as np
++from loguru import logger
++from scipy.optimize import Bounds
++
++from fcmaes import cmaes
++from thermo_craft import Prepared, load_example
++
++logger.remove()
++
++nominal = load_example()["model"]
++scenarios = {
++    "winter, new turbine": nominal | {"condenser_pa": 8e3, "turbine_efficiency": 0.88},
++    "summer, new turbine": nominal | {"condenser_pa": 25e3, "turbine_efficiency": 0.88},
++    "winter, degraded": nominal | {"condenser_pa": 8e3, "turbine_efficiency": 0.83},
++    "summer, degraded": nominal | {"condenser_pa": 25e3, "turbine_efficiency": 0.83},
++}
++prepared = {name: Prepared(model) for name, model in scenarios.items()}
++bounds = Bounds([np.log10(20e3), np.log10(0.2e6)], [np.log10(3e6), np.log10(7.5e6)])
++
++
++def scenario_scores(xs, which):
++    """(popsize, scenarios) matrix of -efficiency, NaN where a scenario fails."""
++    pressures = 10.0 ** np.atleast_2d(xs)
++    return np.column_stack([prepared[name].score_matrix(pressures, workers=2)[0] for name in which])
++
++
++def optimize(which, seed):
++    es = cmaes.Cmaes(bounds, [np.log10(300e3), np.log10(2e6)], input_sigma=0.25, popsize=12,
++                     max_evaluations=900, rg=np.random.default_rng(seed),
++                     randn=np.random.RandomState(seed).randn)
++    best = (np.inf, None)
++    while True:
++        xs = es.ask()
++        worst = scenario_scores(xs, which).max(axis=1)  # worst case = largest -efficiency
++        worst[np.isnan(worst)] = 1.0  # any failing scenario disqualifies the pair
++        k = int(np.argmin(worst))
++        if worst[k] < best[0]:
++            best = (worst[k], xs[k].copy())
++        if es.tell(worst) != 0:
++            return best
++
++
++robust_score, robust_x = optimize(list(scenarios), seed=3)
++print(f"Robust pair: low {10 ** robust_x[0] / 1e3:.1f} kPa, high {10 ** robust_x[1] / 1e6:.3f} MPa, "
++      f"worst-case efficiency {-robust_score:.5f}")
++print(f"\n{'scenario':>22} {'own optimum':>12} {'robust pair':>12} {'regret':>8}   own pair")
++robust = scenario_scores(robust_x, list(scenarios))[0]
++for k, name in enumerate(scenarios):
++    own_score, own_x = optimize([name], seed=3)
++    regret = round(100 * (robust[k] - own_score), 4) + 0.0  # + 0.0 turns -0.0 into 0.0
++    print(f"{name:>22} {-own_score:12.5f} {-robust[k]:12.5f} {regret:7.4f}pp"
++          f"   {10 ** own_x[0] / 1e3:.0f} kPa / {10 ** own_x[1] / 1e6:.3f} MPa")
+diff --git a/examples/python/sensitivity.py b/examples/python/sensitivity.py
+new file mode 100644
+index 0000000..629dfab
+--- /dev/null
++++ b/examples/python/sensitivity.py
+@@ -0,0 +1,67 @@
++"""Sensitivity of the regenerative cycle to its design and operating inputs.
++
++Application (sensitivity): at the nominal optimum extraction pair, perturb each
++model input by a small relative step, re-prepare the model and report central
++difference derivatives and elasticities of thermal efficiency. Then check how
++far the nominal pair is from the re-optimized pair when the condenser pressure
++changes with cooling-water temperature.
++
++Run: python examples/python/sensitivity.py
++"""
++
++import math
++
++from thermo_craft import Prepared, load_example
++
++nominal = load_example()["model"]
++
++
++def geomspace(a, b, n):
++    return [a * (b / a) ** (k / (n - 1)) for k in range(n)]
++
++
++def optimum(model, center=None, span=2.0, n=21, rounds=3):
++    """Shrinking log-grid search for the best extraction pair of one model."""
++    prepared = Prepared(model)
++    lo, hi = center or (300e3, 2e6)
++    for _ in range(rounds):
++        rows = [[a, b] for a in geomspace(lo / span, lo * span, n)
++                for b in geomspace(hi / span, min(hi * span, 0.99 * model["boiler_pa"]), n)]
++        scores, _, _ = prepared.score_matrix(rows, workers=2)
++        score, (lo, hi) = min((s, r) for s, r in zip(scores, rows) if not math.isnan(s))
++        span = span ** 0.35
++    return -score, [lo, hi]
++
++
++best_efficiency, pair = optimum(nominal)
++print(f"Nominal optimum: low {pair[0] / 1e3:.1f} kPa, high {pair[1] / 1e6:.4f} MPa, "
++      f"efficiency {best_efficiency:.6f}")
++
++
++def efficiency(model, parameters):
++    scores, statuses, _ = Prepared(model).score_matrix([parameters])
++    return -scores[0] if statuses[0] == "complete" else math.nan
++
++
++print(f"\n{'input':>20} {'value':>12} {'d(eta)/d(input)':>16} {'elasticity':>11}")
++for key in ("boiler_pa", "condenser_pa", "inlet_k", "turbine_efficiency", "pump_efficiency"):
++    value = nominal[key]
++    h = 1e-3 * value
++    up = efficiency(nominal | {key: value + h}, pair)
++    down = efficiency(nominal | {key: value - h}, pair)
++    derivative = (up - down) / (2 * h)
++    print(f"{key:>20} {value:12.6g} {derivative:16.4e} {derivative * value / best_efficiency:11.4f}")
++
++# Seasonal condenser pressure: fixed nominal pair versus re-optimized pair.
++print(f"\n{'condenser':>10} {'eta(nominal pair)':>18} {'eta(re-optimized)':>18} {'loss':>8}  pair")
++losses = []
++for condenser in (8e3, 10e3, 15e3, 20e3, 30e3):
++    model = nominal | {"condenser_pa": condenser}
++    fixed = efficiency(model, pair)
++    best, better_pair = optimum(model, center=pair)
++    losses.append(100 * (best - fixed))
++    print(f"{condenser / 1e3:8.0f}kPa {fixed:18.6f} {best:18.6f} {losses[-1]:7.4f}pp  "
++          f"{better_pair[0] / 1e3:.0f} kPa / {better_pair[1] / 1e6:.3f} MPa")
++print(f"\nKeeping the nominal pair costs at most {max(losses):.4f} percentage points over this")
++print("condenser range, while the condenser pressure itself moves efficiency by "
++      f"{100 * (efficiency(nominal | {'condenser_pa': 8e3}, pair) - efficiency(nominal | {'condenser_pa': 30e3}, pair)):.2f} points.")
+diff --git a/pyproject.toml b/pyproject.toml
+index 5d7cbd3..7ba55d8 100644
+--- a/pyproject.toml
++++ b/pyproject.toml
+@@ -4,7 +4,7 @@ build-backend = "maturin"
+ 
+ [project]
+ name = "thermo-craft"
+-version = "0.2.0"
++version = "0.3.0"
+ requires-python = ">=3.10"
+ description = "Prepared thermo-craft research evaluations"
+ 
+diff --git a/validation/python_call_costs.py b/validation/python_call_costs.py
+new file mode 100644
+index 0000000..a560f4a
+--- /dev/null
++++ b/validation/python_call_costs.py
+@@ -0,0 +1,44 @@
++"""Per-call cost of the full, lean and matrix Python APIs on the installed wheel.
++
++Usage: python validation/python_call_costs.py MODULE
++
++Times one regenerative candidate per call and 96-candidate batches, in
++interleaved rounds, and prints microseconds per call (min and median of 25
++rounds). Run on one CPU (for example `taskset -c 0`) for stable numbers.
++"""
++
++import importlib
++import json
++import statistics
++import sys
++from time import perf_counter
++
++package = importlib.import_module(sys.argv[1])
++example = package.load_example()
++prepared = package.Prepared(example["model"])
++x = example["parameters"]
++rows = [[x[0] * (1 + (i % 13) * 0.003), x[1]] for i in range(96)]
++batch = [{"id": f"candidate-{i:04}", "parameters": r} for i, r in enumerate(rows)]
++cases = {
++    "one_full_evaluate": (400, lambda: prepared.evaluate(x)),
++    "one_lean_scores": (400, lambda: prepared.scores([{"id": "one", "parameters": x}])),
++    "one_matrix": (400, lambda: prepared.score_matrix([x])),
++    "batch96_full": (20, lambda: prepared.batch(batch)),
++    "batch96_lean": (20, lambda: prepared.scores(batch)),
++    "batch96_matrix": (20, lambda: prepared.score_matrix(rows)),
++    "prepare": (400, lambda: package.Prepared(example["model"])),
++}
++samples = {name: [] for name in cases}
++for name, (calls, call) in cases.items():
++    call()
++for _ in range(25):
++    for name, (calls, call) in cases.items():
++        start = perf_counter()
++        for _ in range(calls):
++            call()
++        samples[name].append((perf_counter() - start) / calls * 1e6)
++print(json.dumps({
++    "unit": "microseconds per call; min and median of 25 interleaved rounds",
++    "calls": {name: {"min_us": min(values), "median_us": statistics.median(values)}
++              for name, values in samples.items()},
++}, indent=2))
+diff --git a/validation/release_checks.py b/validation/release_checks.py
+index 91880fd..78305e6 100644
+--- a/validation/release_checks.py
++++ b/validation/release_checks.py
+@@ -1,4 +1,7 @@
+-"""Check the installed lean and matrix APIs and run the Python snippets in the tutorial."""
++"""Check the installed lean and matrix APIs and run the Python blocks of the tutorial and manual.
++
++Usage: python validation/release_checks.py MODULE docs/tutorial.md [docs/user-manual.md]
++"""
+ 
+ import importlib
+ import json
+@@ -23,7 +26,9 @@ def check_matrix(prepared, rows, **budget):
+             assert row["score"] is None and math.isnan(score), (score, row)
+     return statuses
+ 
+-module, tutorial = sys.argv[1:]
++module, tutorial, *rest = sys.argv[1:]
++# The manual defaults to docs/user-manual.md next to the tutorial.
++manual_path = Path(rest[0]) if rest else Path(tutorial).with_name("user-manual.md")
+ package = importlib.import_module(module)
+ example = package.load_example()
+ prepared = package.Prepared(example["model"])
+@@ -95,11 +100,21 @@ if numpy is not None:
+     array = numpy.array([example["parameters"]] * 3, dtype=float)
+     assert prepared.score_matrix(array) == prepared.score_matrix(array.tolist())
+ 
+-snippets = re.findall(r"^```python\n(.*?)^```", Path(tutorial).read_text(), re.M | re.S)
+-assert len(snippets) >= 4
+-namespace = {}
+-for i, snippet in enumerate(snippets, 1):
+-    exec(compile(snippet, f"tutorial-{i}", "exec"), namespace)
+-print(json.dumps({"status": "passed", "tutorial_python_blocks": len(snippets),
++
++
++def run_blocks(path, label, minimum):
++    """Execute every ```python block of a document in order, in one namespace."""
++    blocks = re.findall(r"^```python\n(.*?)^```", Path(path).read_text(), re.M | re.S)
++    assert len(blocks) >= minimum, (path, len(blocks))
++    namespace = {}
++    for i, block in enumerate(blocks, 1):
++        exec(compile(block, f"{label}-{i}", "exec"), namespace)
++    return len(blocks)
++
++
++snippets = run_blocks(tutorial, "tutorial", 4)
++manual = run_blocks(manual_path, "manual", 20) if manual_path.exists() else 0
++print(json.dumps({"status": "passed", "tutorial_python_blocks": snippets,
++                  "manual_python_blocks": manual,
+                   "lean_api_and_budget_parity": True, "matrix_api_parity": True,
+                   "numpy_matrix_input": numpy is not None}))
+diff --git a/validation/run_examples.py b/validation/run_examples.py
+new file mode 100644
+index 0000000..c92aa33
+--- /dev/null
++++ b/validation/run_examples.py
+@@ -0,0 +1,30 @@
++"""Run every example in examples/python and save its output next to it.
++
++Usage: python validation/run_examples.py [OUTPUT_DIR]
++
++Each example runs in a fresh interpreter (`-I`) from the project root. The
++output of `<name>.py` goes to `examples/python/outputs/<name>.txt`. A summary
++with exit status and wall time per example is printed as JSON.
++"""
++
++import json
++from pathlib import Path
++import subprocess
++import sys
++from time import perf_counter
++
++ROOT = Path(__file__).resolve().parents[1]
++examples = sorted((ROOT / "examples" / "python").glob("*.py"))
++outputs = Path(sys.argv[1]) if len(sys.argv) > 1 else ROOT / "examples" / "python" / "outputs"
++outputs.mkdir(parents=True, exist_ok=True)
++summary = {}
++for path in examples:
++    start = perf_counter()
++    result = subprocess.run([sys.executable, "-I", str(path)], cwd=ROOT, capture_output=True,
++                            text=True, timeout=300, check=False)
++    elapsed = perf_counter() - start
++    (outputs / f"{path.stem}.txt").write_text(result.stdout + result.stderr)
++    summary[path.stem] = {"exit": result.returncode, "seconds": round(elapsed, 3)}
++print(json.dumps(summary, indent=2))
++if any(row["exit"] for row in summary.values()):
++    raise SystemExit("an example failed")
+-- 
+2.43.0
+

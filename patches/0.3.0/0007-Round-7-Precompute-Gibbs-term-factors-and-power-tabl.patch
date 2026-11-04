@@ -1,0 +1,423 @@
+From a338e592a6592636489abf2767a1928cc420952d Mon Sep 17 00:00:00 2001
+From: Claude <noreply@anthropic.com>
+Date: Wed, 4 Nov 2026 11:54:08 -0400
+Subject: [PATCH 07/13] Round 7: Precompute Gibbs term factors and power-table
+ indices
+
+Build compile-time term tables holding the power-table indices of y^J,
+y^(J-1) and y^(J-2) and the products n*J and n*J*(J-1), and keep
+positive and negative powers in one table. The inner loop loses its
+integer-to-float conversions, run-time products and exponent branches.
+The ideal-gas part uses the same scheme. The products and summation
+order are unchanged, so results are bit-identical.
+
+Workload: domain (48 candidates at 950 K), matrix API both sides.
+Official 11-sample run: 0.172 ms -> 0.135 ms, 1.28x (paired 1.33x).
+41-sample confirmation: 0.169 ms -> 0.125 ms, paired 1.36x.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+---
+ evidence/performance-0.3.0/plan.md            |  20 ++
+ .../round07-matrix-domain-confirm41.json      |  97 ++++++++++
+ .../round07-matrix-domain.json                |  37 ++++
+ src/if97.rs                                   | 176 +++++++++++++++---
+ 4 files changed, 305 insertions(+), 25 deletions(-)
+ create mode 100644 evidence/performance-0.3.0/round07-matrix-domain-confirm41.json
+ create mode 100644 evidence/performance-0.3.0/round07-matrix-domain.json
+
+diff --git a/evidence/performance-0.3.0/plan.md b/evidence/performance-0.3.0/plan.md
+index 25dc350..d23fccd 100644
+--- a/evidence/performance-0.3.0/plan.md
++++ b/evidence/performance-0.3.0/plan.md
+@@ -159,3 +159,23 @@ the median of per-sample-pair ratios. For every round from 2 on:
+ - Result: official 0.273 -> 0.256 ms, 1.07x (paired 1.11x); confirmation
+   0.280 -> 0.255 ms, paired 1.11x. Kept. Parity passed on every workload
+   and mode; `validate.py` passed (`round06-validation.json`).
++
++## Round 7: precomputed term factors and power indices
++
++- Profile after round 6 (scratch harness, min of 25 interleaved samples):
++  serial matrix batch 242 us (2.5 us per candidate, about 20 Gibbs
++  evaluations), vapor state 118 ns, liquid 102 ns. Each term still converts
++  its exponents to floats, multiplies n*J and n*J*(J-1) at run time and
++  branches on the exponent sign and on J = 0 or 1.
++- Change: compile-time term tables with power-table indices and the
++  products n*J and n*J*(J-1) (identical IEEE products), one combined
++  positive/negative power table, and the same for the ideal-gas part.
++  Zero factors replace the skipped J = 0 and J = 1 derivative terms.
++- Workload: `domain` with the matrix API on both sides.
++- Expected effect: roughly 1.1-1.25x on the kernel. Bit-identical results
++  (same products, same summation order; an added +0 or -0 term leaves a sum
++  unchanged).
++- Result: official 0.172 -> 0.135 ms, 1.28x (paired 1.33x); confirmation
++  0.169 -> 0.125 ms, paired 1.36x. Kept. Probe output byte-identical for
++  `serial`, `domain`, `domain2` and `trace`; a unit test checks bit
++  identity with the round-6 loop on a pressure/temperature grid.
+diff --git a/evidence/performance-0.3.0/round07-matrix-domain-confirm41.json b/evidence/performance-0.3.0/round07-matrix-domain-confirm41.json
+new file mode 100644
+index 0000000..3b5ec85
+--- /dev/null
++++ b/evidence/performance-0.3.0/round07-matrix-domain-confirm41.json
+@@ -0,0 +1,97 @@
++{
++  "workload": "domain",
++  "before_api": "matrix",
++  "after_api": "matrix",
++  "before_seconds": [
++    0.0001764024,
++    0.00017808279999999998,
++    0.000164676,
++    0.00025326820000000003,
++    0.0002583068,
++    0.0001676302,
++    0.0001676232,
++    0.0001704798,
++    0.000165683,
++    0.0001587964,
++    0.00016534360000000002,
++    0.00024175820000000003,
++    0.00015677239999999998,
++    0.00015390340000000002,
++    0.0001574516,
++    0.00016853700000000002,
++    0.0001919686,
++    0.0001715482,
++    0.0001809238,
++    0.000174774,
++    0.0001801202,
++    0.000163883,
++    0.0001713088,
++    0.0001866884,
++    0.0001641166,
++    0.0001559676,
++    0.00016982220000000002,
++    0.0001658888,
++    0.00017341699999999998,
++    0.0001632824,
++    0.00016576360000000002,
++    0.00016720260000000002,
++    0.0001684574,
++    0.00016515060000000002,
++    0.0001738572,
++    0.00018399079999999998,
++    0.0001663452,
++    0.00021016899999999999,
++    0.0002069654,
++    0.00019185680000000002,
++    0.000156611
++  ],
++  "after_seconds": [
++    0.0001333132,
++    0.0001207402,
++    0.0001506576,
++    0.0001345628,
++    0.00021351679999999997,
++    0.000137997,
++    0.0001213846,
++    0.000122943,
++    0.0001234934,
++    0.000117256,
++    0.0001140966,
++    0.0001153662,
++    0.000121758,
++    0.00013753540000000002,
++    0.00011922960000000001,
++    0.0001218814,
++    0.0001237914,
++    0.0001293102,
++    0.000125652,
++    0.00012418500000000002,
++    0.00012011719999999999,
++    0.0001244916,
++    0.00011520339999999999,
++    0.0001372002,
++    0.0001415206,
++    0.00013370019999999998,
++    0.00011105539999999999,
++    9.472159999999999e-05,
++    0.0001280106,
++    0.0001365512,
++    0.000121493,
++    0.0001350806,
++    0.00012491839999999999,
++    0.000133197,
++    0.00012574599999999998,
++    0.0001309332,
++    0.00012124639999999998,
++    0.0001196396,
++    0.0001492754,
++    0.00015161179999999998,
++    0.0001184826
++  ],
++  "medians_seconds": [
++    0.00016853700000000002,
++    0.0001244916
++  ],
++  "speedup": 1.3538021842437564,
++  "paired_median_speedup": 1.3607006403780755
++}
+diff --git a/evidence/performance-0.3.0/round07-matrix-domain.json b/evidence/performance-0.3.0/round07-matrix-domain.json
+new file mode 100644
+index 0000000..699d9c4
+--- /dev/null
++++ b/evidence/performance-0.3.0/round07-matrix-domain.json
+@@ -0,0 +1,37 @@
++{
++  "workload": "domain",
++  "before_api": "matrix",
++  "after_api": "matrix",
++  "before_seconds": [
++    0.0001677416,
++    0.0001721226,
++    0.0001708674,
++    0.000187718,
++    0.0001771244,
++    0.0003097622,
++    0.0003067958,
++    0.000313041,
++    0.0001711944,
++    0.0001638024,
++    0.0001599266
++  ],
++  "after_seconds": [
++    0.0001412364,
++    0.00012205219999999999,
++    0.0001283778,
++    0.00020212960000000002,
++    0.0001800666,
++    0.00013909,
++    0.000134475,
++    0.000154022,
++    0.00012647979999999998,
++    0.00013172839999999998,
++    0.0001294258
++  ],
++  "medians_seconds": [
++    0.0001721226,
++    0.000134475
++  ],
++  "speedup": 1.2799598438371445,
++  "paired_median_speedup": 1.3309731121736001
++}
+diff --git a/src/if97.rs b/src/if97.rs
+index 48db492..70c8fac 100644
+--- a/src/if97.rs
++++ b/src/if97.rs
+@@ -91,6 +91,81 @@ const fn groups<const N: usize>(coeffs: &[(i32, i32, f64)]) -> Groups<N> {
+ const R1_GROUPS: Groups<{ count_groups(&R1) }> = groups(&R1);
+ const R2_GROUPS: Groups<{ count_groups(&R2) }> = groups(&R2);
+ 
++/// One Gibbs term: power-table indices of y^J, y^(J-1) and y^(J-2) and the
++/// factors n, n*J and n*J*(J-1), multiplied at compile time exactly as at run time.
++#[derive(Clone, Copy)]
++struct Term {
++    j0: usize,
++    j1: usize,
++    j2: usize,
++    n: f64,
++    nj: f64,
++    njj: f64,
++}
++
++/// Index of y^e in the combined table: y^0..y^58 at 0..=58, y^-k at 58 + k.
++const fn power_index(e: i32) -> usize {
++    if e >= 0 {
++        e as usize
++    } else {
++        58 + e.unsigned_abs() as usize
++    }
++}
++
++const fn scaled<const N: usize>(coeffs: &[(i32, i32, f64); N]) -> [Term; N] {
++    let mut out = [Term {
++        j0: 0,
++        j1: 0,
++        j2: 0,
++        n: 0.0,
++        nj: 0.0,
++        njj: 0.0,
++    }; N];
++    let mut k = 0;
++    while k < N {
++        let (_, j, n) = coeffs[k];
++        out[k] = Term {
++            j0: power_index(j),
++            j1: power_index(j - 1),
++            j2: power_index(j - 2),
++            n,
++            nj: n * j as f64,
++            njj: n * (j * (j - 1)) as f64,
++        };
++        k += 1;
++    }
++    out
++}
++
++const R1_TERMS: [Term; 34] = scaled(&R1);
++const R2_TERMS: [Term; 43] = scaled(&R2);
++
++/// Ideal-gas terms indexed into `[tau^-7, ..., tau^3]`.
++const IDEAL_TERMS: [Term; 9] = {
++    let mut out = [Term {
++        j0: 0,
++        j1: 0,
++        j2: 0,
++        n: 0.0,
++        nj: 0.0,
++        njj: 0.0,
++    }; 9];
++    let mut k = 0;
++    while k < 9 {
++        let (j, n) = IDEAL[k];
++        out[k] = Term {
++            j0: (j + 7) as usize,
++            j1: (j + 6) as usize,
++            j2: (j + 5) as usize,
++            n,
++            nj: n * j as f64,
++            njj: n * (j * (j - 1)) as f64,
++        };
++        k += 1;
++    }
++    out
++};
++
+ /// Gibbs sum and its derivatives: (gamma, gamma_pi, gamma_tau, gamma_tau_tau).
+ /// Terms are summed per pressure exponent first, then scaled by that power.
+ fn curvature_terms<const G: bool, const DX: bool, const DYY: bool>(
+@@ -98,33 +173,29 @@ fn curvature_terms<const G: bool, const DX: bool, const DYY: bool>(
+     y: f64,
+     coeffs: &[(i32, i32, f64)],
+ ) -> (f64, f64, f64, f64) {
+-    let mut yp = [1.0; 59];
+-    let mut yn = [1.0; 44];
+     let liquid = coeffs.len() == R1.len();
++    let mut powers = [1.0; 102];
+     if liquid {
+-        fill_powers(1.0 / y, &mut yn[..if DYY { 44 } else { 43 }]);
++        fill_powers(1.0 / y, &mut powers[58..]);
++        fill_powers(y, &mut powers[..=17]);
++    } else {
++        fill_powers(y, &mut powers[..=58]);
+     }
+-    fill_powers(y, &mut yp[..=if liquid { 17 } else { 58 }]);
+-    let power_y = |j: i32| {
+-        if j < 0 {
+-            yn[j.unsigned_abs() as usize]
+-        } else {
+-            yp[j as usize]
+-        }
++    let (groups, terms): (&[(usize, usize, usize)], &[Term]) = if liquid {
++        (&R1_GROUPS, &R1_TERMS)
++    } else {
++        (&R2_GROUPS, &R2_TERMS)
+     };
+-    let groups: &[(usize, usize, usize)] = if liquid { &R1_GROUPS } else { &R2_GROUPS };
+     let (mut g, mut dx, mut dy, mut dyy) = (0.0, 0.0, 0.0, 0.0);
+     for &(i, start, end) in groups {
+         let (mut sum, mut sum_y, mut sum_yy) = (0.0, 0.0, 0.0);
+-        for &(_, j, n) in &coeffs[start..end] {
++        for term in &terms[start..end] {
+             if G || DX {
+-                sum += n * power_y(j);
++                sum += term.n * powers[term.j0];
+             }
+-            if j != 0 {
+-                sum_y += n * f64::from(j) * power_y(j - 1);
+-            }
+-            if DYY && j != 0 && j != 1 {
+-                sum_yy += n * f64::from(j * (j - 1)) * power_y(j - 2);
++            sum_y += term.nj * powers[term.j1];
++            if DYY {
++                sum_yy += term.njj * powers[term.j2];
+             }
+         }
+         let a = xp[i];
+@@ -217,15 +288,13 @@ fn vapor_curvature<const G: bool, const DX: bool, const DYY: bool>(
+         tau * tau,
+         tau * tau * tau,
+     ];
+-    for (j, n) in IDEAL {
++    for term in &IDEAL_TERMS {
+         if G {
+-            g += n * powers[(j + 7) as usize];
+-        }
+-        if j != 0 {
+-            dy += n * f64::from(j) * powers[(j + 6) as usize];
++            g += term.n * powers[term.j0];
+         }
+-        if DYY && j != 0 && j != 1 {
+-            dyy += n * f64::from(j * (j - 1)) * powers[(j + 5) as usize];
++        dy += term.nj * powers[term.j1];
++        if DYY {
++            dyy += term.njj * powers[term.j2];
+         }
+     }
+     (g, dx, dy, dyy)
+@@ -539,6 +608,63 @@ mod tests {
+         out
+     }
+ 
++    /// The round-6 loop: grouped sums with exponent factors formed at run time.
++    fn runtime_factor_terms(xp: &[f64; 33], y: f64, coeffs: &[(i32, i32, f64)]) -> [f64; 4] {
++        let liquid = coeffs.len() == R1.len();
++        let (mut yp, mut yn) = ([1.0; 59], [1.0; 44]);
++        if liquid {
++            fill_powers(1.0 / y, &mut yn);
++        }
++        fill_powers(y, &mut yp[..=if liquid { 17 } else { 58 }]);
++        let power_y = |j: i32| {
++            if j < 0 {
++                yn[j.unsigned_abs() as usize]
++            } else {
++                yp[j as usize]
++            }
++        };
++        let groups: &[(usize, usize, usize)] = if liquid { &R1_GROUPS } else { &R2_GROUPS };
++        let mut out = [0.0; 4];
++        for &(i, start, end) in groups {
++            let (mut sum, mut sum_y, mut sum_yy) = (0.0, 0.0, 0.0);
++            for &(_, j, n) in &coeffs[start..end] {
++                sum += n * power_y(j);
++                if j != 0 {
++                    sum_y += n * f64::from(j) * power_y(j - 1);
++                }
++                if j != 0 && j != 1 {
++                    sum_yy += n * f64::from(j * (j - 1)) * power_y(j - 2);
++                }
++            }
++            out[0] += xp[i] * sum;
++            if i != 0 {
++                out[1] += i as f64 * xp[i - 1] * sum;
++            }
++            out[2] += xp[i] * sum_y;
++            out[3] += xp[i] * sum_yy;
++        }
++        out
++    }
++
++    #[test]
++    fn precomputed_term_factors_are_bit_identical_to_runtime_factors() {
++        for p in [1e3, 1.5e4, 3e5, 2e6, 8e6, 1.6e7] {
++            for t in [273.16, 300.0, 400.0, 500.0, 620.0, 800.0, 1073.15] {
++                let x = 7.1 - p / 16.53e6;
++                let xp = pressure_powers(x, true);
++                let y = 1386.0 / t - 1.222;
++                let (g, dx, dy, dyy) = curvature_terms::<true, true, true>(&xp, y, &R1);
++                let want = runtime_factor_terms(&xp, y, &R1);
++                assert_eq!([g, dx, dy, dyy].map(f64::to_bits), want.map(f64::to_bits));
++                let xp = pressure_powers(p / 1e6, false);
++                let y = 540.0 / t - 0.5;
++                let (g, dx, dy, dyy) = curvature_terms::<true, true, true>(&xp, y, &R2);
++                let want = runtime_factor_terms(&xp, y, &R2);
++                assert_eq!([g, dx, dy, dyy].map(f64::to_bits), want.map(f64::to_bits));
++            }
++        }
++    }
++
+     #[test]
+     fn grouped_terms_match_term_by_term_sums() {
+         let close = |a: f64, b: f64, scale: f64| (a - b).abs() <= 1e-12 * scale.max(1e-300);
+-- 
+2.43.0
+

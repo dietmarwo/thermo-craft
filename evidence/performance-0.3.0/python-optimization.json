@@ -1,0 +1,563 @@
+{
+  "host": {
+    "cpus": 2,
+    "cpu_model": "Intel(R) Xeon(R) Processor @ 2.10GHz",
+    "python": "CPython 3.12.3",
+    "rustc": "rustc 1.97.0",
+    "affinity": "taskset -c 0",
+    "note": "measured inside the shared CPU lock"
+  },
+  "command": "validation/optimize_performance.py thermo_craft [--scores|--matrix], 7 interleaved runs per configuration",
+  "wheels": {
+    "v0.2.0": "packages/thermo_craft-0.2.0-cp310-abi3-manylinux_2_34_x86_64.whl (from the 0.2.0 delivery)",
+    "v0.3.0": "built with maturin 1.9.6 from the extracted 0.3.0 sdist, sha256 0be6990235859c10b5280ee538ef3131e1413950eaeb1bfee01f9403c08d5d77"
+  },
+  "runs": {
+    "v0.2.0-full": [
+      {
+        "mode": "full",
+        "total_seconds": 0.008843365999382513,
+        "prepare_seconds": 9.935699927154928e-05,
+        "search_seconds": 0.008645156000056886,
+        "replay_seconds": 9.885300005407771e-05,
+        "evaluations": 48,
+        "failures": 0,
+        "best": [
+          362432.0581474683,
+          2033861.965363634
+        ],
+        "score": -0.38412704852860363
+      },
+      {
+        "mode": "full",
+        "total_seconds": 0.0077059730001565185,
+        "prepare_seconds": 7.683300009375671e-05,
+        "search_seconds": 0.007548542000222369,
+        "replay_seconds": 8.059799984039273e-05,
+        "evaluations": 48,
+        "failures": 0,
+        "best": [
+          362432.0581474683,
+          2033861.965363634
+        ],
+        "score": -0.38412704852860363
+      },
+      {
+        "mode": "full",
+        "total_seconds": 0.00921954800014646,
+        "prepare_seconds": 9.258099998987745e-05,
+        "search_seconds": 0.008970728999884159,
+        "replay_seconds": 0.00015623800027242396,
+        "evaluations": 48,
+        "failures": 0,
+        "best": [
+          362432.0581474683,
+          2033861.965363634
+        ],
+        "score": -0.38412704852860363
+      },
+      {
+        "mode": "full",
+        "total_seconds": 0.008669274000567384,
+        "prepare_seconds": 8.949900075094774e-05,
+        "search_seconds": 0.008481979999487521,
+        "replay_seconds": 9.77950003289152e-05,
+        "evaluations": 48,
+        "failures": 0,
+        "best": [
+          362432.0581474683,
+          2033861.965363634
+        ],
+        "score": -0.38412704852860363
+      },
+      {
+        "mode": "full",
+        "total_seconds": 0.009408058000190067,
+        "prepare_seconds": 9.096400026464835e-05,
+        "search_seconds": 0.009229332999893813,
+        "replay_seconds": 8.776100003160536e-05,
+        "evaluations": 48,
+        "failures": 0,
+        "best": [
+          362432.0581474683,
+          2033861.965363634
+        ],
+        "score": -0.38412704852860363
+      },
+      {
+        "mode": "full",
+        "total_seconds": 0.013944231000095897,
+        "prepare_seconds": 0.00019053600044571795,
+        "search_seconds": 0.01362724699993123,
+        "replay_seconds": 0.00012644799971894827,
+        "evaluations": 48,
+        "failures": 0,
+        "best": [
+          362432.0581474683,
+          2033861.965363634
+        ],
+        "score": -0.38412704852860363
+      },
+      {
+        "mode": "full",
+        "total_seconds": 0.00886338500004058,
+        "prepare_seconds": 7.936400015751133e-05,
+        "search_seconds": 0.008661834999657003,
+        "replay_seconds": 0.00012218600022606552,
+        "evaluations": 48,
+        "failures": 0,
+        "best": [
+          362432.0581474683,
+          2033861.965363634
+        ],
+        "score": -0.38412704852860363
+      }
+    ],
+    "v0.2.0-scores": [
+      {
+        "mode": "scores",
+        "total_seconds": 0.007108351000169932,
+        "prepare_seconds": 8.333100049640052e-05,
+        "search_seconds": 0.006866368999908445,
+        "replay_seconds": 0.00015865099976508645,
+        "evaluations": 48,
+        "failures": 0,
+        "best": [
+          362432.0581474683,
+          2033861.965363634
+        ],
+        "score": -0.38412704852860363
+      },
+      {
+        "mode": "scores",
+        "total_seconds": 0.006752770999810309,
+        "prepare_seconds": 7.594700036861468e-05,
+        "search_seconds": 0.00651336199916841,
+        "replay_seconds": 0.0001634620002732845,
+        "evaluations": 48,
+        "failures": 0,
+        "best": [
+          362432.0581474683,
+          2033861.965363634
+        ],
+        "score": -0.38412704852860363
+      },
+      {
+        "mode": "scores",
+        "total_seconds": 0.007082222000462934,
+        "prepare_seconds": 0.00011059400003432529,
+        "search_seconds": 0.0068506930001603905,
+        "replay_seconds": 0.00012093500026821857,
+        "evaluations": 48,
+        "failures": 0,
+        "best": [
+          362432.0581474683,
+          2033861.965363634
+        ],
+        "score": -0.38412704852860363
+      },
+      {
+        "mode": "scores",
+        "total_seconds": 0.0065579030006119865,
+        "prepare_seconds": 6.965500051592244e-05,
+        "search_seconds": 0.006366849000187358,
+        "replay_seconds": 0.00012139899990870617,
+        "evaluations": 48,
+        "failures": 0,
+        "best": [
+          362432.0581474683,
+          2033861.965363634
+        ],
+        "score": -0.38412704852860363
+      },
+      {
+        "mode": "scores",
+        "total_seconds": 0.007208287000139535,
+        "prepare_seconds": 7.9957000707509e-05,
+        "search_seconds": 0.006953608999538119,
+        "replay_seconds": 0.000174720999893907,
+        "evaluations": 48,
+        "failures": 0,
+        "best": [
+          362432.0581474683,
+          2033861.965363634
+        ],
+        "score": -0.38412704852860363
+      },
+      {
+        "mode": "scores",
+        "total_seconds": 0.006836933000158751,
+        "prepare_seconds": 8.626999988337047e-05,
+        "search_seconds": 0.00661542499983625,
+        "replay_seconds": 0.0001352380004391307,
+        "evaluations": 48,
+        "failures": 0,
+        "best": [
+          362432.0581474683,
+          2033861.965363634
+        ],
+        "score": -0.38412704852860363
+      },
+      {
+        "mode": "scores",
+        "total_seconds": 0.006911436000336835,
+        "prepare_seconds": 8.906899984140182e-05,
+        "search_seconds": 0.006698762999803876,
+        "replay_seconds": 0.0001236040006915573,
+        "evaluations": 48,
+        "failures": 0,
+        "best": [
+          362432.0581474683,
+          2033861.965363634
+        ],
+        "score": -0.38412704852860363
+      }
+    ],
+    "v0.3.0-full": [
+      {
+        "mode": "full",
+        "total_seconds": 0.006489575000159675,
+        "prepare_seconds": 0.00010076299986394588,
+        "search_seconds": 0.006341656000586227,
+        "replay_seconds": 4.7155999709502794e-05,
+        "evaluations": 48,
+        "failures": 0,
+        "best": [
+          362432.0581474683,
+          2033861.965363634
+        ],
+        "score": -0.38412704852854795
+      },
+      {
+        "mode": "full",
+        "total_seconds": 0.006767689999833237,
+        "prepare_seconds": 7.713000013609417e-05,
+        "search_seconds": 0.00664210600007209,
+        "replay_seconds": 4.845399962505326e-05,
+        "evaluations": 48,
+        "failures": 0,
+        "best": [
+          362432.0581474683,
+          2033861.965363634
+        ],
+        "score": -0.38412704852854795
+      },
+      {
+        "mode": "full",
+        "total_seconds": 0.006235225000637001,
+        "prepare_seconds": 8.20519999251701e-05,
+        "search_seconds": 0.006108474000029673,
+        "replay_seconds": 4.469900068215793e-05,
+        "evaluations": 48,
+        "failures": 0,
+        "best": [
+          362432.0581474683,
+          2033861.965363634
+        ],
+        "score": -0.38412704852854795
+      },
+      {
+        "mode": "full",
+        "total_seconds": 0.00666435699986323,
+        "prepare_seconds": 0.00011600299967540195,
+        "search_seconds": 0.006484821000412921,
+        "replay_seconds": 6.353299977490678e-05,
+        "evaluations": 48,
+        "failures": 0,
+        "best": [
+          362432.0581474683,
+          2033861.965363634
+        ],
+        "score": -0.38412704852854795
+      },
+      {
+        "mode": "full",
+        "total_seconds": 0.007894502999988617,
+        "prepare_seconds": 0.00010280800051987171,
+        "search_seconds": 0.007733585999631032,
+        "replay_seconds": 5.810899983771378e-05,
+        "evaluations": 48,
+        "failures": 0,
+        "best": [
+          362432.0581474683,
+          2033861.965363634
+        ],
+        "score": -0.38412704852854795
+      },
+      {
+        "mode": "full",
+        "total_seconds": 0.006885240999508824,
+        "prepare_seconds": 8.388700007344596e-05,
+        "search_seconds": 0.006748355999661726,
+        "replay_seconds": 5.299799977365183e-05,
+        "evaluations": 48,
+        "failures": 0,
+        "best": [
+          362432.0581474683,
+          2033861.965363634
+        ],
+        "score": -0.38412704852854795
+      },
+      {
+        "mode": "full",
+        "total_seconds": 0.006860384999527014,
+        "prepare_seconds": 7.907199960754951e-05,
+        "search_seconds": 0.0067324350002309075,
+        "replay_seconds": 4.8877999688556883e-05,
+        "evaluations": 48,
+        "failures": 0,
+        "best": [
+          362432.0581474683,
+          2033861.965363634
+        ],
+        "score": -0.38412704852854795
+      }
+    ],
+    "v0.3.0-scores": [
+      {
+        "mode": "scores",
+        "total_seconds": 0.005598638999799732,
+        "prepare_seconds": 8.119399990391685e-05,
+        "search_seconds": 0.005451951999930316,
+        "replay_seconds": 6.549299996549962e-05,
+        "evaluations": 48,
+        "failures": 0,
+        "best": [
+          362432.0581474683,
+          2033861.965363634
+        ],
+        "score": -0.38412704852854795
+      },
+      {
+        "mode": "scores",
+        "total_seconds": 0.007397203000437003,
+        "prepare_seconds": 9.698600024421467e-05,
+        "search_seconds": 0.007196905000455445,
+        "replay_seconds": 0.00010331199973734329,
+        "evaluations": 48,
+        "failures": 0,
+        "best": [
+          362432.0581474683,
+          2033861.965363634
+        ],
+        "score": -0.38412704852854795
+      },
+      {
+        "mode": "scores",
+        "total_seconds": 0.0060776199998144875,
+        "prepare_seconds": 8.443799924862105e-05,
+        "search_seconds": 0.005927101999986917,
+        "replay_seconds": 6.60800005789497e-05,
+        "evaluations": 48,
+        "failures": 0,
+        "best": [
+          362432.0581474683,
+          2033861.965363634
+        ],
+        "score": -0.38412704852854795
+      },
+      {
+        "mode": "scores",
+        "total_seconds": 0.0051872000003641006,
+        "prepare_seconds": 9.318400043412112e-05,
+        "search_seconds": 0.005026961999647028,
+        "replay_seconds": 6.705400028295116e-05,
+        "evaluations": 48,
+        "failures": 0,
+        "best": [
+          362432.0581474683,
+          2033861.965363634
+        ],
+        "score": -0.38412704852854795
+      },
+      {
+        "mode": "scores",
+        "total_seconds": 0.005652011000165658,
+        "prepare_seconds": 9.535600020171842e-05,
+        "search_seconds": 0.005479138999362476,
+        "replay_seconds": 7.751600060146302e-05,
+        "evaluations": 48,
+        "failures": 0,
+        "best": [
+          362432.0581474683,
+          2033861.965363634
+        ],
+        "score": -0.38412704852854795
+      },
+      {
+        "mode": "scores",
+        "total_seconds": 0.005942378000327153,
+        "prepare_seconds": 8.580500070820563e-05,
+        "search_seconds": 0.0057902629996533506,
+        "replay_seconds": 6.630999996559694e-05,
+        "evaluations": 48,
+        "failures": 0,
+        "best": [
+          362432.0581474683,
+          2033861.965363634
+        ],
+        "score": -0.38412704852854795
+      },
+      {
+        "mode": "scores",
+        "total_seconds": 0.006044087999725889,
+        "prepare_seconds": 9.834800039243419e-05,
+        "search_seconds": 0.005819201999656798,
+        "replay_seconds": 0.0001265379996766569,
+        "evaluations": 48,
+        "failures": 0,
+        "best": [
+          362432.0581474683,
+          2033861.965363634
+        ],
+        "score": -0.38412704852854795
+      }
+    ],
+    "v0.3.0-matrix": [
+      {
+        "mode": "matrix",
+        "total_seconds": 0.004835996000110754,
+        "prepare_seconds": 8.534799962944817e-05,
+        "search_seconds": 0.004656320000322012,
+        "replay_seconds": 9.432800015929388e-05,
+        "evaluations": 48,
+        "failures": 0,
+        "best": [
+          362432.0581474683,
+          2033861.965363634
+        ],
+        "score": -0.38412704852854795
+      },
+      {
+        "mode": "matrix",
+        "total_seconds": 0.0047249540002667345,
+        "prepare_seconds": 9.391000003233785e-05,
+        "search_seconds": 0.004541092000181379,
+        "replay_seconds": 8.99520000530174e-05,
+        "evaluations": 48,
+        "failures": 0,
+        "best": [
+          362432.0581474683,
+          2033861.965363634
+        ],
+        "score": -0.38412704852854795
+      },
+      {
+        "mode": "matrix",
+        "total_seconds": 0.00389603699932195,
+        "prepare_seconds": 0.00010761999965325231,
+        "search_seconds": 0.0037080430001878995,
+        "replay_seconds": 8.037399948079837e-05,
+        "evaluations": 48,
+        "failures": 0,
+        "best": [
+          362432.0581474683,
+          2033861.965363634
+        ],
+        "score": -0.38412704852854795
+      },
+      {
+        "mode": "matrix",
+        "total_seconds": 0.00551755700053036,
+        "prepare_seconds": 7.305899998755194e-05,
+        "search_seconds": 0.005266606000077445,
+        "replay_seconds": 0.0001778920004653628,
+        "evaluations": 48,
+        "failures": 0,
+        "best": [
+          362432.0581474683,
+          2033861.965363634
+        ],
+        "score": -0.38412704852854795
+      },
+      {
+        "mode": "matrix",
+        "total_seconds": 0.005336659999557014,
+        "prepare_seconds": 9.442800001124851e-05,
+        "search_seconds": 0.005151364000084868,
+        "replay_seconds": 9.086799946089741e-05,
+        "evaluations": 48,
+        "failures": 0,
+        "best": [
+          362432.0581474683,
+          2033861.965363634
+        ],
+        "score": -0.38412704852854795
+      },
+      {
+        "mode": "matrix",
+        "total_seconds": 0.004601910000019416,
+        "prepare_seconds": 7.761600045341766e-05,
+        "search_seconds": 0.004434135999872524,
+        "replay_seconds": 9.015799969347427e-05,
+        "evaluations": 48,
+        "failures": 0,
+        "best": [
+          362432.0581474683,
+          2033861.965363634
+        ],
+        "score": -0.38412704852854795
+      },
+      {
+        "mode": "matrix",
+        "total_seconds": 0.00484117799987871,
+        "prepare_seconds": 0.00010576499971648445,
+        "search_seconds": 0.004637450000700483,
+        "replay_seconds": 9.796299946174258e-05,
+        "evaluations": 48,
+        "failures": 0,
+        "best": [
+          362432.0581474683,
+          2033861.965363634
+        ],
+        "score": -0.38412704852854795
+      }
+    ]
+  },
+  "median_ms": {
+    "v0.2.0-full": {
+      "prepare": 0.09096400026464835,
+      "search": 8.661834999657003,
+      "replay": 0.09885300005407771,
+      "total": 8.86338500004058
+    },
+    "v0.2.0-scores": {
+      "prepare": 0.08333100049640052,
+      "search": 6.698762999803876,
+      "replay": 0.1352380004391307,
+      "total": 6.911436000336835
+    },
+    "v0.3.0-full": {
+      "prepare": 0.08388700007344596,
+      "search": 6.64210600007209,
+      "replay": 0.048877999688556883,
+      "total": 6.767689999833237
+    },
+    "v0.3.0-scores": {
+      "prepare": 0.09318400043412112,
+      "search": 5.790262999653351,
+      "replay": 0.06705400028295116,
+      "total": 5.942378000327153
+    },
+    "v0.3.0-matrix": {
+      "prepare": 0.09391000003233785,
+      "search": 4.637450000700483,
+      "replay": 0.09086799946089741,
+      "total": 4.835996000110754
+    }
+  },
+  "agree": true,
+  "evaluations": 48,
+  "failures": 0,
+  "best": [
+    362432.0581474683,
+    2033861.965363634
+  ],
+  "scores": {
+    "v0.2.0-full": -0.38412704852860363,
+    "v0.2.0-scores": -0.38412704852860363,
+    "v0.3.0-full": -0.38412704852854795,
+    "v0.3.0-scores": -0.38412704852854795,
+    "v0.3.0-matrix": -0.38412704852854795
+  }
+}

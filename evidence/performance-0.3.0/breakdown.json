@@ -1,0 +1,166 @@
+{
+  "host": {
+    "cpus": 2,
+    "cpu_model": "Intel(R) Xeon(R) Processor @ 2.10GHz",
+    "rustc": "rustc 1.97.0 (2d8144b78 2026-07-07)",
+    "note": "shared by five agents; measured inside the CPU lock"
+  },
+  "command": "target/release/examples/breakdown models/example.json",
+  "available_parallelism": 2,
+  "phases": {
+    "domain": {
+      "candidates": 48,
+      "decode": {
+        "median_us": 7.08425,
+        "min_us": 6.366125
+      },
+      "full": {
+        "median_us": 188.241125,
+        "min_us": 183.334
+      },
+      "lean": {
+        "median_us": 122.68024999999999,
+        "min_us": 117.207125
+      },
+      "matrix": {
+        "median_us": 110.7135,
+        "min_us": 106.58025
+      }
+    },
+    "domain2": {
+      "candidates": 48,
+      "decode": {
+        "median_us": 6.836625,
+        "min_us": 6.10125
+      },
+      "full": {
+        "median_us": 25.346625,
+        "min_us": 23.6155
+      },
+      "lean": {
+        "median_us": 18.276375,
+        "min_us": 16.766625
+      },
+      "matrix": {
+        "median_us": 6.947625,
+        "min_us": 6.7296249999999995
+      }
+    },
+    "invalid": {
+      "candidates": 1024,
+      "decode": {
+        "median_us": 1080.8821249999999,
+        "min_us": 1016.5985000000001
+      },
+      "full": {
+        "median_us": 1305.5452500000001,
+        "min_us": 1236.1067500000001
+      },
+      "lean": {
+        "median_us": 1309.6665,
+        "min_us": 1228.465
+      },
+      "matrix": {
+        "median_us": 33.706125,
+        "min_us": 31.645749999999996
+      }
+    },
+    "one": {
+      "candidates": 1,
+      "decode": {
+        "median_us": 0.14269,
+        "min_us": 0.13195
+      },
+      "full": {
+        "median_us": 3.676915,
+        "min_us": 3.4613925
+      },
+      "lean": {
+        "median_us": 2.2546975,
+        "min_us": 2.130575
+      },
+      "matrix": {
+        "median_us": 1.7765175000000002,
+        "min_us": 1.7127550000000002
+      }
+    },
+    "serial": {
+      "candidates": 96,
+      "decode": {
+        "median_us": 12.587875,
+        "min_us": 11.54725
+      },
+      "full": {
+        "median_us": 329.50625,
+        "min_us": 305.280125
+      },
+      "lean": {
+        "median_us": 196.86637499999998,
+        "min_us": 183.327125
+      },
+      "matrix": {
+        "median_us": 172.626375,
+        "min_us": 158.4555
+      }
+    }
+  },
+  "prepare": {
+    "median_us": 1.2098575,
+    "min_us": 1.073375
+  },
+  "unit": "microseconds per call; min and median of 25 timed loops",
+  "worker_scaling": {
+    "large_1024": {
+      "full_workers_1": {
+        "median_us": 3898.78325,
+        "min_us": 3559.54975
+      },
+      "full_workers_2": {
+        "median_us": 3296.19025,
+        "min_us": 3010.873
+      },
+      "full_workers_4": {
+        "median_us": 3305.132,
+        "min_us": 2877.54425
+      },
+      "matrix_workers_1": {
+        "median_us": 1910.99325,
+        "min_us": 1748.8052500000001
+      },
+      "matrix_workers_2": {
+        "median_us": 1172.394,
+        "min_us": 1047.655
+      },
+      "matrix_workers_4": {
+        "median_us": 1311.54125,
+        "min_us": 1015.922
+      }
+    },
+    "serial_96": {
+      "full_workers_1": {
+        "median_us": 323.56125000000003,
+        "min_us": 299.77500000000003
+      },
+      "full_workers_2": {
+        "median_us": 346.80575,
+        "min_us": 309.28299999999996
+      },
+      "full_workers_4": {
+        "median_us": 338.85725,
+        "min_us": 286.747
+      },
+      "matrix_workers_1": {
+        "median_us": 167.9845,
+        "min_us": 152.8405
+      },
+      "matrix_workers_2": {
+        "median_us": 162.5385,
+        "min_us": 142.91299999999998
+      },
+      "matrix_workers_4": {
+        "median_us": 154.8295,
+        "min_us": 126.27450000000002
+      }
+    }
+  }
+}

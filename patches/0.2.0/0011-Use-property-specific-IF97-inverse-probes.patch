@@ -1,0 +1,209 @@
+From 58c6de6430be174779d4def668e7c6dbb103b758 Mon Sep 17 00:00:00 2001
+From: Codex <codex@openai.com>
+Date: Wed, 4 Nov 2026 02:55:00 +0100
+Subject: [PATCH 11/12] Use property-specific IF97 inverse probes
+
+---
+ src/domain.rs |   4 +-
+ src/if97.rs   | 104 ++++++++++++++++++++++++++++++++++++++------------
+ 2 files changed, 82 insertions(+), 26 deletions(-)
+
+diff --git a/src/domain.rs b/src/domain.rs
+index d070f6c..cd2c400 100644
+--- a/src/domain.rs
++++ b/src/domain.rs
+@@ -98,9 +98,9 @@ fn solve(p: &Plant, parameters: &[f64], work: &mut Work<'_>) -> Evaluation {
+     let inlet = p.inlet;
+     let turbine = |before: State, pair: [State; 2], work: &mut Work<'_>| {
+         let pressure = pair[0].p_pa;
+-        let ideal = invert(pressure, pair, before.s_j_kg_k, |s| s.s_j_kg_k, work)?;
++        let ideal = invert::<false>(pressure, pair, before.s_j_kg_k, work)?;
+         let h = before.h_j_kg - p.turbine_efficiency * (before.h_j_kg - ideal.h_j_kg);
+-        invert(pressure, pair, h, |s| s.h_j_kg, work)
++        invert::<true>(pressure, pair, h, work)
+     };
+     let pump = |liquid: State, dest: f64| liquid.v_m3_kg * (dest - liquid.p_pa) / p.pump_efficiency;
+     let (
+diff --git a/src/if97.rs b/src/if97.rs
+index dbc2a6e..311dfab 100644
+--- a/src/if97.rs
++++ b/src/if97.rs
+@@ -23,7 +23,11 @@ fn pressure_powers(x: f64, liquid: bool) -> [f64; 33] {
+     powers
+ }
+ 
+-fn terms(xp: &[f64; 33], y: f64, coeffs: &[(i32, i32, f64)]) -> (f64, f64, f64) {
++fn terms<const G: bool, const DX: bool>(
++    xp: &[f64; 33],
++    y: f64,
++    coeffs: &[(i32, i32, f64)],
++) -> (f64, f64, f64) {
+     let mut yp = [1.0; 59];
+     let mut yn = [1.0; 43];
+     let liquid = coeffs.len() == R1.len();
+@@ -47,8 +51,10 @@ fn terms(xp: &[f64; 33], y: f64, coeffs: &[(i32, i32, f64)]) -> (f64, f64, f64)
+     for &(i, j, n) in coeffs {
+         let a = xp[i as usize];
+         let b = power_y(j);
+-        g += n * a * b;
+-        if i != 0 {
++        if G {
++            g += n * a * b;
++        }
++        if DX && i != 0 {
+             dx += n * f64::from(i) * xp[(i - 1) as usize] * b;
+         }
+         if j != 0 {
+@@ -64,7 +70,7 @@ fn liquid(p: f64, t: f64) -> State {
+ 
+ fn liquid_at(p: f64, t: f64, powers: &[f64; 33]) -> State {
+     let tau = 1386.0 / t;
+-    let (g, dx, dy) = terms(powers, tau - 1.222, &R1);
++    let (g, dx, dy) = terms::<true, true>(powers, tau - 1.222, &R1);
+     State {
+         p_pa: p,
+         t_k: t,
+@@ -81,9 +87,29 @@ fn vapor(p: f64, t: f64) -> State {
+ fn vapor_at(p: f64, t: f64, powers: &[f64; 33]) -> State {
+     let pi = p / 1e6;
+     let tau = 540.0 / t;
+-    let (mut g, mut dx, mut dy) = terms(powers, tau - 0.5, &R2);
+-    g += pi.ln();
+-    dx += 1.0 / pi;
++    let (g, dx, dy) = vapor_terms::<true, true>(pi, pi.ln(), tau, powers);
++    State {
++        p_pa: p,
++        t_k: t,
++        h_j_kg: R * t * tau * dy,
++        s_j_kg_k: R * (tau * dy - g),
++        v_m3_kg: R * t * dx / 1e6,
++        quality: None,
++    }
++}
++fn vapor_terms<const G: bool, const DX: bool>(
++    pi: f64,
++    log_pi: f64,
++    tau: f64,
++    powers: &[f64; 33],
++) -> (f64, f64, f64) {
++    let (mut g, mut dx, mut dy) = terms::<G, DX>(powers, tau - 0.5, &R2);
++    if G {
++        g += log_pi;
++    }
++    if DX {
++        dx += 1.0 / pi;
++    }
+     let inv = 1.0 / tau;
+     let inv2 = inv * inv;
+     let inv3 = inv2 * inv;
+@@ -102,20 +128,16 @@ fn vapor_at(p: f64, t: f64, powers: &[f64; 33]) -> State {
+         tau * tau * tau,
+     ];
+     for (j, n) in IDEAL {
+-        g += n * powers[(j + 6) as usize];
++        if G {
++            g += n * powers[(j + 6) as usize];
++        }
+         if j != 0 {
+             dy += n * f64::from(j) * powers[(j + 5) as usize];
+         }
+     }
+-    State {
+-        p_pa: p,
+-        t_k: t,
+-        h_j_kg: R * t * tau * dy,
+-        s_j_kg_k: R * (tau * dy - g),
+-        v_m3_kg: R * t * dx / 1e6,
+-        quality: None,
+-    }
++    (g, dx, dy)
+ }
++
+ pub fn saturation_temperature(p: f64) -> Result<f64, Failure> {
+     if !(1_000.0..=16_000_000.0).contains(&p) {
+         return Err(invalid("pressure outside 1 kPa to 16 MPa"));
+@@ -163,14 +185,20 @@ fn mix([a, b]: [State; 2], x: f64) -> State {
+         quality: Some(x),
+     }
+ }
+-pub fn invert(
++pub fn invert<const ENTHALPY: bool>(
+     p: f64,
+     pair: [State; 2],
+     target: f64,
+-    property: impl Fn(State) -> f64,
+     work: &mut Work<'_>,
+ ) -> Result<State, Failure> {
+     let [a, b] = pair;
++    let property = |state: State| {
++        if ENTHALPY {
++            state.h_j_kg
++        } else {
++            state.s_j_kg_k
++        }
++    };
+     let low = property(a);
+     let high = property(b);
+     if (low..=high).contains(&target) {
+@@ -182,24 +210,52 @@ pub fn invert(
+     } else {
+         (b.t_k, 1073.15, pressure_powers(p / 1e6, false))
+     };
++    let pi = p / 1e6;
++    let log_pi = if !liquid_phase && !ENTHALPY {
++        pi.ln()
++    } else {
++        0.0
++    };
+     let eval = |t| {
+-        if liquid_phase {
+-            liquid_at(p, t, &powers)
++        let (tau, g, dy) = if liquid_phase {
++            let tau = 1386.0 / t;
++            let (g, _, dy) = if ENTHALPY {
++                terms::<false, false>(&powers, tau - 1.222, &R1)
++            } else {
++                terms::<true, false>(&powers, tau - 1.222, &R1)
++            };
++            (tau, g, dy)
++        } else {
++            let tau = 540.0 / t;
++            let (g, _, dy) = if ENTHALPY {
++                vapor_terms::<false, false>(pi, log_pi, tau, &powers)
++            } else {
++                vapor_terms::<true, false>(pi, log_pi, tau, &powers)
++            };
++            (tau, g, dy)
++        };
++        if ENTHALPY {
++            R * t * tau * dy
+         } else {
+-            vapor_at(p, t, &powers)
++            R * (tau * dy - g)
+         }
+     };
+-    if target < property(eval(left)) || target > property(eval(right)) {
++    if target < eval(left) || target > eval(right) {
+         return Err(infeasible("inverse state outside bounded IF97 envelope"));
+     }
+     for _ in 0..40 {
+         work.step()?;
+         let m = (left + right) * 0.5;
+-        if property(eval(m)) < target {
++        if eval(m) < target {
+             left = m;
+         } else {
+             right = m;
+         }
+     }
+-    Ok(eval((left + right) * 0.5))
++    let t = (left + right) * 0.5;
++    Ok(if liquid_phase {
++        liquid_at(p, t, &powers)
++    } else {
++        vapor_at(p, t, &powers)
++    })
+ }
+-- 
+2.51.1
+

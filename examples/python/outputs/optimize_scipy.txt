@@ -1,0 +1,7 @@
+differential_evolution: 39 generations, 40 vectorized calls, 960 candidates
+  statuses seen: {'complete': 950, 'infeasible': 10}
+  best low 365.93 kPa, high 2.0770 MPa, efficiency 0.3841291
+Nelder-Mead polish: 101 evaluations, statuses {'complete': 101}
+  best low 365.92 kPa, high 2.0770 MPa, efficiency 0.3841291
+Replay: efficiency 0.3841291, exhaust quality 0.8925, bleed fractions 0.1244 / 0.1277
+Packaged example pair [300000.0, 2000000.0] has efficiency 0.3840819

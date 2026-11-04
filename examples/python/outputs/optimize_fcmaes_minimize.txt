@@ -1,0 +1,10 @@
+nominal (exhaust quality >= 0.75)
+  bitecpp.minimize   1500 evaluations, statuses {'complete': 1439, 'infeasible': 61}
+                    low   365.92 kPa, high 2.0770 MPa, efficiency 0.3841291, exhaust quality 0.8925
+  de.minimize        1500 evaluations, statuses {'infeasible': 5, 'complete': 1495}
+                    low   365.92 kPa, high 2.0770 MPa, efficiency 0.3841291, exhaust quality 0.8925
+strict (exhaust quality >= 0.895)
+  bitecpp.minimize   1500 evaluations, statuses {'infeasible': 852, 'complete': 648}
+                    low   258.59 kPa, high 4.7160 MPa, efficiency 0.3780003, exhaust quality 0.8950
+  de.minimize        1500 evaluations, statuses {'infeasible': 498, 'complete': 1002}
+                    low   330.60 kPa, high 5.1582 MPa, efficiency 0.3776679, exhaust quality 0.8950

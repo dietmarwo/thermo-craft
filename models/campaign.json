@@ -1,0 +1,26 @@
+{
+  "scenarios": [
+    {
+      "id": "nominal",
+      "model": {
+        "kind": "rankine",
+        "boiler_pa": 8000000.0,
+        "condenser_pa": 15000.0,
+        "inlet_k": 813.15,
+        "turbine_efficiency": 0.88,
+        "pump_efficiency": 0.8,
+        "min_exhaust_quality": 0.75,
+        "extraction": true
+      }
+    }
+  ],
+  "candidates": [
+    {
+      "id": "baseline",
+      "parameters": [
+        300000.0,
+        2000000.0
+      ]
+    }
+  ]
+}

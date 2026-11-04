@@ -1,0 +1,18 @@
+Condenser 10 kPa, turbine efficiency 0.87, minimum exhaust quality 0.86
+  boiler    inlet |  simple  x_exh |   regen      low     high  x_exh |   gain
+     4MPa   723.15 |  0.3130  0.900 |  0.3480    150kPa   1.00MPa  0.890 |  3.50pp
+     4MPa   813.15 |  0.3250  0.943 |  0.3624    180kPa   1.00MPa  0.928 |  3.74pp
+     4MPa   873.15 |  0.3336  0.969 |  0.3725    162kPa   0.93MPa  0.951 |  3.90pp
+     8MPa   723.15 |   (infeasible) | no feasible extraction pair
+     8MPa   813.15 |  0.3475  0.899 |  0.3921    251kPa   1.82MPa  0.885 |  4.46pp
+     8MPa   873.15 |  0.3556  0.927 |  0.4018    289kPa   1.85MPa  0.909 |  4.62pp
+    12MPa   723.15 |   (infeasible) | no feasible extraction pair
+    12MPa   813.15 |  0.3591  0.870 |  0.3970   2807kPa   6.16MPa  0.860*|  3.79pp
+    12MPa   873.15 |  0.3673  0.900 |  0.4182    414kPa   2.82MPa  0.883 |  5.09pp
+    16MPa   723.15 |   (infeasible) | no feasible extraction pair
+    16MPa   813.15 |   (infeasible) | no feasible extraction pair
+    16MPa   873.15 |  0.3747  0.879 |  0.4295    372kPa   3.49MPa  0.862 |  5.48pp
+* exhaust quality at its limit: the constraint, not the heater balance, sets the optimum
+
+16 MPa / 723.15 K simple cycle: infeasible - turbine exhaust violates minimum quality
+  with the quality limit removed its exhaust quality would be 0.792

@@ -1,0 +1,33 @@
+{
+  "unit": "microseconds per call; min and median of 25 interleaved rounds",
+  "calls": {
+    "one_full_evaluate": {
+      "min_us": 27.357164999557426,
+      "median_us": 29.91752749949228
+    },
+    "one_lean_scores": {
+      "min_us": 10.033669998392725,
+      "median_us": 10.93305749918727
+    },
+    "one_matrix": {
+      "min_us": 4.695022500982304,
+      "median_us": 4.8963475001073675
+    },
+    "batch96_full": {
+      "min_us": 1931.279300015376,
+      "median_us": 2099.9501000005694
+    },
+    "batch96_lean": {
+      "min_us": 362.26395000085176,
+      "median_us": 380.59190001149545
+    },
+    "batch96_matrix": {
+      "min_us": 189.9477500046487,
+      "median_us": 200.45974997628946
+    },
+    "prepare": {
+      "min_us": 5.745617499997024,
+      "median_us": 6.196439999257564
+    }
+  }
+}

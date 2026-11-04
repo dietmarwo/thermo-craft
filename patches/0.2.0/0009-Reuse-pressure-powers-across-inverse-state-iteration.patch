@@ -1,0 +1,106 @@
+From 9deb8c57468a9c6bbf6f656d8b3f3941669c6896 Mon Sep 17 00:00:00 2001
+From: Codex <codex@openai.com>
+Date: Wed, 4 Nov 2026 02:52:32 +0100
+Subject: [PATCH 09/12] Reuse pressure powers across inverse-state iterations
+
+---
+ src/if97.rs | 46 +++++++++++++++++++++++++++++++++-------------
+ 1 file changed, 33 insertions(+), 13 deletions(-)
+
+diff --git a/src/if97.rs b/src/if97.rs
+index 895913d..a4551fa 100644
+--- a/src/if97.rs
++++ b/src/if97.rs
+@@ -15,14 +15,18 @@ pub struct State {
+     pub quality: Option<f64>,
+ }
+ 
+-fn terms(x: f64, y: f64, coeffs: &[(i32, i32, f64)]) -> (f64, f64, f64) {
+-    let mut xp = [1.0; 33];
++fn pressure_powers(x: f64, liquid: bool) -> [f64; 33] {
++    let mut powers = [1.0; 33];
++    for i in 1..=if liquid { 32 } else { 24 } {
++        powers[i] = powers[i - 1] * x;
++    }
++    powers
++}
++
++fn terms(xp: &[f64; 33], y: f64, coeffs: &[(i32, i32, f64)]) -> (f64, f64, f64) {
+     let mut yp = [1.0; 59];
+     let mut yn = [1.0; 43];
+     let liquid = coeffs.len() == R1.len();
+-    for i in 1..=if liquid { 32 } else { 24 } {
+-        xp[i] = xp[i - 1] * x;
+-    }
+     if liquid {
+         let inv_y = 1.0 / y;
+         for i in 1..yn.len() {
+@@ -55,8 +59,12 @@ fn terms(x: f64, y: f64, coeffs: &[(i32, i32, f64)]) -> (f64, f64, f64) {
+ }
+ 
+ fn liquid(p: f64, t: f64) -> State {
++    liquid_at(p, t, &pressure_powers(7.1 - p / 16.53e6, true))
++}
++
++fn liquid_at(p: f64, t: f64, powers: &[f64; 33]) -> State {
+     let tau = 1386.0 / t;
+-    let (g, dx, dy) = terms(7.1 - p / 16.53e6, tau - 1.222, &R1);
++    let (g, dx, dy) = terms(powers, tau - 1.222, &R1);
+     State {
+         p_pa: p,
+         t_k: t,
+@@ -67,9 +75,13 @@ fn liquid(p: f64, t: f64) -> State {
+     }
+ }
+ fn vapor(p: f64, t: f64) -> State {
++    vapor_at(p, t, &pressure_powers(p / 1e6, false))
++}
++
++fn vapor_at(p: f64, t: f64, powers: &[f64; 33]) -> State {
+     let pi = p / 1e6;
+     let tau = 540.0 / t;
+-    let (mut g, mut dx, mut dy) = terms(pi, tau - 0.5, &R2);
++    let (mut g, mut dx, mut dy) = terms(powers, tau - 0.5, &R2);
+     g += pi.ln();
+     dx += 1.0 / pi;
+     for (j, n) in IDEAL {
+@@ -147,22 +159,30 @@ pub fn invert(
+     if (low..=high).contains(&target) {
+         return Ok(mix(pair, (target - low) / (high - low)));
+     }
+-    let (mut left, mut right, eval): (f64, f64, fn(f64, f64) -> State) = if target < low {
+-        (273.16, a.t_k, liquid)
++    let liquid_phase = target < low;
++    let (mut left, mut right, powers) = if liquid_phase {
++        (273.16, a.t_k, pressure_powers(7.1 - p / 16.53e6, true))
+     } else {
+-        (b.t_k, 1073.15, vapor)
++        (b.t_k, 1073.15, pressure_powers(p / 1e6, false))
++    };
++    let eval = |t| {
++        if liquid_phase {
++            liquid_at(p, t, &powers)
++        } else {
++            vapor_at(p, t, &powers)
++        }
+     };
+-    if target < property(eval(p, left)) || target > property(eval(p, right)) {
++    if target < property(eval(left)) || target > property(eval(right)) {
+         return Err(infeasible("inverse state outside bounded IF97 envelope"));
+     }
+     for _ in 0..40 {
+         work.step()?;
+         let m = (left + right) * 0.5;
+-        if property(eval(p, m)) < target {
++        if property(eval(m)) < target {
+             left = m;
+         } else {
+             right = m;
+         }
+     }
+-    Ok(eval(p, (left + right) * 0.5))
++    Ok(eval((left + right) * 0.5))
+ }
+-- 
+2.51.1
+

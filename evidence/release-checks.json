@@ -1,0 +1,186 @@
+{
+  "version": "0.3.0",
+  "host": {
+    "cpus": 2,
+    "cpu_model": "Intel(R) Xeon(R) Processor @ 2.10GHz",
+    "rustc": "rustc 1.97.0",
+    "python": "CPython 3.12.3",
+    "maturin": "1.9.6"
+  },
+  "checks": [
+    {
+      "name": "fmt",
+      "command": "cargo fmt --check",
+      "exit": 0,
+      "passed": true
+    },
+    {
+      "name": "clippy",
+      "command": "PYO3_PYTHON=/usr/bin/python3.12 cargo clippy --release --locked --all-targets --features python -- -D warnings",
+      "exit": 0,
+      "passed": true
+    },
+    {
+      "name": "test",
+      "command": "cargo test --release --locked",
+      "exit": 0,
+      "passed": true
+    },
+    {
+      "name": "build",
+      "command": "cargo build --release --locked --bins --examples",
+      "exit": 0,
+      "passed": true
+    },
+    {
+      "name": "describe",
+      "command": "target/release/thermo-craft describe > evidence/capabilities.json",
+      "exit": 0,
+      "passed": true
+    },
+    {
+      "name": "cli",
+      "command": "target/release/thermo-craft run models/request.json > evidence/cli.json",
+      "exit": 0,
+      "passed": true
+    },
+    {
+      "name": "sweep",
+      "command": "target/release/examples/sweep models/example.json > evidence/native-sweep.json",
+      "exit": 0,
+      "passed": true
+    },
+    {
+      "name": "validate",
+      "command": "python validation/validate.py target/release/thermo-craft (writes evidence/validation.json)",
+      "exit": 0,
+      "passed": true
+    },
+    {
+      "name": "installed",
+      "command": "python -I validation/installed.py thermo_craft (fresh venv, outside the source tree) > evidence/installed.json",
+      "exit": 0,
+      "passed": true
+    },
+    {
+      "name": "release_checks",
+      "command": "python -I validation/release_checks.py thermo_craft docs/tutorial.md docs/user-manual.md > evidence/tutorial-check.json",
+      "exit": 0,
+      "passed": true
+    },
+    {
+      "name": "campaign-1",
+      "command": "python validation/run_campaign.py thermo_craft models/campaign.json campaign.sqlite > first.json",
+      "exit": 0,
+      "passed": true
+    },
+    {
+      "name": "campaign-2",
+      "command": "python validation/run_campaign.py thermo_craft models/campaign.json campaign.sqlite > replay.json",
+      "exit": 0,
+      "passed": true
+    },
+    {
+      "name": "campaign-cmp",
+      "command": "cmp first.json replay.json (first.json saved as evidence/campaign-replay.json)",
+      "exit": 0,
+      "passed": true
+    },
+    {
+      "name": "scipy-search",
+      "command": "taskset -c 0 python -I validation/optimize_performance.py thermo_craft --matrix > evidence/scipy-search.json",
+      "exit": 0,
+      "passed": true
+    },
+    {
+      "name": "examples",
+      "command": "python -I validation/run_examples.py OUT (all examples/python scripts)",
+      "exit": 0,
+      "passed": true
+    },
+    {
+      "name": "examples-diff",
+      "command": "diff -r OUT examples/python/outputs",
+      "exit": 0,
+      "passed": true
+    },
+    {
+      "name": "cargo-package",
+      "command": "cargo package --locked (builds and verifies the packaged crate)",
+      "exit": 0,
+      "passed": true
+    }
+  ],
+  "rust_tests": {
+    "passed": 15,
+    "failed": 0,
+    "unit_tests": [
+      "domain::if97::tests::grouped_terms_match_term_by_term_sums",
+      "domain::if97::tests::blocked_power_tables_match_repeated_multiplication",
+      "domain::if97::tests::inverse_charges_forty_steps_and_stops_at_the_limit",
+      "domain::if97::tests::newton_inverse_matches_bisection_reference",
+      "domain::if97::tests::precomputed_term_factors_are_bit_identical_to_runtime_factors",
+      "domain::if97::tests::saturation_bracket_values_repeat_the_saturation_states_bit_for_bit",
+      "domain::if97::tests::hot_end_floors_bound_the_exact_values",
+      "tests::direct_json_matches_the_derived_serializer",
+      "tests::model_and_candidate_validation_are_independent",
+      "tests::prepared_workers_return_same_completed_records",
+      "tests::dispatch_keeps_index_order_and_caps_threads",
+      "tests::score_matrix_rejects_bad_shapes_and_budgets",
+      "tests::score_matrix_matches_scores_json",
+      "tests::scores_keep_order_status_steps_and_objective",
+      "tests::typed_metrics_serialize_like_sorted_value_maps"
+    ]
+  },
+  "release_checks": {
+    "status": "passed",
+    "tutorial_python_blocks": 5,
+    "manual_python_blocks": 23,
+    "lean_api_and_budget_parity": true,
+    "matrix_api_parity": true,
+    "numpy_matrix_input": true
+  },
+  "examples": {
+    "cycle_comparison": {
+      "exit": 0,
+      "seconds": 0.066
+    },
+    "extraction_map": {
+      "exit": 0,
+      "seconds": 0.053
+    },
+    "optimize_fcmaes_minimize": {
+      "exit": 0,
+      "seconds": 0.569
+    },
+    "optimize_fcmaes_population": {
+      "exit": 0,
+      "seconds": 0.506
+    },
+    "optimize_scipy": {
+      "exit": 0,
+      "seconds": 0.454
+    },
+    "property_tables": {
+      "exit": 0,
+      "seconds": 0.046
+    },
+    "robust_design": {
+      "exit": 0,
+      "seconds": 0.575
+    },
+    "sensitivity": {
+      "exit": 0,
+      "seconds": 0.081
+    }
+  },
+  "wheel": "built with maturin 1.9.6 from the extracted sdist, installed with --no-deps into a fresh CPython 3.12 venv",
+  "native_extension_sha256": "d621d8bbed79965277ccebff3e3adc80336f6fb409a75a588e3ab154c8a40dcd",
+  "native_extension_identical_to_timing_wheel": true,
+  "additional_manual_install_check": "python3 -m venv (CPython 3.13 on this host) + pip install of the bundled wheel, pip install of numpy/scipy/fcmaes and maturin, maturin sdist and build, and pip wheel of the sdist ran; the pip-built wheel (tag linux_x86_64) has the same native extension",
+  "packages_sha256": {
+    "thermo-craft-0.3.0.crate": "f3df39de456ea1b139fe7a3b7d8ecf6f6e02606425386dc4f642cf081e4e6ab4",
+    "thermo_craft-0.3.0.tar.gz": "8dd3e0bea3bee8abdf32f55fd4db1b441adf4a67715826aaca85af68ed69c911",
+    "thermo_craft-0.3.0-cp310-abi3-manylinux_2_34_x86_64.whl": "9692b2a123976dc6bc2ee82752b8abf67b45aba753329079d9162beb22f97ff4"
+  }
+}

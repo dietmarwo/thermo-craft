@@ -1,0 +1,41 @@
+[package]
+name = "thermo-craft"
+version = "0.3.0"
+edition = "2024"
+rust-version = "1.88"
+description = "Bounded thermo-craft research evaluator"
+license = "MIT"
+# Ship source, docs, examples, models and validation; release evidence,
+# packages and patch series live in the release ZIP only.
+include = [
+  "/.gitignore",
+  "/Cargo.lock",
+  "/Cargo.toml",
+  "/LICENSE",
+  "/README.md",
+  "/pyproject.toml",
+  "/src/*.rs",
+  "/examples/*.rs",
+  "/examples/outputs/*.txt",
+  "/examples/python/*.py",
+  "/examples/python/README.md",
+  "/examples/python/outputs/*.txt",
+  "/python/thermo_craft/*.py",
+  "/python/thermo_craft/*.json",
+  "/models/*.json",
+  "/docs/*.md",
+  "/validation/*.py",
+  "/evidence/validation.json",
+]
+
+[lib]
+crate-type = ["rlib", "cdylib"]
+
+[features]
+python = ["dep:pyo3", "pyo3/extension-module"]
+
+[dependencies]
+serde = { version = "=1.0.229", features = ["derive"] }
+serde_json = { version = "=1.0.154", features = ["raw_value", "float_roundtrip"] }
+sha2 = "=0.10.9"
+pyo3 = { version = "=0.29.0", optional = true, features = ["abi3-py310"] }

@@ -1,0 +1,624 @@
+From 5fb2bbfa7ce2e0bb3d159243c42f86a852c83d37 Mon Sep 17 00:00:00 2001
+From: Claude <noreply@anthropic.com>
+Date: Wed, 4 Nov 2026 12:06:04 -0400
+Subject: [PATCH 10/13] Round 10: Write result JSON directly with static keys
+
+Encode the result envelope, records and domain metrics with static key
+bytes instead of the derived serializers. Numbers, strings, IDs,
+details and failure values still go through serde_json::to_writer, so
+escaping and number formatting are unchanged; the derived Serialize
+impls remain for the CLI path and as the reference in a unit test that
+asserts byte equality for full, lean, failing and escaped-ID batches.
+
+Workload: serial (96 full records, one worker), full API both sides.
+Official 11-sample run: 0.443 ms -> 0.407 ms, 1.09x (paired 1.15x).
+41-sample confirmation: 0.425 ms -> 0.361 ms, paired 1.17x.
+A first round-10 attempt (pressure tables carried with each saturation
+pair) was rejected: its 41-sample paired median was 1.006x.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+---
+ evidence/performance-0.3.0/plan.md            |  42 ++++++
+ ...re-quantities-matrix-serial-confirm41.json |  97 ++++++++++++++
+ ...red-pressure-quantities-matrix-serial.json |  37 ++++++
+ .../round10-serial-confirm41.json             |  97 ++++++++++++++
+ .../performance-0.3.0/round10-serial.json     |  37 ++++++
+ src/domain.rs                                 |  88 +++++++++++++
+ src/lib.rs                                    | 122 +++++++++++++++++-
+ 7 files changed, 518 insertions(+), 2 deletions(-)
+ create mode 100644 evidence/performance-0.3.0/rejected/attempt-a-shared-pressure-quantities-matrix-serial-confirm41.json
+ create mode 100644 evidence/performance-0.3.0/rejected/attempt-a-shared-pressure-quantities-matrix-serial.json
+ create mode 100644 evidence/performance-0.3.0/round10-serial-confirm41.json
+ create mode 100644 evidence/performance-0.3.0/round10-serial.json
+
+diff --git a/evidence/performance-0.3.0/plan.md b/evidence/performance-0.3.0/plan.md
+index 3f48bbf..bc54915 100644
+--- a/evidence/performance-0.3.0/plan.md
++++ b/evidence/performance-0.3.0/plan.md
+@@ -224,3 +224,45 @@ the median of per-sample-pair ratios. For every round from 2 on:
+   showed every far-end evaluation skipped on `serial` and `domain` with
+   unchanged Newton iteration counts. Parity passed everywhere;
+   `validate.py` passed (`round09-validation.json`).
++
++## Round 10: carry pressure tables and logarithms with each saturation pair
++
++- Profile after round 9 (scratch harness, min of 25): serial matrix batch
++  168-173 us (about 1.75 us per candidate), vapor state 99 ns, liquid 77 ns,
++  saturation pair 209 ns. Instrumented probes (not kept): enthalpy inverses
++  take 3 Newton evaluations, entropy inverses 4. Besides the Gibbs sums, a
++  serial candidate builds seven pressure-power tables and takes seven
++  logarithms, although every single-phase inverse runs at a pressure whose
++  saturation pair already built the same table and logarithm: the inverse
++  rebuilds the vapor table, takes ln(pi) for entropy or ln(p) for the floor
++  lookup, and its final state takes ln(pi) again.
++- Change: `saturation` returns a `Saturation` value holding the pair, both
++  pressure-power tables, ln(p/1 MPa) and ln(p). Inverses and their final
++  states reuse them. Same expressions, so results are bit-identical.
++- Workload: `serial` with the matrix API on both sides.
++- Expected effect: about three tables and five logarithms fewer per
++  candidate, roughly 1.05-1.1x.
++- Result: official 0.210 -> 0.178 ms, 1.18x (paired 1.19x); confirmation
++  0.190 -> 0.183 ms, ratio of medians 1.04x, paired 1.006x. The
++  confirmation's paired median is below 1.03, so the attempt is rejected
++  and reverted (`rejected/attempt-a-shared-pressure-quantities-*.json`).
++  Output was byte-identical and parity passed.
++
++## Round 10 (second attempt): write result JSON directly
++
++- Profile after round 9 (scratch harness, min of 25): a full serial
++  record is about 1,470 bytes with 55 numbers; serde's derived serializer
++  takes 186 us for 96 records' metrics, a hand-written writer producing
++  identical bytes takes 99 us, and number formatting alone takes 96 us.
++  Encoding is about half of a full serial batch.
++- Change: the result envelope, records and domain metrics are written
++  directly with static keys; numbers, strings, IDs, details and failure
++  `Value`s still go through `serde_json::to_writer`, so escaping and
++  number formatting are serde_json's. The derived `Serialize` impls stay
++  for the CLI's `Value` path and as the test reference; unit tests assert
++  byte equality for full, lean, failing and escaped-ID batches.
++- Workload: `serial` (96 full records, one worker), full API both sides.
++- Expected effect: roughly 1.2-1.3x. Byte-identical output.
++- Result: official 0.443 -> 0.407 ms, 1.09x (paired 1.15x); confirmation
++  0.425 -> 0.361 ms, paired 1.17x. Kept. Probe output byte-identical on all
++  seven workloads (full) and on lean `serial`, `invalid` and `domain2`.
+diff --git a/evidence/performance-0.3.0/rejected/attempt-a-shared-pressure-quantities-matrix-serial-confirm41.json b/evidence/performance-0.3.0/rejected/attempt-a-shared-pressure-quantities-matrix-serial-confirm41.json
+new file mode 100644
+index 0000000..81b2842
+--- /dev/null
++++ b/evidence/performance-0.3.0/rejected/attempt-a-shared-pressure-quantities-matrix-serial-confirm41.json
+@@ -0,0 +1,97 @@
++{
++  "workload": "serial",
++  "before_api": "matrix",
++  "after_api": "matrix",
++  "before_seconds": [
++    0.00018819425,
++    0.00023141025,
++    0.00017136075,
++    0.0001696225,
++    0.0001725655,
++    0.0001761005,
++    0.0001918285,
++    0.0001925295,
++    0.000177085,
++    0.000178078,
++    0.00017681575,
++    0.00019013575,
++    0.000179604,
++    0.00018219175,
++    0.000190292,
++    0.00038708725,
++    0.00018037625,
++    0.00017813875,
++    0.00018533,
++    0.00018937325,
++    0.00026136775,
++    0.00036975175,
++    0.000361639,
++    0.00019634175,
++    0.000180708,
++    0.0001921955,
++    0.000179057,
++    0.00023073975,
++    0.0001654525,
++    0.0001972155,
++    0.000169324,
++    0.000186652,
++    0.00020620525,
++    0.000237974,
++    0.00019776,
++    0.0003444315,
++    0.0003000885,
++    0.000254613,
++    0.00035797725,
++    0.00018213525,
++    0.0001944915
++  ],
++  "after_seconds": [
++    0.00019979625,
++    0.000168913,
++    0.00017915125,
++    0.000170385,
++    0.00020661475,
++    0.000176477,
++    0.00016639475,
++    0.00018335175,
++    0.000169259,
++    0.0001941635,
++    0.00018035575,
++    0.00017248825,
++    0.000202482,
++    0.00022388375,
++    0.0001833855,
++    0.00018030925,
++    0.00021036775,
++    0.0001986615,
++    0.00018420675,
++    0.00017378175,
++    0.0007035895,
++    0.0003306415,
++    0.00036535425,
++    0.00017950475,
++    0.00024685675,
++    0.000253076,
++    0.000281424,
++    0.00020769675,
++    0.00016787475,
++    0.000168792,
++    0.00017431125,
++    0.0001716195,
++    0.00016776975,
++    0.000312344,
++    0.00016804,
++    0.000166171,
++    0.000234016,
++    0.00018903025,
++    0.000269678,
++    0.0001661475,
++    0.000215446
++  ],
++  "medians_seconds": [
++    0.00019013575,
++    0.0001833855
++  ],
++  "speedup": 1.0368090716005356,
++  "paired_median_speedup": 1.006097767861384
++}
+diff --git a/evidence/performance-0.3.0/rejected/attempt-a-shared-pressure-quantities-matrix-serial.json b/evidence/performance-0.3.0/rejected/attempt-a-shared-pressure-quantities-matrix-serial.json
+new file mode 100644
+index 0000000..17d081e
+--- /dev/null
++++ b/evidence/performance-0.3.0/rejected/attempt-a-shared-pressure-quantities-matrix-serial.json
+@@ -0,0 +1,37 @@
++{
++  "workload": "serial",
++  "before_api": "matrix",
++  "after_api": "matrix",
++  "before_seconds": [
++    0.0001761,
++    0.000697665,
++    0.00017977225,
++    0.0002022935,
++    0.0001952415,
++    0.0002914065,
++    0.00037085925,
++    0.0002095825,
++    0.000305847,
++    0.00044352575,
++    0.000205138
++  ],
++  "after_seconds": [
++    0.00017494325,
++    0.00017763325,
++    0.00039336475,
++    0.00016750975,
++    0.00017836925,
++    0.00027161225,
++    0.0001983275,
++    0.000172027,
++    0.00028034275,
++    0.000237427,
++    0.000172405
++  ],
++  "medians_seconds": [
++    0.0002095825,
++    0.00017836925
++  ],
++  "speedup": 1.1749923263118502,
++  "paired_median_speedup": 1.1898610829152287
++}
+diff --git a/evidence/performance-0.3.0/round10-serial-confirm41.json b/evidence/performance-0.3.0/round10-serial-confirm41.json
+new file mode 100644
+index 0000000..e8943a1
+--- /dev/null
++++ b/evidence/performance-0.3.0/round10-serial-confirm41.json
+@@ -0,0 +1,97 @@
++{
++  "workload": "serial",
++  "before_api": "full",
++  "after_api": "full",
++  "before_seconds": [
++    0.0004252635,
++    0.000432139,
++    0.0004134205,
++    0.00047605775,
++    0.000416441,
++    0.0004157735,
++    0.00040521,
++    0.00043424675,
++    0.000414598,
++    0.0004048165,
++    0.00040332375,
++    0.00040469775,
++    0.00050057575,
++    0.0004007335,
++    0.00040183875,
++    0.00039431725,
++    0.000409357,
++    0.00042210975,
++    0.00040781675,
++    0.000502761,
++    0.00043587675,
++    0.00042841925,
++    0.00042771675,
++    0.000418319,
++    0.00047292175,
++    0.0004181965,
++    0.0004088845,
++    0.00039209175,
++    0.000409405,
++    0.0004795775,
++    0.000561536,
++    0.00077478875,
++    0.000701685,
++    0.00041827775,
++    0.00059924775,
++    0.0005725045,
++    0.00057479,
++    0.00067710525,
++    0.00058326675,
++    0.0005913555,
++    0.00059828975
++  ],
++  "after_seconds": [
++    0.000362788,
++    0.00040463275,
++    0.00036057675,
++    0.000344008,
++    0.00036112275,
++    0.00038294575,
++    0.00035073625,
++    0.000348738,
++    0.00035436,
++    0.00034788425,
++    0.00034557625,
++    0.0003379885,
++    0.00034016825,
++    0.00033731075,
++    0.0003376855,
++    0.0003309065,
++    0.00035606275,
++    0.00038597825,
++    0.0003609455,
++    0.00034422125,
++    0.00038946675,
++    0.000349758,
++    0.00036832625,
++    0.00036881125,
++    0.00035958725,
++    0.00035644775,
++    0.000350188,
++    0.000341956,
++    0.00036201475,
++    0.000325246,
++    0.0005161675,
++    0.00064186475,
++    0.000475125,
++    0.0003561565,
++    0.0004915045,
++    0.00051609725,
++    0.00049037525,
++    0.00049518475,
++    0.0004769345,
++    0.00048828,
++    0.0004997255
++  ],
++  "medians_seconds": [
++    0.0004252635,
++    0.00036057675
++  ],
++  "speedup": 1.179398006111043,
++  "paired_median_speedup": 1.1722093895057168
++}
+diff --git a/evidence/performance-0.3.0/round10-serial.json b/evidence/performance-0.3.0/round10-serial.json
+new file mode 100644
+index 0000000..222fa2b
+--- /dev/null
++++ b/evidence/performance-0.3.0/round10-serial.json
+@@ -0,0 +1,37 @@
++{
++  "workload": "serial",
++  "before_api": "full",
++  "after_api": "full",
++  "before_seconds": [
++    0.00042280225,
++    0.00044337425,
++    0.0004873655,
++    0.0004634575,
++    0.000466494,
++    0.00051854225,
++    0.00050993975,
++    0.00037661475,
++    0.00032252975,
++    0.00035228,
++    0.00033887925
++  ],
++  "after_seconds": [
++    0.00036853975,
++    0.00037092125,
++    0.00041389825,
++    0.0004069575,
++    0.00041275575,
++    0.0004413035,
++    0.000436899,
++    0.000431886,
++    0.000297647,
++    0.00027172825,
++    0.000370493
++  ],
++  "medians_seconds": [
++    0.00044337425,
++    0.0004069575
++  ],
++  "speedup": 1.0894853885233715,
++  "paired_median_speedup": 1.1472364921287324
++}
+diff --git a/src/domain.rs b/src/domain.rs
+index 2adb1a0..0245cdf 100644
+--- a/src/domain.rs
++++ b/src/domain.rs
+@@ -44,6 +44,94 @@ pub enum Metrics {
+     Cycle(Cycle),
+ }
+ 
++impl Metrics {
++    /// Write the same bytes as the derived serializer, with static keys.
++    pub fn write_json(&self, out: &mut Vec<u8>) -> Result<(), String> {
++        match self {
++            Metrics::Skipped => out.extend_from_slice(b"null"),
++            Metrics::Property { state } => {
++                out.extend_from_slice(br#"{"state":"#);
++                write_state(out, state)?;
++                out.push(b'}');
++            }
++            Metrics::Cycle(c) => {
++                let numbers: [(&[u8], f64); 4] = [
++                    (br#"{"condenser_mass_fraction":"#, c.condenser_mass_fraction),
++                    (br#","efficiency":"#, c.efficiency),
++                    (br#","energy_residual_j_kg":"#, c.energy_residual_j_kg),
++                    (br#","exhaust_quality":"#, c.exhaust_quality),
++                ];
++                write_numbers(out, &numbers)?;
++                out.extend_from_slice(br#","extractions_low_high":"#);
++                write_pair(out, c.extractions_low_high)?;
++                let numbers: [(&[u8], f64); 3] = [
++                    (br#","gross_work_j_kg":"#, c.gross_work_j_kg),
++                    (br#","heat_in_j_kg":"#, c.heat_in_j_kg),
++                    (br#","heat_rejected_j_kg":"#, c.heat_rejected_j_kg),
++                ];
++                write_numbers(out, &numbers)?;
++                out.extend_from_slice(br#","heater_residuals_j_kg":"#);
++                write_pair(out, c.heater_residuals_j_kg)?;
++                let numbers: [(&[u8], f64); 2] = [
++                    (br#","net_work_j_kg":"#, c.net_work_j_kg),
++                    (br#","pump_work_j_kg":"#, c.pump_work_j_kg),
++                ];
++                write_numbers(out, &numbers)?;
++                out.extend_from_slice(br#","states":"#);
++                match &c.states {
++                    None => out.extend_from_slice(b"null"),
++                    Some(states) => {
++                        out.push(b'[');
++                        for (i, state) in states.iter().enumerate() {
++                            if i > 0 {
++                                out.push(b',');
++                            }
++                            write_state(out, state)?;
++                        }
++                        out.push(b']');
++                    }
++                }
++                out.push(b'}');
++            }
++        }
++        Ok(())
++    }
++}
++
++fn write_numbers(out: &mut Vec<u8>, fields: &[(&[u8], f64)]) -> Result<(), String> {
++    for &(key, value) in fields {
++        out.extend_from_slice(key);
++        crate::write_value(out, &value)?;
++    }
++    Ok(())
++}
++
++fn write_pair(out: &mut Vec<u8>, [a, b]: [f64; 2]) -> Result<(), String> {
++    out.push(b'[');
++    crate::write_value(out, &a)?;
++    out.push(b',');
++    crate::write_value(out, &b)?;
++    out.push(b']');
++    Ok(())
++}
++
++fn write_state(out: &mut Vec<u8>, s: &State) -> Result<(), String> {
++    write_numbers(
++        out,
++        &[(br#"{"h_j_kg":"#, s.h_j_kg), (br#","p_pa":"#, s.p_pa)],
++    )?;
++    out.extend_from_slice(br#","quality":"#);
++    crate::write_value(out, &s.quality)?;
++    let numbers: [(&[u8], f64); 3] = [
++        (br#","s_j_kg_k":"#, s.s_j_kg_k),
++        (br#","t_k":"#, s.t_k),
++        (br#","v_m3_kg":"#, s.v_m3_kg),
++    ];
++    write_numbers(out, &numbers)?;
++    out.push(b'}');
++    Ok(())
++}
++
+ #[derive(Serialize)]
+ pub struct Cycle {
+     condenser_mass_fraction: f64,
+diff --git a/src/lib.rs b/src/lib.rs
+index 9d53077..a5c56bd 100644
+--- a/src/lib.rs
++++ b/src/lib.rs
+@@ -161,6 +161,59 @@ struct Batch<'a> {
+     version: &'static str,
+ }
+ 
++/// Append one JSON value with serde_json's escaping and number formatting.
++pub(crate) fn write_value<T: Serialize + ?Sized>(
++    out: &mut Vec<u8>,
++    value: &T,
++) -> Result<(), String> {
++    serde_json::to_writer(out, value).map_err(|e| e.to_string())
++}
++
++impl Record<'_> {
++    fn write_json(&self, out: &mut Vec<u8>) -> Result<(), String> {
++        out.extend_from_slice(br#"{"id":"#);
++        write_value(out, self.id)?;
++        out.extend_from_slice(br#","status":"#);
++        write_value(out, self.status)?;
++        out.extend_from_slice(br#","steps":"#);
++        write_value(out, &self.steps)?;
++        out.extend_from_slice(br#","score":"#);
++        write_value(out, &self.score)?;
++        out.extend_from_slice(br#","metrics":"#);
++        match &self.metrics {
++            None => out.extend_from_slice(b"null"),
++            Some(RecordMetrics::Domain(metrics)) => metrics.write_json(out)?,
++            Some(RecordMetrics::Value(value)) => write_value(out, value)?,
++        }
++        out.extend_from_slice(br#","detail":"#);
++        write_value(out, &self.detail)?;
++        out.push(b'}');
++        Ok(())
++    }
++}
++
++impl Batch<'_> {
++    /// The same bytes as `serde_json::to_string(self)`, written with static keys.
++    fn to_json(&self) -> Result<String, String> {
++        let mut out = Vec::with_capacity(160 + 192 * self.records.len());
++        out.extend_from_slice(br#"{"model_sha256":"#);
++        write_value(&mut out, self.model_sha256)?;
++        out.extend_from_slice(br#","records":["#);
++        for (i, record) in self.records.iter().enumerate() {
++            if i > 0 {
++                out.push(b',');
++            }
++            record.write_json(&mut out)?;
++        }
++        out.extend_from_slice(br#"],"schema":"#);
++        write_value(&mut out, self.schema)?;
++        out.extend_from_slice(br#","version":"#);
++        write_value(&mut out, self.version)?;
++        out.push(b'}');
++        String::from_utf8(out).map_err(|e| e.to_string())
++    }
++}
++
+ pub struct Prepared {
+     model: domain::Model,
+     model_sha256: String,
+@@ -199,8 +252,8 @@ impl Prepared {
+         budget: Budget,
+         metrics_enabled: bool,
+     ) -> Result<String, String> {
+-        serde_json::to_string(&self.evaluate(&candidates, budget, metrics_enabled)?)
+-            .map_err(|e| e.to_string())
++        self.evaluate(&candidates, budget, metrics_enabled)?
++            .to_json()
+     }
+ 
+     /// SHA-256 of the exact model bytes passed to [`Prepared::new`].
+@@ -705,6 +758,71 @@ mod tests {
+         }
+     }
+ 
++    #[test]
++    fn direct_json_matches_the_derived_serializer() {
++        let example = fixture();
++        let mut simple = example["model"].clone();
++        simple["extraction"] = json!(false);
++        let cancel =
++            std::env::temp_dir().join(format!("thermo-json-cancel-{}", std::process::id()));
++        std::fs::write(&cancel, b"").unwrap();
++        let cancel_budget = json!({"cancel_file": cancel}).to_string();
++        let rankine = json!([
++            {"id": "valid", "parameters": example["parameters"]},
++            {"id": "infeasible", "parameters": [2e6, 1e6]},
++            {"id": "wrong \"size\" \\ \u{1} é ☃", "parameters": [1.0, 2.0, 3.0]},
++        ]);
++        let cases = [
++            (example["model"].clone(), rankine.clone()),
++            (
++                simple,
++                json!([{"id": "s", "parameters": []}, {"id": "t", "parameters": [1.0]}]),
++            ),
++            (
++                json!({"kind": "property"}),
++                json!([
++                    {"id": "pt", "parameters": [3e6, 300.0]},
++                    {"id": "wet", "parameters": [1e5, 0.5, 0.0]},
++                    {"id": "low", "parameters": [1.0, 400.0]},
++                ]),
++            ),
++        ];
++        for (model, candidates) in cases {
++            let prepared = Prepared::new(&model.to_string()).unwrap();
++            let parsed: Vec<Candidate> = serde_json::from_value(candidates).unwrap();
++            for budget in [
++                "{}",
++                r#"{"max_steps":50,"workers":2}"#,
++                cancel_budget.as_str(),
++            ] {
++                for metrics_enabled in [true, false] {
++                    let budget: Budget = serde_json::from_str(budget).unwrap();
++                    let batch = prepared.evaluate(&parsed, budget, metrics_enabled).unwrap();
++                    assert_eq!(
++                        batch.to_json().unwrap(),
++                        serde_json::to_string(&batch).unwrap()
++                    );
++                }
++            }
++        }
++        std::fs::remove_file(&cancel).unwrap();
++        // Failure diagnostics carried as a JSON value use the same writer.
++        let record = Record {
++            id: "f",
++            status: "infeasible",
++            steps: 3,
++            score: None,
++            metrics: Some(RecordMetrics::Value(json!({"b": [1.5, null], "a": "x"}))),
++            detail: Some("detail with \"quotes\"".into()),
++        };
++        let mut out = Vec::new();
++        record.write_json(&mut out).unwrap();
++        assert_eq!(
++            String::from_utf8(out).unwrap(),
++            serde_json::to_string(&record).unwrap()
++        );
++    }
++
+     #[test]
+     fn model_and_candidate_validation_are_independent() {
+         let mut example = fixture();
+-- 
+2.43.0
+

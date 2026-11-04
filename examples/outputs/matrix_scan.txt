@@ -1,0 +1,3 @@
+model sha256 c365d173c54842e093a18c9108be103b21c11d7b4fa943fff8a45eb32420001e
+1600 candidates, statuses {"complete": 1476, "infeasible": 124}
+best low 371.6 kPa, high 2.0311 MPa, efficiency 0.384123, steps 161

@@ -1,0 +1,296 @@
+From 0d697655f358602f82cd67bc5396af0e56e4ace1 Mon Sep 17 00:00:00 2001
+From: Claude <noreply@anthropic.com>
+Date: Wed, 4 Nov 2026 11:56:16 -0400
+Subject: [PATCH 08/13] Round 8: Run a worker on the calling thread and cap
+ threads at the CPUs
+
+Batch dispatch now treats workers as an upper bound: it runs at most
+min(workers, candidates, available_parallelism) threads, one of them
+the calling thread, and caches the CPU count for the process. On this
+2-vCPU host a four-worker request starts one extra thread instead of
+four. Record order and results are unchanged.
+
+Workload: parallel (96 full records, four requested workers), full API.
+Official 11-sample run: 0.604 ms -> 0.514 ms, 1.18x (paired 1.11x).
+41-sample confirmation: 0.626 ms -> 0.470 ms, paired 1.26x.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+---
+ evidence/performance-0.3.0/plan.md            | 20 ++++
+ .../round08-parallel-confirm41.json           | 97 +++++++++++++++++++
+ .../performance-0.3.0/round08-parallel.json   | 37 +++++++
+ src/lib.rs                                    | 64 +++++++++---
+ 4 files changed, 203 insertions(+), 15 deletions(-)
+ create mode 100644 evidence/performance-0.3.0/round08-parallel-confirm41.json
+ create mode 100644 evidence/performance-0.3.0/round08-parallel.json
+
+diff --git a/evidence/performance-0.3.0/plan.md b/evidence/performance-0.3.0/plan.md
+index d23fccd..ebe6853 100644
+--- a/evidence/performance-0.3.0/plan.md
++++ b/evidence/performance-0.3.0/plan.md
+@@ -179,3 +179,23 @@ the median of per-sample-pair ratios. For every round from 2 on:
+   0.169 -> 0.125 ms, paired 1.36x. Kept. Probe output byte-identical for
+   `serial`, `domain`, `domain2` and `trace`; a unit test checks bit
+   identity with the round-6 loop on a pressure/temperature grid.
++
++## Round 8: worker dispatch on the calling thread, capped at the CPU count
++
++- Profile after round 7 (scratch harness, 96 full serial records, min of 25):
++  one worker 390-526 us, two workers 460-480 us, four workers 464-525 us;
++  spawning and joining one scoped thread costs 16-46 us on this VM, and
++  `available_parallelism()` costs about 64 us per call. With four requested
++  workers the engine starts four threads on two vCPUs while the calling
++  thread only waits.
++- Change: run one worker loop on the calling thread, spawn at most
++  `min(workers, candidates, available_parallelism()) - 1` extra threads,
++  and cache the CPU count for the process. Record order, statuses, steps
++  and values are unchanged. The request still says `workers: 4`.
++- Workload: `parallel` (96 full records, four requested workers), full API
++  both sides.
++- Expected effect: three fewer thread starts and no oversubscription,
++  roughly 1.2-1.5x. Bit-identical results.
++- Result: official 0.604 -> 0.514 ms, 1.18x (paired 1.11x); confirmation
++  0.626 -> 0.470 ms, paired 1.26x. Kept. Probe output byte-identical for
++  `serial`, `parallel` and `domain`; parity passed everywhere.
+diff --git a/evidence/performance-0.3.0/round08-parallel-confirm41.json b/evidence/performance-0.3.0/round08-parallel-confirm41.json
+new file mode 100644
+index 0000000..d356820
+--- /dev/null
++++ b/evidence/performance-0.3.0/round08-parallel-confirm41.json
+@@ -0,0 +1,97 @@
++{
++  "workload": "parallel",
++  "before_api": "full",
++  "after_api": "full",
++  "before_seconds": [
++    0.0005948,
++    0.0005358995,
++    0.00059004275,
++    0.000537722,
++    0.00051360375,
++    0.0005443895,
++    0.00058637025,
++    0.000781495,
++    0.0006343875,
++    0.00066530375,
++    0.00072249925,
++    0.000689035,
++    0.000675404,
++    0.00068081,
++    0.000535906,
++    0.00062536425,
++    0.0005671415,
++    0.0005943845,
++    0.000625815,
++    0.0007731815,
++    0.0006561875,
++    0.00061258225,
++    0.00056924825,
++    0.00052131775,
++    0.0005162725,
++    0.00062128725,
++    0.00061766575,
++    0.0005958805,
++    0.0005476955,
++    0.00073692725,
++    0.0006350105,
++    0.000548934,
++    0.00071627625,
++    0.00083584225,
++    0.000732683,
++    0.00070069975,
++    0.000666776,
++    0.00083792525,
++    0.00071265775,
++    0.000653557,
++    0.000713081
++  ],
++  "after_seconds": [
++    0.00048128525,
++    0.0004283675,
++    0.000469673,
++    0.0004297185,
++    0.0004450375,
++    0.00042385725,
++    0.00045474775,
++    0.00045118575,
++    0.00060169425,
++    0.0004978465,
++    0.0005588925,
++    0.00046823675,
++    0.0007796605,
++    0.000436065,
++    0.00043493275,
++    0.0004047605,
++    0.00060345425,
++    0.0004394615,
++    0.00049149625,
++    0.00057793525,
++    0.000526304,
++    0.000484538,
++    0.000454553,
++    0.0004152445,
++    0.000358791,
++    0.00037535575,
++    0.00042359275,
++    0.000375203,
++    0.00045975425,
++    0.00044240225,
++    0.00036277025,
++    0.00056611425,
++    0.00057818825,
++    0.00049679675,
++    0.00060031825,
++    0.00063980325,
++    0.00052670675,
++    0.0005416545,
++    0.0005778355,
++    0.00060594225,
++    0.000610537
++  ],
++  "medians_seconds": [
++    0.000625815,
++    0.000469673
++  ],
++  "speedup": 1.332448320427191,
++  "paired_median_speedup": 1.264260491437204
++}
+diff --git a/evidence/performance-0.3.0/round08-parallel.json b/evidence/performance-0.3.0/round08-parallel.json
+new file mode 100644
+index 0000000..876414b
+--- /dev/null
++++ b/evidence/performance-0.3.0/round08-parallel.json
+@@ -0,0 +1,37 @@
++{
++  "workload": "parallel",
++  "before_api": "full",
++  "after_api": "full",
++  "before_seconds": [
++    0.000639399,
++    0.00062290625,
++    0.0005607105,
++    0.000590035,
++    0.0006883715,
++    0.00063213875,
++    0.000604135,
++    0.00063713075,
++    0.0005412275,
++    0.00060287225,
++    0.0005559315
++  ],
++  "after_seconds": [
++    0.0006689725,
++    0.00054697675,
++    0.00051414525,
++    0.00051046,
++    0.0005542115,
++    0.00082858775,
++    0.00047541975,
++    0.000649867,
++    0.00050628225,
++    0.000439119,
++    0.0005007805
++  ],
++  "medians_seconds": [
++    0.000604135,
++    0.00051414525
++  ],
++  "speedup": 1.1750278739325122,
++  "paired_median_speedup": 1.1101300869342956
++}
+diff --git a/src/lib.rs b/src/lib.rs
+index 01da9be..9d53077 100644
+--- a/src/lib.rs
++++ b/src/lib.rs
+@@ -354,32 +354,43 @@ fn deadline(budget: &Budget) -> Option<Instant> {
+         .map(|n| Instant::now() + Duration::from_millis(n))
+ }
+ 
+-/// Evaluate `count` indexed items inline or on scoped workers, returning them in index order.
++/// Logical CPUs available to this process, read once (the query costs tens of microseconds).
++fn hardware_threads() -> usize {
++    static THREADS: OnceLock<usize> = OnceLock::new();
++    *THREADS.get_or_init(|| std::thread::available_parallelism().map_or(1, usize::from))
++}
++
++/// Evaluate `count` indexed items and return them in index order. `workers` is an
++/// upper bound: at most `min(workers, count, hardware_threads())` threads run, one
++/// of them the calling thread, and one thread evaluates inline.
+ fn dispatch<T: Send + Sync>(
+     count: usize,
+     workers: usize,
+     evaluate: impl Fn(usize) -> T + Sync,
+ ) -> Vec<T> {
+-    if workers == 1 || count == 1 {
++    let threads = workers.min(count).min(hardware_threads());
++    if threads <= 1 {
+         return (0..count).map(evaluate).collect();
+     }
+     let next = AtomicUsize::new(0);
+     let slots: Vec<_> = (0..count).map(|_| OnceLock::new()).collect();
++    let work = || {
++        loop {
++            let index = next.fetch_add(1, Ordering::Relaxed);
++            if index >= count {
++                break;
++            }
++            assert!(
++                slots[index].set(evaluate(index)).is_ok(),
++                "duplicate work index"
++            );
++        }
++    };
+     std::thread::scope(|scope| {
+-        for _ in 0..workers.min(count) {
+-            scope.spawn(|| {
+-                loop {
+-                    let index = next.fetch_add(1, Ordering::Relaxed);
+-                    if index >= count {
+-                        break;
+-                    }
+-                    assert!(
+-                        slots[index].set(evaluate(index)).is_ok(),
+-                        "duplicate work index"
+-                    );
+-                }
+-            });
++        for _ in 1..threads {
++            scope.spawn(work);
+         }
++        work();
+     });
+     slots
+         .into_iter()
+@@ -671,6 +682,29 @@ mod tests {
+         }
+     }
+ 
++    #[test]
++    fn dispatch_keeps_index_order_and_caps_threads() {
++        let cap = hardware_threads();
++        assert!(cap >= 1);
++        for count in [1, 2, 3, 17, 200] {
++            for workers in [1, 2, 3, 4, 8, 64] {
++                let rows = dispatch(count, workers, |i| (i, std::thread::current().id()));
++                assert!(rows.iter().enumerate().all(|(i, row)| row.0 == i));
++                let mut threads: Vec<_> = rows.iter().map(|row| format!("{:?}", row.1)).collect();
++                threads.sort();
++                threads.dedup();
++                assert!(
++                    threads.len() <= workers.min(count).min(cap),
++                    "{count} {workers}"
++                );
++                if workers.min(count).min(cap) == 1 {
++                    let caller = format!("{:?}", std::thread::current().id());
++                    assert_eq!(threads, [caller]);
++                }
++            }
++        }
++    }
++
+     #[test]
+     fn model_and_candidate_validation_are_independent() {
+         let mut example = fixture();
+-- 
+2.43.0
+
