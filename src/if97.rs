@@ -18,10 +18,30 @@ pub struct State {
 
 fn pressure_powers(x: f64, liquid: bool) -> [f64; 33] {
     let mut powers = [1.0; 33];
-    for i in 1..=if liquid { 32 } else { 24 } {
-        powers[i] = powers[i - 1] * x;
-    }
+    fill_powers(x, &mut powers[..=if liquid { 32 } else { 24 }]);
     powers
+}
+
+/// Fill `powers[k] = x^k`. The first eight powers come from squaring and
+/// x^k = x^(k-8) * x^8 after that, so eight short independent chains replace one
+/// long chain of dependent multiplications.
+#[inline(always)]
+fn fill_powers(x: f64, powers: &mut [f64]) {
+    let n = powers.len();
+    let mut low = [1.0; 9];
+    low[1] = x;
+    low[2] = x * x;
+    low[3] = low[2] * x;
+    low[4] = low[2] * low[2];
+    low[5] = low[4] * x;
+    low[6] = low[4] * low[2];
+    low[7] = low[4] * low[3];
+    low[8] = low[4] * low[4];
+    let head = n.min(9);
+    powers[..head].copy_from_slice(&low[..head]);
+    for k in 9..n {
+        powers[k] = powers[k - 8] * low[8];
+    }
 }
 
 fn terms<const G: bool, const DX: bool>(
@@ -44,14 +64,9 @@ fn curvature_terms<const G: bool, const DX: bool, const DYY: bool>(
     let mut yn = [1.0; 44];
     let liquid = coeffs.len() == R1.len();
     if liquid {
-        let inv_y = 1.0 / y;
-        for i in 1..if DYY { 44 } else { 43 } {
-            yn[i] = yn[i - 1] * inv_y;
-        }
+        fill_powers(1.0 / y, &mut yn[..if DYY { 44 } else { 43 }]);
     }
-    for i in 1..=if liquid { 17 } else { 58 } {
-        yp[i] = yp[i - 1] * y;
-    }
+    fill_powers(y, &mut yp[..=if liquid { 17 } else { 58 }]);
     let power_y = |j: i32| {
         if j < 0 {
             yn[j.unsigned_abs() as usize]
@@ -461,6 +476,25 @@ mod tests {
             }
             check::<true>(p, 1073.1);
             check::<false>(p, 1073.1);
+        }
+    }
+
+    #[test]
+    fn blocked_power_tables_match_repeated_multiplication() {
+        for x in [0.3, 0.97, 1.0, 1.4, -0.8, 6.9] {
+            for n in [1, 2, 5, 8, 9, 10, 17, 25, 33, 44, 59] {
+                let mut blocked = vec![f64::NAN; n];
+                fill_powers(x, &mut blocked);
+                let mut reference = 1.0f64;
+                for (k, &value) in blocked.iter().enumerate() {
+                    let scale = reference.abs().max(f64::MIN_POSITIVE);
+                    assert!(
+                        (value - reference).abs() <= 64.0 * f64::EPSILON * scale,
+                        "{x} {k}"
+                    );
+                    reference *= x;
+                }
+            }
         }
     }
 

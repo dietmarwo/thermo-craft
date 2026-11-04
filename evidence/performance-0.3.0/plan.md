@@ -122,3 +122,23 @@ the median of per-sample-pair ratios. For every round from 2 on:
 - Result: official 0.556 -> 0.491 ms, 1.13x (paired 1.14x); confirmation
   0.558 -> 0.495 ms, paired 1.13x. Kept. Probe output byte-identical for
   `serial`, `domain`, `domain2` and `trace`; parity passed everywhere.
+
+## Round 5: blocked power tables
+
+- Profile: a scalar Region 2 evaluation first builds y^0..y^58 as one
+  sequential chain of 58 dependent multiplications (about 230 cycles of
+  latency), Region 1 builds 43 negative and 17 positive powers the same way,
+  and each pressure-power table is a 24- or 32-long chain.
+- Change: build every power table from x^1..x^8 and then
+  x^k = x^(k-8) * x^8, so eight independent chains of at most seven steps
+  replace the long chain. Same number of multiplications.
+- Workload: `serial` with the matrix API on both sides.
+- Expected effect: roughly 1.15-1.3x on the kernel; the per-term
+  accumulation chains then become the main latency bound.
+- Last bits change (different multiplication association); run
+  `validate.py` against the release CLI.
+- Result: official 0.674 -> 0.389 ms, 1.73x (paired 1.79x); confirmation
+  0.489 -> 0.288 ms, paired 1.68x. Kept. Larger than expected: the power
+  chain dominated the evaluation latency. Parity passed on every workload
+  and mode; `validate.py` passed against the release CLI
+  (`round05-validation.json`).
