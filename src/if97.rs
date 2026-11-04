@@ -91,6 +91,81 @@ const fn groups<const N: usize>(coeffs: &[(i32, i32, f64)]) -> Groups<N> {
 const R1_GROUPS: Groups<{ count_groups(&R1) }> = groups(&R1);
 const R2_GROUPS: Groups<{ count_groups(&R2) }> = groups(&R2);
 
+/// One Gibbs term: power-table indices of y^J, y^(J-1) and y^(J-2) and the
+/// factors n, n*J and n*J*(J-1), multiplied at compile time exactly as at run time.
+#[derive(Clone, Copy)]
+struct Term {
+    j0: usize,
+    j1: usize,
+    j2: usize,
+    n: f64,
+    nj: f64,
+    njj: f64,
+}
+
+/// Index of y^e in the combined table: y^0..y^58 at 0..=58, y^-k at 58 + k.
+const fn power_index(e: i32) -> usize {
+    if e >= 0 {
+        e as usize
+    } else {
+        58 + e.unsigned_abs() as usize
+    }
+}
+
+const fn scaled<const N: usize>(coeffs: &[(i32, i32, f64); N]) -> [Term; N] {
+    let mut out = [Term {
+        j0: 0,
+        j1: 0,
+        j2: 0,
+        n: 0.0,
+        nj: 0.0,
+        njj: 0.0,
+    }; N];
+    let mut k = 0;
+    while k < N {
+        let (_, j, n) = coeffs[k];
+        out[k] = Term {
+            j0: power_index(j),
+            j1: power_index(j - 1),
+            j2: power_index(j - 2),
+            n,
+            nj: n * j as f64,
+            njj: n * (j * (j - 1)) as f64,
+        };
+        k += 1;
+    }
+    out
+}
+
+const R1_TERMS: [Term; 34] = scaled(&R1);
+const R2_TERMS: [Term; 43] = scaled(&R2);
+
+/// Ideal-gas terms indexed into `[tau^-7, ..., tau^3]`.
+const IDEAL_TERMS: [Term; 9] = {
+    let mut out = [Term {
+        j0: 0,
+        j1: 0,
+        j2: 0,
+        n: 0.0,
+        nj: 0.0,
+        njj: 0.0,
+    }; 9];
+    let mut k = 0;
+    while k < 9 {
+        let (j, n) = IDEAL[k];
+        out[k] = Term {
+            j0: (j + 7) as usize,
+            j1: (j + 6) as usize,
+            j2: (j + 5) as usize,
+            n,
+            nj: n * j as f64,
+            njj: n * (j * (j - 1)) as f64,
+        };
+        k += 1;
+    }
+    out
+};
+
 /// Gibbs sum and its derivatives: (gamma, gamma_pi, gamma_tau, gamma_tau_tau).
 /// Terms are summed per pressure exponent first, then scaled by that power.
 fn curvature_terms<const G: bool, const DX: bool, const DYY: bool>(
@@ -98,33 +173,29 @@ fn curvature_terms<const G: bool, const DX: bool, const DYY: bool>(
     y: f64,
     coeffs: &[(i32, i32, f64)],
 ) -> (f64, f64, f64, f64) {
-    let mut yp = [1.0; 59];
-    let mut yn = [1.0; 44];
     let liquid = coeffs.len() == R1.len();
+    let mut powers = [1.0; 102];
     if liquid {
-        fill_powers(1.0 / y, &mut yn[..if DYY { 44 } else { 43 }]);
+        fill_powers(1.0 / y, &mut powers[58..]);
+        fill_powers(y, &mut powers[..=17]);
+    } else {
+        fill_powers(y, &mut powers[..=58]);
     }
-    fill_powers(y, &mut yp[..=if liquid { 17 } else { 58 }]);
-    let power_y = |j: i32| {
-        if j < 0 {
-            yn[j.unsigned_abs() as usize]
-        } else {
-            yp[j as usize]
-        }
+    let (groups, terms): (&[(usize, usize, usize)], &[Term]) = if liquid {
+        (&R1_GROUPS, &R1_TERMS)
+    } else {
+        (&R2_GROUPS, &R2_TERMS)
     };
-    let groups: &[(usize, usize, usize)] = if liquid { &R1_GROUPS } else { &R2_GROUPS };
     let (mut g, mut dx, mut dy, mut dyy) = (0.0, 0.0, 0.0, 0.0);
     for &(i, start, end) in groups {
         let (mut sum, mut sum_y, mut sum_yy) = (0.0, 0.0, 0.0);
-        for &(_, j, n) in &coeffs[start..end] {
+        for term in &terms[start..end] {
             if G || DX {
-                sum += n * power_y(j);
+                sum += term.n * powers[term.j0];
             }
-            if j != 0 {
-                sum_y += n * f64::from(j) * power_y(j - 1);
-            }
-            if DYY && j != 0 && j != 1 {
-                sum_yy += n * f64::from(j * (j - 1)) * power_y(j - 2);
+            sum_y += term.nj * powers[term.j1];
+            if DYY {
+                sum_yy += term.njj * powers[term.j2];
             }
         }
         let a = xp[i];
@@ -217,15 +288,13 @@ fn vapor_curvature<const G: bool, const DX: bool, const DYY: bool>(
         tau * tau,
         tau * tau * tau,
     ];
-    for (j, n) in IDEAL {
+    for term in &IDEAL_TERMS {
         if G {
-            g += n * powers[(j + 7) as usize];
+            g += term.n * powers[term.j0];
         }
-        if j != 0 {
-            dy += n * f64::from(j) * powers[(j + 6) as usize];
-        }
-        if DYY && j != 0 && j != 1 {
-            dyy += n * f64::from(j * (j - 1)) * powers[(j + 5) as usize];
+        dy += term.nj * powers[term.j1];
+        if DYY {
+            dyy += term.njj * powers[term.j2];
         }
     }
     (g, dx, dy, dyy)
@@ -537,6 +606,63 @@ mod tests {
             out[3] += n * f64::from(j * (j - 1)) * x.powi(i) * y.powi(j - 2);
         }
         out
+    }
+
+    /// The round-6 loop: grouped sums with exponent factors formed at run time.
+    fn runtime_factor_terms(xp: &[f64; 33], y: f64, coeffs: &[(i32, i32, f64)]) -> [f64; 4] {
+        let liquid = coeffs.len() == R1.len();
+        let (mut yp, mut yn) = ([1.0; 59], [1.0; 44]);
+        if liquid {
+            fill_powers(1.0 / y, &mut yn);
+        }
+        fill_powers(y, &mut yp[..=if liquid { 17 } else { 58 }]);
+        let power_y = |j: i32| {
+            if j < 0 {
+                yn[j.unsigned_abs() as usize]
+            } else {
+                yp[j as usize]
+            }
+        };
+        let groups: &[(usize, usize, usize)] = if liquid { &R1_GROUPS } else { &R2_GROUPS };
+        let mut out = [0.0; 4];
+        for &(i, start, end) in groups {
+            let (mut sum, mut sum_y, mut sum_yy) = (0.0, 0.0, 0.0);
+            for &(_, j, n) in &coeffs[start..end] {
+                sum += n * power_y(j);
+                if j != 0 {
+                    sum_y += n * f64::from(j) * power_y(j - 1);
+                }
+                if j != 0 && j != 1 {
+                    sum_yy += n * f64::from(j * (j - 1)) * power_y(j - 2);
+                }
+            }
+            out[0] += xp[i] * sum;
+            if i != 0 {
+                out[1] += i as f64 * xp[i - 1] * sum;
+            }
+            out[2] += xp[i] * sum_y;
+            out[3] += xp[i] * sum_yy;
+        }
+        out
+    }
+
+    #[test]
+    fn precomputed_term_factors_are_bit_identical_to_runtime_factors() {
+        for p in [1e3, 1.5e4, 3e5, 2e6, 8e6, 1.6e7] {
+            for t in [273.16, 300.0, 400.0, 500.0, 620.0, 800.0, 1073.15] {
+                let x = 7.1 - p / 16.53e6;
+                let xp = pressure_powers(x, true);
+                let y = 1386.0 / t - 1.222;
+                let (g, dx, dy, dyy) = curvature_terms::<true, true, true>(&xp, y, &R1);
+                let want = runtime_factor_terms(&xp, y, &R1);
+                assert_eq!([g, dx, dy, dyy].map(f64::to_bits), want.map(f64::to_bits));
+                let xp = pressure_powers(p / 1e6, false);
+                let y = 540.0 / t - 0.5;
+                let (g, dx, dy, dyy) = curvature_terms::<true, true, true>(&xp, y, &R2);
+                let want = runtime_factor_terms(&xp, y, &R2);
+                assert_eq!([g, dx, dy, dyy].map(f64::to_bits), want.map(f64::to_bits));
+            }
+        }
     }
 
     #[test]

@@ -159,3 +159,23 @@ the median of per-sample-pair ratios. For every round from 2 on:
 - Result: official 0.273 -> 0.256 ms, 1.07x (paired 1.11x); confirmation
   0.280 -> 0.255 ms, paired 1.11x. Kept. Parity passed on every workload
   and mode; `validate.py` passed (`round06-validation.json`).
+
+## Round 7: precomputed term factors and power indices
+
+- Profile after round 6 (scratch harness, min of 25 interleaved samples):
+  serial matrix batch 242 us (2.5 us per candidate, about 20 Gibbs
+  evaluations), vapor state 118 ns, liquid 102 ns. Each term still converts
+  its exponents to floats, multiplies n*J and n*J*(J-1) at run time and
+  branches on the exponent sign and on J = 0 or 1.
+- Change: compile-time term tables with power-table indices and the
+  products n*J and n*J*(J-1) (identical IEEE products), one combined
+  positive/negative power table, and the same for the ideal-gas part.
+  Zero factors replace the skipped J = 0 and J = 1 derivative terms.
+- Workload: `domain` with the matrix API on both sides.
+- Expected effect: roughly 1.1-1.25x on the kernel. Bit-identical results
+  (same products, same summation order; an added +0 or -0 term leaves a sum
+  unchanged).
+- Result: official 0.172 -> 0.135 ms, 1.28x (paired 1.33x); confirmation
+  0.169 -> 0.125 ms, paired 1.36x. Kept. Probe output byte-identical for
+  `serial`, `domain`, `domain2` and `trace`; a unit test checks bit
+  identity with the round-6 loop on a pressure/temperature grid.
