@@ -1,0 +1,665 @@
+From 94647c6692bf11393f71842aafa4b38ecb83133b Mon Sep 17 00:00:00 2001
+From: Codex <codex@openai.com>
+Date: Wed, 4 Nov 2026 02:55:13 +0100
+Subject: [PATCH 12/12] Document performance release, tutorials and
+ architecture
+
+---
+ Cargo.lock                         |   2 +-
+ Cargo.toml                         |   2 +-
+ README.md                          |   8 +-
+ docs/architecture.md               | 104 +++++++++++++++++
+ docs/implementation-0.1.0.md       |  69 ++++++++++++
+ docs/tutorial.md                   | 173 +++++++++++++++++++++++++++++
+ pyproject.toml                     |   2 +-
+ validation/optimize_performance.py |  58 ++++++++++
+ validation/performance_pair.py     |  68 ++++++++++++
+ validation/release_checks.py       |  64 +++++++++++
+ 10 files changed, 544 insertions(+), 6 deletions(-)
+ create mode 100644 docs/architecture.md
+ create mode 100644 docs/implementation-0.1.0.md
+ create mode 100644 docs/tutorial.md
+ create mode 100644 validation/optimize_performance.py
+ create mode 100644 validation/performance_pair.py
+ create mode 100644 validation/release_checks.py
+
+diff --git a/Cargo.lock b/Cargo.lock
+index e0ce110..874dbd8 100644
+--- a/Cargo.lock
++++ b/Cargo.lock
+@@ -251,7 +251,7 @@ checksum = "adb6935a6f5c20170eeceb1a3835a49e12e19d792f6dd344ccc76a985ca5a6ca"
+ 
+ [[package]]
+ name = "thermo-craft"
+-version = "0.1.0"
++version = "0.2.0"
+ dependencies = [
+  "pyo3",
+  "serde",
+diff --git a/Cargo.toml b/Cargo.toml
+index ed5cab0..44856a1 100644
+--- a/Cargo.toml
++++ b/Cargo.toml
+@@ -1,6 +1,6 @@
+ [package]
+ name = "thermo-craft"
+-version = "0.1.0"
++version = "0.2.0"
+ edition = "2024"
+ rust-version = "1.88"
+ description = "Bounded thermo-craft research evaluator"
+diff --git a/README.md b/README.md
+index ba1cd52..0f3778b 100644
+--- a/README.md
++++ b/README.md
+@@ -1,8 +1,10 @@
+-# thermo-craft 0.1.0
++# thermo-craft 0.2.0
+ 
+ A bounded research evaluator. See the [model card](docs/model.md) for units,
+ equations and supported behavior. The accompanying implementation log
+ records which milestones ran and which use a bounded fallback.
++See the [tutorial](docs/tutorial.md) and [architecture](docs/architecture.md).
++The [0.1.0 implementation record](docs/implementation-0.1.0.md) preserves the original scope.
+ 
+ ## Rust CLI and native example
+ 
+@@ -33,8 +35,8 @@ assert row["status"] == "complete"
+ print(row["score"])
+ ```
+ 
+-`Prepared.batch` crosses into native code once per batch. A bounded thread
+-pool evaluates candidates in isolation and returns records in input order.
++`Prepared.batch` crosses into native code once per batch. A set of scoped
++workers evaluates candidates in isolation and returns records in input order.
+ The local Python campaign commits results to SQLite, preserves interrupted
+ attempts and reuses completed records by candidate, scenario, settings and
+ build identity. Fixed-work replay is scoped to the tested build.
+diff --git a/docs/architecture.md b/docs/architecture.md
+new file mode 100644
+index 0000000..735705c
+--- /dev/null
++++ b/docs/architecture.md
+@@ -0,0 +1,104 @@
++# Thermo Craft architecture
++
++Version 0.2.0. Evaluate bounded IF97 water properties and optimize two extraction pressures in a fixed Rankine cycle.
++
++## Evaluation pipeline
++
++```mermaid
++flowchart TD
++    P["Prepared model"] --> B["Candidate batch"]
++    B --> V["Validate IDs and budgets"]
++    V -->|Single worker or candidate| S["Inline evaluation"]
++    V -->|Multiple workers| W["Scoped worker evaluation"]
++    S --> D["Domain kernel and work counter"]
++    W --> D
++    D --> R["Ordered typed result"]
++    R -->|Full| F["Metrics and optional trace"]
++    R -->|Lean| L["Score and status"]
++```
++
++| Boundary | Location | Responsibility |
++| --- | --- | --- |
++| Request and CLI | `src/main.rs`, `src/lib.rs`, `models/request.json` | Versioned request schema, exact model-byte hash, typed validation, JSON output and exit code |
++| Python boundary | `python/thermo_craft/__init__.py`, PyO3 in `src/lib.rs` | Encode once per batch, release the Python GIL during native evaluation, decode the typed result envelope |
++| Prepared engine | `src/lib.rs` | Own immutable domain data, enforce batch rules, dispatch candidates and retain ordered result rows |
++| Domain | `src/domain.rs` | Bind the candidate, execute model logic, classify status and compute a minimization objective |
++| Campaign | `python/thermo_craft/campaign.py` | Local SQLite replay, attempt journal and complete-result caching |
++| Verification | `validation/`, `examples/`, `evidence/` | Independent checks, executable examples and paired performance observations |
++
++## Data and execution contracts
++
++`Prepared::new` hashes the model bytes, deserializes the model and
++validates its bounds before building domain caches. The Python
++wrapper encodes models with sorted keys and finite JSON numbers.
++Two inputs that differ in their serialized representation can
++have different provenance hashes. Result and request schema tags
++remain at 0.1. Package version is reported separately.
++
++Every batch validates candidate count (1–4096), unique IDs, parameter
++vector length (up to 64), requested workers (1–64) and trace count
++(up to 16). Parallel workers claim indexes through an atomic cursor.
++Each assigned index owns a result slot written once. After workers
++join, output is serialized in input order. Single-worker or singleton
++calls run inline. The typed prepared envelope borrows candidate IDs
++until serialization completes. The CLI retains its full `Value` API.
++
++`Work` counts domain-defined steps per candidate. Its fast branch
++handles unmonitored steps below the limit. Monitored steps check
++the cancel file, then batch deadline, then work budget. Domain
++checks can still reject an invalid candidate before it takes a step.
++Cancellation and deadlines are cooperative. The wall clock can
++change which candidates finish, while fixed-work replays should agree
++independent of worker count. Candidate parallelism creates scoped
++threads per batch. Concurrent callers should account for total
++worker demand when choosing batch settings.
++
++Full records contain domain metrics and any requested trace.
++`scores_json` in Rust and `Prepared.scores` in Python return the
++same record keys with null metrics and reject traced candidates.
++Both retain per-candidate limits, diagnostics needed for feasibility,
++numeric score checks and failure status. Full replay restores
++inspection details for the selected candidate.
++
++## Domain internals
++
++| Layer | Responsibility |
++| --- | --- |
++| `domain.rs` | Validate the model, prepare inlet and condenser states, solve pressure stages and heater balances, enforce exhaust and power checks |
++| `if97.rs` | Evaluate Gibbs terms, saturation states, mixture states and inverse temperature at fixed pressure |
++| `if97_coefficients.rs` | Coefficient tables for the bounded formulation |
++
++The cycle reuses inlet and condenser states. The regenerative case
++creates saturation pairs at the two extraction pressures, steps
++through three turbine stages and three pumps, then solves for the
++open-heater mixing fractions. It returns negative efficiency only
++after applying the same whole-cycle and local heater energy checks.
++
++An inverse state first tests the target against the saturated liquid
++and vapor properties. Wet targets interpolate directly. A single-phase
++target uses a fixed forty-step bisection with a logical work check at
++every step. The pressure powers are reused within that inverse call.
++The ideal vapor terms reuse a short positive/negative temperature
++power table. Property-specific probes compute the Gibbs value only
++for entropy and skip pressure derivatives in both scalar searches.
++A full thermodynamic state is reconstructed after the bracket closes.
++This retains state reporting, phase handling and feasibility checks
++while reducing repeated arithmetic. These are bounded property
++routines, with no Region 3 or arbitrary plant topology.
++
++## Persistence and boundaries of evidence
++
++The local campaign hashes the installed extension bytes plus each
++scenario, model, candidate and work settings to locate reusable
++records. SQLite stores completed, invalid and infeasible results,
++and keeps an append-only journal of attempts. Cancelled or time-
++limited attempts remain in the journal and can be retried. SQLite
++commits each chunk atomically. A new extension build changes the
++cache namespace. The current workflow is local and exposes no
++distributed worker protocol.
++
++The package contains source, a source distribution, and a validated
++Linux x86-64 wheel. The included performance log distinguishes the
++native prepared boundary, complete Python search and clean build.
++See the [tutorial](tutorial.md) for exact commands and
++[the model card](model.md) for equations and research scope.
+diff --git a/docs/implementation-0.1.0.md b/docs/implementation-0.1.0.md
+new file mode 100644
+index 0000000..f3fcb08
+--- /dev/null
++++ b/docs/implementation-0.1.0.md
+@@ -0,0 +1,69 @@
++# thermo-craft implementation log
++
++3 November 2026. Version 0.1.0. This delivery uses the bounded research
++scope recorded below. The independent references and optional comparisons
++are identified separately for each increment.
++
++## Increment results
++
++| Increment | Status | Implementation and evidence |
++| --- | --- | --- |
++| 0 | Reference comparison blocked | The pinned PowerPlant source timed out. The TESPy tutorial was inspected, but TESPy and CoolProp could not be run. A distinct bounded topology and published property reference were selected. |
++| 1 | Implemented | Versioned property and plant evaluators, native CLI and installed Python package. Invalid pressure and phase cases are classified. |
++| 2 | Implemented with official reference | Original bounded IF97 regions 1, 2 and 4 implementation. Official liquid, vapor and saturation points, wet-state interpolation and SI checks pass. A separate CoolProp run remains open. |
++| 3 | Implemented | Closed Rankine pilot with one pump, boiler, turbine and condenser. The simple-cycle audit independently checks pump and turbine work and verifies whole-cycle balance. |
++| 4 | Bounded fallback | Two open heaters with two ordered extraction pressures, separately checked mass fractions and heater energy balances. No numerical equivalence to the unavailable original or TESPy is claimed. |
++| 5 | Implemented | Cached monomial powers. Five alternating paired runs checked feasibility and efficiency over 360 pressure pairs. Workspaces and result construction are independent of candidate order. |
++| 6 | Implemented on bounded topology | Twenty pressure pairs tested, plus native sweep and optional SciPy DE. The accepted design passes cold full-physics balance and exhaust checks. SQP and independent TESPy reevaluation remain open. |
++| 7 | Implemented on bounded topology | Optimized worst-case efficiency on three declared thermal scenarios and compared the nominal and robust candidates on three separate stress cases. No dispatch surrogate was necessary. |
++| 8 | Local fallback | Prepared, versioned local campaign with hash identity and cancellation/resume evidence. External worker and researcher review remain open. |
++| 9 | Implemented for tested platform | Verified source, Rust crate, sdist and wheel. Coverage ends at the declared IF97 and fixed-cycle bounds. |
++
++## Numerical results
++
++The simple cycle reached **34.164%** efficiency. The best nominal regenerative design reached **38.408%** with extraction pressures [300000.0, 2000000.0] Pa. Cached powers reduced median elapsed time by **1.67×** on the 360-case batch. The maximum absolute efficiency change was 3.33e-16.
++
++The optional in-process SciPy differential-evolution demonstration made
++48 evaluations and replayed its selected candidate.
++It used the packaged example and its own local bounds. The domain-specific
++grid and holdout evidence are in `evidence/validation.json`.
++
++## Installed performance and replay
++
++The following are medians of three 96-candidate batch observations,
++measured in a clean CPython 3.12 environment with the installed wheel.
++The scenarios and candidate inputs are identical within a row pair.
++Times include native crossing and compact JSON result conversion.
++
++| Boundary | Time |
++| --- | ---: |
++| Cold preparation and batch, one worker | 7.455 ms |
++| Prepared batch, one worker | 7.380 ms |
++| Prepared batch, four workers | 3.925 ms |
++
++The replay test reversed candidate order and changed worker count. It
++recovered 12 completed SQLite records across cancellation and retained
++21 attempts. This campaign uses a local database and package-build
++identity. Cross-machine determinism and distributed worker behavior
++were outside the test scope.
++
++## Release evidence
++
++- `cargo fmt`, Clippy with warnings denied and locked Rust release tests passed.
++- The native sweep and numerical validation ran against a release build.
++- A wheel built from the extracted sdist and installed offline into a fresh
++  environment. The wheel target is Linux x86-64, CPython 3.10+ ABI. Actual
++  verification used CPython 3.12 on x86_64.
++- The standalone Rust crate passed Cargo package verification.
++- Model and source manifests are in `docs/`. Raw timing, numerical and
++  clean-install results are in `evidence/`.
++
++The source was staged in successive local commits. Each increment above
++records its own outcome, while related implementation changes share
++commits.
++
++- `4619644` Define versioned evaluation and packaging boundaries
++- `fbb54af` Implement bounded domain evaluator and resumable local execution
++- `8da8842` Validate model laws and add bounded search and installation examples
++- `ef4465b` Prepare source distributions and document validated research scope
++- `e6bded9` Canonicalize campaign replay output
+diff --git a/docs/tutorial.md b/docs/tutorial.md
+new file mode 100644
+index 0000000..2e503b1
+--- /dev/null
++++ b/docs/tutorial.md
+@@ -0,0 +1,173 @@
++# Thermo Craft tutorial
++
++Evaluate bounded IF97 water properties and optimize two extraction pressures in a fixed Rankine cycle. This guide uses the examples shipped with version 0.2.0.
++
++## 1. Install and run the example
++
++Open the package root after extracting the ZIP. The bundled wheel was
++built for Linux x86-64 with a CPython 3.10+ stable ABI and tested with
++CPython 3.12. Create a virtual environment with a compatible Python.
++
++```sh
++python3 -m venv .venv
++. .venv/bin/activate
++python -m pip install --no-deps packages/*.whl
++```
++
++If the wheel tag is incompatible, build the supplied Rust/Python source
++on the target system with Rust 1.88+ and Maturin 1.9.6. Cargo needs the
++locked dependencies available from its registry or cache.
++
++```sh
++python -m pip install 'maturin==1.9.6'
++maturin build --release --locked --out dist
++python -m pip install --no-deps dist/*.whl
++```
++
++```python
++from thermo_craft import Prepared, load_example
++
++case = load_example()
++prepared = Prepared(case["model"])
++row = prepared.evaluate(case["parameters"], trace=True)
++assert row["status"] == "complete", row
++print(row["id"], row["steps"], row["score"])
++print(list(row["metrics"]))
++```
++
++The model is validated when you create `Prepared`. A malformed model
++raises `ValueError`. A well-formed batch can still contain an invalid,
++infeasible, or interrupted candidate. Its row carries a status and
++detail. The optimizer convention is to minimize `score`.
++
++## 2. Run the domain workflow
++
++The following examples continue in the same Python session.
++
++### Search extraction pressures
++
++The Rankine example uses pascals and kelvin. Candidate order is
++`[low_extraction_pa, high_extraction_pa]`. Feasibility requires
++condenser < low < high < boiler and a valid cycle balance and exhaust
++quality. Score is negative net efficiency. Full metrics include
++specific work and heat in J/kg.
++
++```python
++for pressures in [[200000.0, 1200000.0], case["parameters"]]:
++    row = prepared.evaluate(pressures)
++    if row["status"] == "complete":
++        m = row["metrics"]
++        print(pressures, m["efficiency"], m["exhaust_quality"],
++              m["energy_residual_j_kg"], m["heater_residuals_j_kg"])
++    else:
++        print(row["status"], row["detail"])
++```
++
++After the search, review bleed fractions and the turbine exhaust.
++Repeat at the declared stress conditions before comparing nominal and
++robust candidates. For a simple cycle, copy the fixture model,
++set `extraction=False`, and pass an empty candidate vector.
++
++### Check single-point properties
++
++```python
++properties = Prepared({"kind": "property"})
++for query in [[3e6, 300.0], [1e5, 0.5, 0.0]]:
++    row = properties.evaluate(query)
++    assert row["status"] == "complete", row
++    print(row["metrics"]["state"])
++```
++
++The two-element vector means pressure and temperature. The
++three-element vector means pressure, vapor mass fraction, and
++zero as a sentinel. At saturation use the second form. The bounded
++model covers IF97 regions 1, 2 and 4 within the documented pressure
++and temperature limits. Use the official verification fixtures in
++the supplied independent validation.
++
++## 3. Batch candidates and replay the winner
++
++```python
++candidates = [
++    {"id": "first", "parameters": case["parameters"]},
++    {"id": "second", "parameters": case["parameters"]},
++]
++scores = prepared.scores(candidates, workers=2)["records"]
++assert [row["id"] for row in scores] == ["first", "second"]
++winner = min((r for r in scores if r["status"] == "complete"),
++             key=lambda r: r["score"])
++candidate = next(c for c in candidates if c["id"] == winner["id"])
++replay = prepared.evaluate(candidate["parameters"], trace=True)
++assert replay["status"] == "complete", replay
++print(replay["score"], replay["metrics"])
++```
++
++Replace the duplicate vectors with distinct choices for a real search.
++Use `batch` if you need the full metrics for every row. `scores` returns
++ordered records with score, status, steps and detail, and `metrics: null`.
++It rejects any candidate with `trace: true`. A one-worker batch or a
++singleton runs inline. Larger batches can try two or four workers.
++Measure before setting a worker count for a real workload.
++
++The optional differential-evolution driver times preparation, seeded
++search and traced replay as one run. Install SciPy for this example.
++
++```sh
++python -m pip install scipy
++python validation/optimize_performance.py thermo_craft --scores
++python validation/optimize_performance.py thermo_craft
++```
++
++The driver uses small local bounds and a short fixed search budget.
++For a scientific result, use problem-specific bounds, an explicit
++feasibility penalty or constraint policy, and a held-out evaluation.
++
++## 4. Run and resume a local campaign
++
++```sh
++python validation/run_campaign.py thermo_craft models/campaign.json campaign.sqlite > first.json
++python validation/run_campaign.py thermo_craft models/campaign.json campaign.sqlite > replay.json
++cmp first.json replay.json
++```
++
++The manifest holds scenario models and candidate vectors. Keep IDs
++unique inside each list. Reuse the database to resume identical work.
++The native build, model, scenario, candidate and work settings are
++part of cache identity. A new wheel re-evaluates cached work under
++its own build identity. A cancel file passed as `cancel_file` or a
++`wall_ms` budget can stop new evaluations cooperatively. Inspect
++statuses in the attempt journal before rerunning.
++
++## 5. Use the Rust CLI and benchmark
++
++```sh
++cargo build --release --locked --bins --examples
++target/release/thermo-craft describe
++target/release/thermo-craft run models/request.json
++target/release/examples/sweep models/example.json
++target/release/examples/performance models/example.json serial
++CRAFT_SCORES=1 target/release/examples/performance models/example.json serial
++```
++
++The CLI reads a request file or standard input with `run -`. Exit code
++0 indicates complete rows, 1 indicates a rejected request and 2
++indicates one or more unsuccessful rows in a well-formed request.
++The benchmark prints elapsed seconds per prepared batch after warm-up.
++Use `parallel` for four workers, `trace` for traced evaluations,
++or `domain` and `domain2` for the package's supplemental cases.
++With a previous benchmark executable built from the baseline and this
++one, `validation/performance_pair.py BEFORE AFTER models/example.json serial`
++checks output parity and times both. See the included performance log
++and raw evidence for the exact workloads and comparison boundaries.
++
++## 6. Verify results
++
++```sh
++cargo test --release --locked
++cargo clippy --locked --all-targets --features python -- -D warnings
++python validation/validate.py target/release/thermo-craft
++```
++
++Consult the [model card](model.md) for supported inputs, the
++[architecture guide](architecture.md) for data flow and numerical
++assumptions, and the [source notes](sources.md) for references.
+diff --git a/pyproject.toml b/pyproject.toml
+index a33792b..5d7cbd3 100644
+--- a/pyproject.toml
++++ b/pyproject.toml
+@@ -4,7 +4,7 @@ build-backend = "maturin"
+ 
+ [project]
+ name = "thermo-craft"
+-version = "0.1.0"
++version = "0.2.0"
+ requires-python = ">=3.10"
+ description = "Prepared thermo-craft research evaluations"
+ 
+diff --git a/validation/optimize_performance.py b/validation/optimize_performance.py
+new file mode 100644
+index 0000000..b6a8836
+--- /dev/null
++++ b/validation/optimize_performance.py
+@@ -0,0 +1,58 @@
++"""Time one complete, seeded optimization plus a full solution replay."""
++
++import argparse
++import importlib
++import json
++from time import perf_counter
++
++from scipy.optimize import differential_evolution
++
++
++def main():
++    parser = argparse.ArgumentParser(description=__doc__)
++    parser.add_argument("module")
++    parser.add_argument("--scores", action="store_true")
++    args = parser.parse_args()
++    package = importlib.import_module(args.module)
++    example = package.load_example()
++    x0 = example["parameters"]
++    bounds = [(max(0.0, x * .6), max(.05, x * 1.4)) for x in x0]
++    failures = 0
++
++    def objective(parameters):
++        nonlocal failures
++        if args.scores:
++            row = prepared.scores([{"id": "one", "parameters": parameters.tolist()}])["records"][0]
++        else:
++            row = prepared.evaluate(parameters.tolist())
++        if row["status"] != "complete":
++            failures += 1
++            return 1e20
++        return row["score"]
++
++    start = perf_counter()
++    prepared = package.Prepared(example["model"])
++    initialized = perf_counter()
++    best = differential_evolution(
++        objective, bounds, seed=17, maxiter=5, popsize=4, polish=False, tol=0, x0=x0,
++    )
++    searched = perf_counter()
++    row = prepared.evaluate(best.x.tolist(), trace=True)
++    finished = perf_counter()
++    if row["status"] != "complete":
++        raise RuntimeError(row)
++    print(json.dumps({
++        "mode": "scores" if args.scores else "full",
++        "total_seconds": finished - start,
++        "prepare_seconds": initialized - start,
++        "search_seconds": searched - initialized,
++        "replay_seconds": finished - searched,
++        "evaluations": int(best.nfev),
++        "failures": failures,
++        "best": best.x.tolist(),
++        "score": row["score"],
++    }))
++
++
++if __name__ == "__main__":
++    main()
+diff --git a/validation/performance_pair.py b/validation/performance_pair.py
+new file mode 100644
+index 0000000..af36545
+--- /dev/null
++++ b/validation/performance_pair.py
+@@ -0,0 +1,68 @@
++"""Pair two compiled copies of examples/performance.rs and check semantic replay."""
++
++import argparse
++import json
++import math
++import os
++import statistics
++import subprocess
++
++
++def equal(left, right, key=""):
++    if isinstance(left, float) or isinstance(right, float):
++        if not isinstance(left, (int, float)) or not isinstance(right, (int, float)):
++            raise ValueError((key, left, right))
++        absolute = 5e-7 if key.removesuffix("[]").endswith("_j_kg") else 1e-10
++        if not math.isclose(left, right, rel_tol=5e-10, abs_tol=absolute):
++            raise ValueError((key, left, right))
++    elif isinstance(left, dict) and isinstance(right, dict) and left.keys() == right.keys():
++        for k, value in left.items():
++            equal(value, right[k], key + "." + k)
++    elif isinstance(left, list) and isinstance(right, list) and len(left) == len(right):
++        for a, b in zip(left, right, strict=True):
++            equal(a, b, key + "[]")
++    elif left != right:
++        raise ValueError((key, left, right))
++
++
++def main():
++    parser = argparse.ArgumentParser(description=__doc__)
++    parser.add_argument("before")
++    parser.add_argument("after")
++    parser.add_argument("fixture")
++    parser.add_argument("workload", choices=("one", "serial", "parallel", "trace", "invalid", "domain", "domain2"))
++    parser.add_argument("--samples", type=int, default=5)
++    parser.add_argument("--before-scores", action="store_true")
++    parser.add_argument("--after-scores", action="store_true")
++    args = parser.parse_args()
++    if args.samples < 1:
++        parser.error("--samples must be positive")
++    binaries = [args.before, args.after]
++    scores = [args.before_scores, args.after_scores]
++
++    def run(i, *extra):
++        env = os.environ.copy()
++        env.pop("CRAFT_SCORES", None)
++        if scores[i]:
++            env["CRAFT_SCORES"] = "1"
++        return subprocess.check_output([binaries[i], args.fixture, args.workload, *extra], env=env)
++
++    probes = [json.loads(run(i, "probe")) for i in range(2)]
++    for p in probes:
++        p.pop("version")
++        if any(scores):
++            for row in p["records"]:
++                row["metrics"] = None
++    equal(*probes)
++    samples = [[], []]
++    for i in range(args.samples):
++        for j in (0, 1) if i % 2 == 0 else (1, 0):
++            samples[j].append(float(run(j)))
++    medians = list(map(statistics.median, samples))
++    print(json.dumps({"workload": args.workload, "before_seconds": samples[0],
++                      "after_seconds": samples[1], "medians_seconds": medians,
++                      "speedup": medians[0] / medians[1]}, indent=2))
++
++
++if __name__ == "__main__":
++    main()
+diff --git a/validation/release_checks.py b/validation/release_checks.py
+new file mode 100644
+index 0000000..e94efe9
+--- /dev/null
++++ b/validation/release_checks.py
+@@ -0,0 +1,64 @@
++"""Check the installed lean API and run the Python snippets in the tutorial."""
++
++import importlib
++import json
++from pathlib import Path
++import re
++import sys
++from tempfile import TemporaryDirectory
++
++module, tutorial = sys.argv[1:]
++package = importlib.import_module(module)
++example = package.load_example()
++prepared = package.Prepared(example["model"])
++candidates = [{"id": "ok", "parameters": example["parameters"]},
++              {"id": "bad", "parameters": [1] * 63}]
++with TemporaryDirectory() as tmp:
++    flag = Path(tmp) / "cancel"
++    flag.touch()
++    for budget in ({}, {"workers": 4}, {"max_steps": 1}, {"cancel_file": str(flag)}):
++        full = prepared.batch(candidates, **budget)
++        lean = prepared.scores(candidates, **budget)
++        assert lean["model_sha256"] == full["model_sha256"]
++        assert lean["records"] == [r | {"metrics": None} for r in full["records"]]
++        if "cancel_file" in budget:
++            assert lean["records"][0]["status"] == "cancelled"
++    if module == "population_epidemiology":
++        calendar = package.Prepared({"kind": "calendar", "initial_on_probability": 0.5,
++                                     "segments": [{"duration": 1, "on_rate": 0, "off_rate": 0}] * 3})
++        query = [{"id": "calendar", "parameters": []}]
++        limited = calendar.scores(query, max_steps=2)["records"][0]
++        assert (limited["status"], limited["steps"]) == ("work_limit", 2)
++        canceled = calendar.scores(query, cancel_file=str(flag))["records"][0]
++        assert (canceled["status"], canceled["steps"]) == ("cancelled", 0)
++        complete = calendar.scores(query, max_steps=3)["records"][0]
++        assert (complete["status"], complete["steps"], complete["score"]) == ("complete", 3, 0.5)
++    if module == "rail_craft":
++        closed = package.Prepared({
++            "resources": [{"name": "one", "clearance": 0}], "horizon": 20,
++            "trains": [{"name": "train", "release": 0, "planned": 0, "priority": 0,
++                        "route": [{"resource": 0, "duration": 1}]}],
++            "closures": [{"resource": 0, "start": a, "end": b} for a, b in ((0, 4), (2, 7), (7, 8))],
++        })
++        row = closed.evaluate([0, 0], trace=True)
++        assert row["status"] == "complete"
++        assert row["metrics"]["intervals"][0]["entry"] == 8
++    if module == "robotics_control_craft":
++        long = package.Prepared(example["model"] | {"dt_s": 1e-4})
++        assert long.evaluate(example["parameters"])["status"] == "complete"
++        traced = long.evaluate(example["parameters"], trace=True)
++        assert traced["status"] == "invalid" and traced["steps"] == 10_001
++try:
++    prepared.scores([candidates[0] | {"trace": True}])
++except ValueError:
++    pass
++else:
++    raise AssertionError("scores accepted a traced candidate")
++
++snippets = re.findall(r"^```python\n(.*?)^```", Path(tutorial).read_text(), re.M | re.S)
++assert len(snippets) >= 4
++namespace = {}
++for i, snippet in enumerate(snippets, 1):
++    exec(compile(snippet, f"tutorial-{i}", "exec"), namespace)
++print(json.dumps({"status": "passed", "tutorial_python_blocks": len(snippets),
++                  "lean_api_and_budget_parity": True}))
+-- 
+2.51.1
+

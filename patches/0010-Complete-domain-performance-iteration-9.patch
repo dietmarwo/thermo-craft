@@ -1,0 +1,46 @@
+From 9aadd24a9a1b19bf5f6645972174488f55555337 Mon Sep 17 00:00:00 2001
+From: Codex <codex@openai.com>
+Date: Wed, 4 Nov 2026 02:54:35 +0100
+Subject: [PATCH 10/12] Complete domain performance iteration 9
+
+---
+ src/if97.rs | 21 +++++++++++++++++++--
+ 1 file changed, 19 insertions(+), 2 deletions(-)
+
+diff --git a/src/if97.rs b/src/if97.rs
+index a4551fa..dbc2a6e 100644
+--- a/src/if97.rs
++++ b/src/if97.rs
+@@ -84,10 +84,27 @@ fn vapor_at(p: f64, t: f64, powers: &[f64; 33]) -> State {
+     let (mut g, mut dx, mut dy) = terms(powers, tau - 0.5, &R2);
+     g += pi.ln();
+     dx += 1.0 / pi;
++    let inv = 1.0 / tau;
++    let inv2 = inv * inv;
++    let inv3 = inv2 * inv;
++    let inv4 = inv3 * inv;
++    let inv5 = inv4 * inv;
++    let powers = [
++        inv5 * inv,
++        inv5,
++        inv4,
++        inv3,
++        inv2,
++        inv,
++        1.0,
++        tau,
++        tau * tau,
++        tau * tau * tau,
++    ];
+     for (j, n) in IDEAL {
+-        g += n * tau.powi(j);
++        g += n * powers[(j + 6) as usize];
+         if j != 0 {
+-            dy += n * f64::from(j) * tau.powi(j - 1);
++            dy += n * f64::from(j) * powers[(j + 5) as usize];
+         }
+     }
+     State {
+-- 
+2.51.1
+
