@@ -199,3 +199,28 @@ the median of per-sample-pair ratios. For every round from 2 on:
 - Result: official 0.604 -> 0.514 ms, 1.18x (paired 1.11x); confirmation
   0.626 -> 0.470 ms, paired 1.26x. Kept. Probe output byte-identical for
   `serial`, `parallel` and `domain`; parity passed everywhere.
+
+## Round 9: skip the far bracket evaluation when a floor proves the target is inside
+
+- Profile reasoning after round 8: a vapor-side inverse costs about five
+  Gibbs evaluations: one at the 1073.15 K bracket end, 3-4 Newton steps and
+  the final state. The far-end value is only used for the range check and
+  for the secant start.
+- Change: a process-wide table of h and s at 1073.15 K on 64 log-spaced
+  pressures (both decrease with pressure at fixed temperature). For a
+  pressure in [P_k, P_k+1], the value at P_k+1 less a 1e-10 relative margin
+  is a floor; a target below it is inside the bracket, so the exact
+  evaluation is skipped. Otherwise the old evaluation and comparison run
+  unchanged, so the infeasible classification is identical. The secant
+  start uses the table interpolated in ln p when the far end is skipped.
+  A unit test scans 20,000 pressures to confirm the floors.
+- Workload: `domain` with the matrix API on both sides.
+- Expected effect: about one of five evaluations per vapor inverse,
+  roughly 1.1-1.18x on the kernel.
+- Newton iterates change, so values change in the last bits; run
+  `validate.py`.
+- Result: official 0.129 -> 0.111 ms, 1.16x (paired 1.14x); confirmation
+  0.128 -> 0.116 ms, paired 1.12x. Kept. Instrumented probes (not kept)
+  showed every far-end evaluation skipped on `serial` and `domain` with
+  unchanged Newton iteration counts. Parity passed everywhere;
+  `validate.py` passed (`round09-validation.json`).

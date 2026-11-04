@@ -382,11 +382,20 @@ pub fn invert<const ENTHALPY: bool>(
     };
     let eval = |t| scalar_property::<ENTHALPY>(liquid_phase, pi, log_pi, &powers, t);
     // The saturation-side bracket value repeats the saturation state's computation
-    // exactly, so it is taken from the pair; only the far end is evaluated.
+    // exactly, so it is taken from the pair. The far end is evaluated unless the
+    // hot-end floor already proves that a vapor target is inside the bracket.
     let (at_left, at_right) = if liquid_phase {
         (eval(left), low)
     } else {
-        (high, eval(right))
+        let log_p = if ENTHALPY {
+            p.ln()
+        } else {
+            log_pi + 1e6f64.ln()
+        };
+        match hot_end().floor::<ENTHALPY>(p, log_p) {
+            (floor, estimate) if target < floor => (high, estimate),
+            _ => (high, eval(right)),
+        }
     };
     if target < at_left || target > at_right {
         return Err(infeasible("inverse state outside bounded IF97 envelope"));
@@ -458,6 +467,73 @@ fn scalar_property<const ENTHALPY: bool>(
         R * t * tau * dy
     } else {
         R * (tau * dy - g)
+    }
+}
+
+/// Vapor enthalpy and entropy at 1073.15 K on log-spaced pressures. Both fall
+/// with pressure at fixed temperature, so the value at the upper end of a
+/// pressure interval bounds the hot bracket end from below on that interval.
+struct HotEnd {
+    pressures: [f64; HOT_END_POINTS],
+    log_pressures: [f64; HOT_END_POINTS],
+    enthalpy: [f64; HOT_END_POINTS],
+    entropy: [f64; HOT_END_POINTS],
+}
+
+const HOT_END_POINTS: usize = 64;
+
+fn hot_end() -> &'static HotEnd {
+    static TABLE: std::sync::OnceLock<HotEnd> = std::sync::OnceLock::new();
+    TABLE.get_or_init(|| {
+        let (low, high) = (1e3f64.ln(), 16e6f64.ln());
+        let mut table = HotEnd {
+            pressures: [0.0; HOT_END_POINTS],
+            log_pressures: [0.0; HOT_END_POINTS],
+            enthalpy: [0.0; HOT_END_POINTS],
+            entropy: [0.0; HOT_END_POINTS],
+        };
+        for k in 0..HOT_END_POINTS {
+            let p = if k + 1 == HOT_END_POINTS {
+                16e6
+            } else {
+                (low + (high - low) * k as f64 / (HOT_END_POINTS - 1) as f64).exp()
+            };
+            let state = vapor(p, 1073.15);
+            table.pressures[k] = p;
+            table.log_pressures[k] = p.ln();
+            table.enthalpy[k] = state.h_j_kg;
+            table.entropy[k] = state.s_j_kg_k;
+        }
+        table
+    })
+}
+
+impl HotEnd {
+    /// (floor, estimate) of enthalpy or entropy at (p, 1073.15 K): a value no larger
+    /// than the exact one, and a log-pressure interpolation for the Newton start.
+    fn floor<const ENTHALPY: bool>(&self, p: f64, log_p: f64) -> (f64, f64) {
+        let values = if ENTHALPY {
+            &self.enthalpy
+        } else {
+            &self.entropy
+        };
+        let last = HOT_END_POINTS - 1;
+        if !(self.pressures[0]..=self.pressures[last]).contains(&p) {
+            return (f64::NEG_INFINITY, f64::NAN);
+        }
+        let (low, high) = (self.log_pressures[0], self.log_pressures[last]);
+        let mut k = (((log_p - low) / (high - low)) * last as f64) as usize;
+        k = k.min(last - 1);
+        while k > 0 && self.pressures[k] > p {
+            k -= 1;
+        }
+        while k + 1 < last && self.pressures[k + 1] < p {
+            k += 1;
+        }
+        let floor = values[k + 1] * (1.0 - 1e-10);
+        let w =
+            (log_p - self.log_pressures[k]) / (self.log_pressures[k + 1] - self.log_pressures[k]);
+        (floor, values[k] + w * (values[k + 1] - values[k]))
     }
 }
 
@@ -741,6 +817,45 @@ mod tests {
                 (h.to_bits(), s.to_bits()),
                 (b.h_j_kg.to_bits(), b.s_j_kg_k.to_bits())
             );
+        }
+    }
+
+    #[test]
+    fn hot_end_floors_bound_the_exact_values() {
+        let table = hot_end();
+        for k in 0..=20_000 {
+            let p = (1e3f64.ln() + (16e6f64.ln() - 1e3f64.ln()) * f64::from(k) / 20_000.0).exp();
+            let p = p.clamp(1e3, 16e6);
+            let state = vapor(p, 1073.15);
+            let (h_floor, h_estimate) = table.floor::<true>(p, p.ln());
+            let (s_floor, s_estimate) = table.floor::<false>(p, p.ln());
+            assert!(h_floor <= state.h_j_kg && s_floor <= state.s_j_kg_k, "{p}");
+            assert!((h_estimate / state.h_j_kg - 1.0).abs() < 1e-3, "{p}");
+            assert!((s_estimate / state.s_j_kg_k - 1.0).abs() < 1e-3, "{p}");
+        }
+        assert_eq!(table.floor::<true>(999.0, 999f64.ln()).0, f64::NEG_INFINITY);
+        // The classification at the hot end matches a direct comparison.
+        let budget = Budget::default();
+        for p in [1e3, 2e4, 3e5, 2e6, 1.6e7] {
+            let edge = vapor(p, 1073.15);
+            for (scale, inside) in [(1.0, true), (1.0 - 1e-12, true), (1.0 + 1e-12, false)] {
+                for enthalpy in [true, false] {
+                    let mut work = crate::Work {
+                        budget: &budget,
+                        deadline: None,
+                        used: 0,
+                        monitored: false,
+                        metrics_enabled: false,
+                    };
+                    let pair = saturation(p).unwrap();
+                    let result = if enthalpy {
+                        invert::<true>(pair, edge.h_j_kg * scale, &mut work)
+                    } else {
+                        invert::<false>(pair, edge.s_j_kg_k * scale, &mut work)
+                    };
+                    assert_eq!(result.is_ok(), inside, "{p} {scale} {enthalpy}");
+                }
+            }
         }
     }
 
