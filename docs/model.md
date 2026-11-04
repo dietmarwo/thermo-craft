@@ -1,12 +1,13 @@
 # Bounded water and steam cycle model
 
 Public units are pascals, kelvin, joules per kilogram, joules per kilogram
-kelvin and cubic metres per kilogram. The property adapter covers
+kelvin and cubic meters per kilogram. The property adapter covers
 IAPWS IF97 regions 1, 2 and 4 within 1 kPa to 16 MPa and 273.16 K to
 1073.15 K. The selected pressure ceiling keeps saturation below the
 region-3 boundary. A P/T pair at saturation requires a quality input.
 Wet enthalpy, entropy and volume use the mass-fraction lever rule.
-Single-phase inverse states use a bounded bisection on temperature.
+Single-phase inverse states use a bracketed, safeguarded Newton solve on
+temperature that charges the logical work of a 40-step bisection.
 The property example verifies published values in SI. It covers the
 subcooled, superheated, saturation and wet paths.
 

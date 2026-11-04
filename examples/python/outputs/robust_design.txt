@@ -1,0 +1,7 @@
+Robust pair: low 424.1 kPa, high 2.172 MPa, worst-case efficiency 0.35200
+
+              scenario  own optimum  robust pair   regret   own pair
+   winter, new turbine      0.40179      0.40128  0.0519pp   205 kPa / 1.736 MPa
+   summer, new turbine      0.36873      0.36873  0.0002pp   431 kPa / 2.215 MPa
+      winter, degraded      0.38354      0.38319  0.0345pp   274 kPa / 1.848 MPa
+      summer, degraded      0.35200      0.35200  0.0000pp   424 kPa / 2.172 MPa

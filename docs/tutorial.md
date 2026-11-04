@@ -1,6 +1,7 @@
 # Thermo Craft tutorial
 
-Evaluate bounded IF97 water properties and optimize two extraction pressures in a fixed Rankine cycle. This guide uses the examples shipped with version 0.2.0.
+Evaluate bounded IF97 water properties and optimize two extraction pressures in a fixed Rankine cycle. This guide uses the examples shipped with version 0.3.0. The
+[user manual](user-manual.md) is the complete reference.
 
 ## 1. Install and run the example
 
@@ -105,15 +106,29 @@ print(replay["score"], replay["metrics"])
 Replace the duplicate vectors with distinct choices for a real search.
 Use `batch` if you need the full metrics for every row. `scores` returns
 ordered records with score, status, steps and detail, and `metrics: null`.
-It rejects any candidate with `trace: true`. A one-worker batch or a
-singleton runs inline. Larger batches can try two or four workers.
-Measure before setting a worker count for a real workload.
+It rejects any candidate with `trace: true`. An optimizer that needs only
+the objective can skip JSON entirely with `score_matrix`, which takes
+parameter rows and returns scores (NaN when not complete), statuses and
+steps:
+
+```python
+rows = [case["parameters"], [200000.0, 1200000.0], [2e6, 1e6]]
+values, statuses, steps = prepared.score_matrix(rows, workers=2)
+print(values, statuses, steps)
+```
+
+A one-worker batch or a singleton runs inline. `workers` is an upper
+bound: the engine never starts more threads than there are CPUs, and the
+calling thread is one of them. Workers pay off for batches of several
+hundred candidates; measure before setting a worker count for a real
+workload.
 
 The optional differential-evolution driver times preparation, seeded
 search and traced replay as one run. Install SciPy for this example.
 
 ```sh
 python -m pip install scipy
+python validation/optimize_performance.py thermo_craft --matrix
 python validation/optimize_performance.py thermo_craft --scores
 python validation/optimize_performance.py thermo_craft
 ```
@@ -121,6 +136,7 @@ python validation/optimize_performance.py thermo_craft
 The driver uses small local bounds and a short fixed search budget.
 For a scientific result, use problem-specific bounds, an explicit
 feasibility penalty or constraint policy, and a held-out evaluation.
+`examples/python/` has complete SciPy and fcmaes examples.
 
 ## 4. Run and resume a local campaign
 
@@ -147,27 +163,36 @@ target/release/thermo-craft run models/request.json
 target/release/examples/sweep models/example.json
 target/release/examples/performance models/example.json serial
 CRAFT_SCORES=1 target/release/examples/performance models/example.json serial
+CRAFT_MATRIX=1 target/release/examples/performance models/example.json serial
+target/release/examples/breakdown models/example.json
 ```
 
 The CLI reads a request file or standard input with `run -`. Exit code
 0 indicates complete rows, 1 indicates a rejected request and 2
 indicates one or more unsuccessful rows in a well-formed request.
 The benchmark prints elapsed seconds per prepared batch after warm-up.
-Use `parallel` for four workers, `trace` for traced evaluations,
-or `domain` and `domain2` for the package's supplemental cases.
+`CRAFT_SCORES` selects the lean API and `CRAFT_MATRIX` the matrix API.
+Use `parallel` for four requested workers, `trace` for traced evaluations,
+or `domain` and `domain2` for the package's supplemental cases. The
+`breakdown` example prints where a call's time goes (decode, domain,
+lean and full encoding) and worker scaling, as JSON.
 With a previous benchmark executable built from the baseline and this
 one, `validation/performance_pair.py BEFORE AFTER models/example.json serial`
-checks output parity and times both. See the included performance log
-and raw evidence for the exact workloads and comparison boundaries.
+checks output parity and times both; `--before-scores`, `--after-scores`,
+`--before-matrix` and `--after-matrix` select the API per side. See the
+included performance log and raw evidence for the exact workloads and
+comparison boundaries.
 
 ## 6. Verify results
 
 ```sh
 cargo test --release --locked
-cargo clippy --locked --all-targets --features python -- -D warnings
+cargo clippy --release --locked --all-targets --features python -- -D warnings
 python validation/validate.py target/release/thermo-craft
 ```
 
-Consult the [model card](model.md) for supported inputs, the
-[architecture guide](architecture.md) for data flow and numerical
-assumptions, and the [source notes](sources.md) for references.
+Consult the [user manual](user-manual.md) for every interface, status
+and error message, the [model card](model.md) for supported inputs, the
+[architecture guide](architecture.md) for data flow, numerical
+assumptions and performance, and the [source notes](sources.md) for
+references.

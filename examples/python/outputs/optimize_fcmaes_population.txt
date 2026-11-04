@@ -1,0 +1,5 @@
+fcmaes CMA-ES (ask/tell): 39 generations, 624 evaluations, 96384 logical steps, statuses {'complete': 624}
+  best low 365.92 kPa, high 2.0770 MPa, efficiency 0.3841291
+fcmaes DE (ask/tell): 60 generations, 960 evaluations, statuses {'complete': 960}
+  best low 365.92 kPa, high 2.0770 MPa, efficiency 0.3841291
+Replay of the CMA-ES winner: complete, efficiency 0.3841291, exhaust quality 0.8925

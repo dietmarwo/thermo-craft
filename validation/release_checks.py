@@ -1,4 +1,7 @@
-"""Check the installed lean and matrix APIs and run the Python snippets in the tutorial."""
+"""Check the installed lean and matrix APIs and run the Python blocks of the tutorial and manual.
+
+Usage: python validation/release_checks.py MODULE docs/tutorial.md [docs/user-manual.md]
+"""
 
 import importlib
 import json
@@ -23,7 +26,9 @@ def check_matrix(prepared, rows, **budget):
             assert row["score"] is None and math.isnan(score), (score, row)
     return statuses
 
-module, tutorial = sys.argv[1:]
+module, tutorial, *rest = sys.argv[1:]
+# The manual defaults to docs/user-manual.md next to the tutorial.
+manual_path = Path(rest[0]) if rest else Path(tutorial).with_name("user-manual.md")
 package = importlib.import_module(module)
 example = package.load_example()
 prepared = package.Prepared(example["model"])
@@ -95,11 +100,21 @@ if numpy is not None:
     array = numpy.array([example["parameters"]] * 3, dtype=float)
     assert prepared.score_matrix(array) == prepared.score_matrix(array.tolist())
 
-snippets = re.findall(r"^```python\n(.*?)^```", Path(tutorial).read_text(), re.M | re.S)
-assert len(snippets) >= 4
-namespace = {}
-for i, snippet in enumerate(snippets, 1):
-    exec(compile(snippet, f"tutorial-{i}", "exec"), namespace)
-print(json.dumps({"status": "passed", "tutorial_python_blocks": len(snippets),
+
+
+def run_blocks(path, label, minimum):
+    """Execute every ```python block of a document in order, in one namespace."""
+    blocks = re.findall(r"^```python\n(.*?)^```", Path(path).read_text(), re.M | re.S)
+    assert len(blocks) >= minimum, (path, len(blocks))
+    namespace = {}
+    for i, block in enumerate(blocks, 1):
+        exec(compile(block, f"{label}-{i}", "exec"), namespace)
+    return len(blocks)
+
+
+snippets = run_blocks(tutorial, "tutorial", 4)
+manual = run_blocks(manual_path, "manual", 20) if manual_path.exists() else 0
+print(json.dumps({"status": "passed", "tutorial_python_blocks": snippets,
+                  "manual_python_blocks": manual,
                   "lean_api_and_budget_parity": True, "matrix_api_parity": True,
                   "numpy_matrix_input": numpy is not None}))

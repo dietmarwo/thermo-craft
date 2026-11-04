@@ -1,10 +1,32 @@
 [package]
 name = "thermo-craft"
-version = "0.2.0"
+version = "0.3.0"
 edition = "2024"
 rust-version = "1.88"
 description = "Bounded thermo-craft research evaluator"
 license = "MIT"
+# Ship source, docs, examples, models and validation; release evidence,
+# packages and patch series live in the release ZIP only.
+include = [
+  "/.gitignore",
+  "/Cargo.lock",
+  "/Cargo.toml",
+  "/LICENSE",
+  "/README.md",
+  "/pyproject.toml",
+  "/src/*.rs",
+  "/examples/*.rs",
+  "/examples/outputs/*.txt",
+  "/examples/python/*.py",
+  "/examples/python/README.md",
+  "/examples/python/outputs/*.txt",
+  "/python/thermo_craft/*.py",
+  "/python/thermo_craft/*.json",
+  "/models/*.json",
+  "/docs/*.md",
+  "/validation/*.py",
+  "/evidence/validation.json",
+]
 
 [lib]
 crate-type = ["rlib", "cdylib"]

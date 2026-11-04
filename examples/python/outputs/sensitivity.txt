@@ -1,0 +1,18 @@
+Nominal optimum: low 366.2 kPa, high 2.0745 MPa, efficiency 0.384129
+
+               input        value  d(eta)/d(input)  elasticity
+           boiler_pa        8e+06       5.4367e-09      0.1132
+        condenser_pa        15000      -1.9344e-06     -0.0755
+             inlet_k       813.15       1.6324e-04      0.3456
+  turbine_efficiency         0.88       3.4447e-01      0.7891
+     pump_efficiency          0.8       3.4500e-03      0.0072
+
+ condenser  eta(nominal pair)  eta(re-optimized)     loss  pair
+       8kPa           0.401481           0.401794  0.0312pp  206 kPa / 1.741 MPa
+      10kPa           0.395518           0.395656  0.0139pp  227 kPa / 1.791 MPa
+      15kPa           0.384129           0.384129  0.0000pp  366 kPa / 2.074 MPa
+      20kPa           0.375579           0.375602  0.0023pp  402 kPa / 2.159 MPa
+      30kPa           0.362793           0.362941  0.0148pp  458 kPa / 2.278 MPa
+
+Keeping the nominal pair costs at most 0.0312 percentage points over this
+condenser range, while the condenser pressure itself moves efficiency by 3.87 points.
