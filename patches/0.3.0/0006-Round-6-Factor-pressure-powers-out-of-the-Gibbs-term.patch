@@ -1,0 +1,492 @@
+From 3d2816c243f8db4f4725af99959fcf23a2d91a4d Mon Sep 17 00:00:00 2001
+From: Claude <noreply@anthropic.com>
+Date: Wed, 4 Nov 2026 11:49:16 -0400
+Subject: [PATCH 06/13] Round 6: Factor pressure powers out of the Gibbs term
+ sums
+
+Group the Region 1 and Region 2 coefficient tables by pressure exponent
+at compile time, sum each short reduced-temperature series first and
+then scale it by its pressure power. The value and pressure derivative
+share one inner sum. This removes about a third of the multiplications
+and shortens the serial accumulation chains. Values change in the last
+bits; a unit test compares against term-by-term powi sums.
+
+Workload: serial (96 candidates, one worker), matrix API both sides.
+Official 11-sample run: 0.273 ms -> 0.256 ms, 1.07x (paired 1.11x).
+41-sample confirmation: 0.280 ms -> 0.255 ms, paired 1.11x.
+validate.py passed against the release CLI.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+---
+ evidence/performance-0.3.0/plan.md            |  17 +++
+ .../round06-matrix-serial-confirm41.json      |  97 +++++++++++++
+ .../round06-matrix-serial.json                |  37 +++++
+ .../performance-0.3.0/round06-validation.json | 133 ++++++++++++++++++
+ src/if97.rs                                   | 118 ++++++++++++++--
+ 5 files changed, 391 insertions(+), 11 deletions(-)
+ create mode 100644 evidence/performance-0.3.0/round06-matrix-serial-confirm41.json
+ create mode 100644 evidence/performance-0.3.0/round06-matrix-serial.json
+ create mode 100644 evidence/performance-0.3.0/round06-validation.json
+
+diff --git a/evidence/performance-0.3.0/plan.md b/evidence/performance-0.3.0/plan.md
+index c250419..25dc350 100644
+--- a/evidence/performance-0.3.0/plan.md
++++ b/evidence/performance-0.3.0/plan.md
+@@ -142,3 +142,20 @@ the median of per-sample-pair ratios. For every round from 2 on:
+   chain dominated the evaluation latency. Parity passed on every workload
+   and mode; `validate.py` passed against the release CLI
+   (`round05-validation.json`).
++
++## Round 6: factor pressure powers out of the Gibbs term sums
++
++- Profile reasoning after round 5: each of g, g_pi, g_tau and g_tautau is
++  accumulated over all 43 (Region 2) or 34 (Region 1) terms in one serial
++  add chain, and every term multiplies by its pressure power again.
++- Change: group the coefficient tables by pressure exponent (tables are
++  already sorted by it; groups are computed at compile time). Sum the short
++  per-group reduced-temperature series first, then combine each group with
++  its pressure power. g and g_pi share the same inner sum. Fewer
++  multiplications and per-group chains of at most eight terms.
++- Workload: `serial` with the matrix API on both sides.
++- Expected effect: roughly 1.1-1.3x on the kernel.
++- Last bits change (summation order); run `validate.py`.
++- Result: official 0.273 -> 0.256 ms, 1.07x (paired 1.11x); confirmation
++  0.280 -> 0.255 ms, paired 1.11x. Kept. Parity passed on every workload
++  and mode; `validate.py` passed (`round06-validation.json`).
+diff --git a/evidence/performance-0.3.0/round06-matrix-serial-confirm41.json b/evidence/performance-0.3.0/round06-matrix-serial-confirm41.json
+new file mode 100644
+index 0000000..b4d1db9
+--- /dev/null
++++ b/evidence/performance-0.3.0/round06-matrix-serial-confirm41.json
+@@ -0,0 +1,97 @@
++{
++  "workload": "serial",
++  "before_api": "matrix",
++  "after_api": "matrix",
++  "before_seconds": [
++    0.00026818325,
++    0.00029461525,
++    0.000270389,
++    0.00021406325,
++    0.0002799045,
++    0.00027995075,
++    0.00027289725,
++    0.000270247,
++    0.00026938375,
++    0.00027401025,
++    0.0002772055,
++    0.000279493,
++    0.000295405,
++    0.00028218475,
++    0.000274383,
++    0.00027773575,
++    0.0002797835,
++    0.00027505475,
++    0.00030740725,
++    0.000277392,
++    0.00028249075,
++    0.0002679855,
++    0.00028774075,
++    0.00039532975,
++    0.00043925275,
++    0.0011282535,
++    0.0002562705,
++    0.00028078725,
++    0.0002784515,
++    0.00042236225,
++    0.00030159875,
++    0.00048778975,
++    0.00044857625,
++    0.00046534625,
++    0.00047199975,
++    0.00022431075,
++    0.0002139475,
++    0.0004361015,
++    0.00032462225,
++    0.00046514825,
++    0.0004286785
++  ],
++  "after_seconds": [
++    0.00024194325,
++    0.00024583375,
++    0.00024290425,
++    0.0002457515,
++    0.000248713,
++    0.0002509785,
++    0.00027091725,
++    0.0002704015,
++    0.000254939,
++    0.00025514225,
++    0.00027076175,
++    0.0002664965,
++    0.000253494,
++    0.00025301525,
++    0.0002682245,
++    0.0002664355,
++    0.00025515625,
++    0.00026144825,
++    0.0002673285,
++    0.0002626695,
++    0.00025312125,
++    0.00024457,
++    0.00023477475,
++    0.0002544245,
++    0.00024802425,
++    0.0004576145,
++    0.00023580875,
++    0.00040665825,
++    0.0002321455,
++    0.0002497425,
++    0.00032484325,
++    0.00024721975,
++    0.00042085825,
++    0.00041530925,
++    0.00044035125,
++    0.000442575,
++    0.00019019875,
++    0.00019595875,
++    0.00026604,
++    0.00040034975,
++    0.00037464825
++  ],
++  "medians_seconds": [
++    0.00027995075,
++    0.00025514225
++  ],
++  "speedup": 1.097233993977869,
++  "paired_median_speedup": 1.113150552120846
++}
+diff --git a/evidence/performance-0.3.0/round06-matrix-serial.json b/evidence/performance-0.3.0/round06-matrix-serial.json
+new file mode 100644
+index 0000000..17e2433
+--- /dev/null
++++ b/evidence/performance-0.3.0/round06-matrix-serial.json
+@@ -0,0 +1,37 @@
++{
++  "workload": "serial",
++  "before_api": "matrix",
++  "after_api": "matrix",
++  "before_seconds": [
++    0.00027291425,
++    0.000267904,
++    0.00027038225,
++    0.00028214375,
++    0.0002701225,
++    0.00026620325,
++    0.0003074965,
++    0.00027559775,
++    0.000289363,
++    0.00039667725,
++    0.0002725125
++  ],
++  "after_seconds": [
++    0.00024900325,
++    0.0002417255,
++    0.0002430175,
++    0.00026697575,
++    0.00024274025,
++    0.00025925575,
++    0.0002758605,
++    0.00024157825,
++    0.0002626055,
++    0.00027147425,
++    0.0002560475
++  ],
++  "medians_seconds": [
++    0.00027291425,
++    0.0002560475
++  ],
++  "speedup": 1.0658735195618,
++  "paired_median_speedup": 1.1082984625122299
++}
+diff --git a/evidence/performance-0.3.0/round06-validation.json b/evidence/performance-0.3.0/round06-validation.json
+new file mode 100644
+index 0000000..4fa782b
+--- /dev/null
++++ b/evidence/performance-0.3.0/round06-validation.json
+@@ -0,0 +1,133 @@
++{
++  "best_efficiency": 0.3840818926985809,
++  "bounded_grid_evaluations": 20,
++  "energy_residual_j_kg": 3.4924596548080444e-10,
++  "iapws_relative_errors": [
++    [
++      1.8588552919140966e-10,
++      1.026331020170801e-09,
++      3.126331415970185e-10
++    ],
++    [
++      9.966250047455105e-11,
++      2.0077939311136106e-11,
++      2.8096212023598355e-09
++    ],
++    [
++      3.294311490265045e-10,
++      3.1261260247106293e-10,
++      9.562335367974129e-10
++    ],
++    [
++      1.1185783410638805e-09,
++      2.103588303548065e-09,
++      1.8872570173300574e-10
++    ]
++  ],
++  "relative_tolerance": 5e-08,
++  "robust_training_winner": [
++    500000.0,
++    2000000.0
++  ],
++  "simple_efficiency": 0.34163555526433553,
++  "stress_set": [
++    {
++      "cond_pa": 10000.0,
++      "eta": 0.88,
++      "nominal": {
++        "score": -0.3956012391171294,
++        "status": "complete"
++      },
++      "robust": {
++        "score": -0.39486842100545444,
++        "status": "complete"
++      }
++    },
++    {
++      "cond_pa": 22000.0,
++      "eta": 0.86,
++      "nominal": {
++        "score": -0.3657012938427118,
++        "status": "complete"
++      },
++      "robust": {
++        "score": -0.3656874067933014,
++        "status": "complete"
++      }
++    },
++    {
++      "cond_pa": 30000.0,
++      "eta": 0.91,
++      "nominal": {
++        "score": -0.3723747580510457,
++        "status": "complete"
++      },
++      "robust": {
++        "score": -0.3725100975098242,
++        "status": "complete"
++      }
++    }
++  ],
++  "winner": [
++    300000.0,
++    2000000.0
++  ],
++  "winner_states": [
++    {
++      "h_j_kg": 3497478.001987539,
++      "p_pa": 8000000.0,
++      "quality": null,
++      "s_j_kg_k": 6850.105323909179,
++      "t_k": 813.15,
++      "v_m3_kg": 0.044501896058347944
++    },
++    {
++      "h_j_kg": 3122928.515697219,
++      "p_pa": 2000000.0,
++      "quality": null,
++      "s_j_kg_k": 6934.508471371903,
++      "t_k": 616.563235017623,
++      "v_m3_kg": 0.1369030453529984
++    },
++    {
++      "h_j_kg": 2752236.6504899156,
++      "p_pa": 300000.0,
++      "quality": null,
++      "s_j_kg_k": 7057.811765153383,
++      "t_k": 419.0243177543405,
++      "v_m3_kg": 0.6270366397940803
++    },
++    {
++      "h_j_kg": 2343501.7610383215,
++      "p_pa": 15000.0,
++      "quality": 0.8925963835552146,
++      "s_j_kg_k": 7228.197358624368,
++      "t_k": 327.120266921189,
++      "v_m3_kg": 8.94424848813881
++    },
++    {
++      "h_j_kg": 225935.12135565604,
++      "p_pa": 15000.0,
++      "quality": 0.0,
++      "s_j_kg_k": 754.8386490891539,
++      "t_k": 327.120266921189,
++      "v_m3_kg": 0.0010140296189788533
++    },
++    {
++      "h_j_kg": 561455.410257108,
++      "p_pa": 300000.0,
++      "quality": 0.0,
++      "s_j_kg_k": 1671.7646728693803,
++      "t_k": 406.67535794654543,
++      "v_m3_kg": 0.001073176438547049
++    },
++    {
++      "h_j_kg": 908621.8511364574,
++      "p_pa": 2000000.0,
++      "quality": 0.0,
++      "s_j_kg_k": 2447.0239083620654,
++      "t_k": 485.5345353184905,
++      "v_m3_kg": 0.0011767502442472583
++    }
++  ]
++}
+diff --git a/src/if97.rs b/src/if97.rs
+index b840c55..48db492 100644
+--- a/src/if97.rs
++++ b/src/if97.rs
+@@ -53,8 +53,46 @@ fn terms<const G: bool, const DX: bool>(
+     (g, dx, dy)
+ }
+ 
++/// Coefficient table ranges sharing one pressure exponent: (exponent, start, end).
++type Groups<const N: usize> = [(usize, usize, usize); N];
++
++const fn count_groups(coeffs: &[(i32, i32, f64)]) -> usize {
++    let mut count = 1;
++    let mut k = 1;
++    while k < coeffs.len() {
++        assert!(
++            coeffs[k].0 >= coeffs[k - 1].0,
++            "coefficients must be sorted by I"
++        );
++        if coeffs[k].0 != coeffs[k - 1].0 {
++            count += 1;
++        }
++        k += 1;
++    }
++    count
++}
++
++const fn groups<const N: usize>(coeffs: &[(i32, i32, f64)]) -> Groups<N> {
++    let mut out = [(0, 0, 0); N];
++    let mut group = 0;
++    let mut start = 0;
++    let mut k = 1;
++    while k <= coeffs.len() {
++        if k == coeffs.len() || coeffs[k].0 != coeffs[start].0 {
++            out[group] = (coeffs[start].0 as usize, start, k);
++            group += 1;
++            start = k;
++        }
++        k += 1;
++    }
++    out
++}
++
++const R1_GROUPS: Groups<{ count_groups(&R1) }> = groups(&R1);
++const R2_GROUPS: Groups<{ count_groups(&R2) }> = groups(&R2);
++
+ /// Gibbs sum and its derivatives: (gamma, gamma_pi, gamma_tau, gamma_tau_tau).
+-/// The first three accumulate in the same order whatever `DYY` is.
++/// Terms are summed per pressure exponent first, then scaled by that power.
+ fn curvature_terms<const G: bool, const DX: bool, const DYY: bool>(
+     xp: &[f64; 33],
+     y: f64,
+@@ -74,21 +112,31 @@ fn curvature_terms<const G: bool, const DX: bool, const DYY: bool>(
+             yp[j as usize]
+         }
+     };
++    let groups: &[(usize, usize, usize)] = if liquid { &R1_GROUPS } else { &R2_GROUPS };
+     let (mut g, mut dx, mut dy, mut dyy) = (0.0, 0.0, 0.0, 0.0);
+-    for &(i, j, n) in coeffs {
+-        let a = xp[i as usize];
+-        let b = power_y(j);
++    for &(i, start, end) in groups {
++        let (mut sum, mut sum_y, mut sum_yy) = (0.0, 0.0, 0.0);
++        for &(_, j, n) in &coeffs[start..end] {
++            if G || DX {
++                sum += n * power_y(j);
++            }
++            if j != 0 {
++                sum_y += n * f64::from(j) * power_y(j - 1);
++            }
++            if DYY && j != 0 && j != 1 {
++                sum_yy += n * f64::from(j * (j - 1)) * power_y(j - 2);
++            }
++        }
++        let a = xp[i];
+         if G {
+-            g += n * a * b;
++            g += a * sum;
+         }
+         if DX && i != 0 {
+-            dx += n * f64::from(i) * xp[(i - 1) as usize] * b;
+-        }
+-        if j != 0 {
+-            dy += n * f64::from(j) * a * power_y(j - 1);
++            dx += i as f64 * xp[i - 1] * sum;
+         }
+-        if DYY && j != 0 && j != 1 {
+-            dyy += n * f64::from(j * (j - 1)) * a * power_y(j - 2);
++        dy += a * sum_y;
++        if DYY {
++            dyy += a * sum_yy;
+         }
+     }
+     (g, dx, dy, dyy)
+@@ -479,6 +527,54 @@ mod tests {
+         }
+     }
+ 
++    /// Plain term-by-term sums with `powi`, the textbook form of the Gibbs series.
++    fn reference_terms(x: f64, y: f64, coeffs: &[(i32, i32, f64)]) -> [f64; 4] {
++        let mut out = [0.0; 4];
++        for &(i, j, n) in coeffs {
++            out[0] += n * x.powi(i) * y.powi(j);
++            out[1] += n * f64::from(i) * x.powi(i - 1) * y.powi(j);
++            out[2] += n * f64::from(j) * x.powi(i) * y.powi(j - 1);
++            out[3] += n * f64::from(j * (j - 1)) * x.powi(i) * y.powi(j - 2);
++        }
++        out
++    }
++
++    #[test]
++    fn grouped_terms_match_term_by_term_sums() {
++        let close = |a: f64, b: f64, scale: f64| (a - b).abs() <= 1e-12 * scale.max(1e-300);
++        for (p, t) in [(1e3, 280.0), (3e6, 300.0), (8e6, 500.0), (1.6e7, 600.0)] {
++            let x = 7.1 - p / 16.53e6;
++            let y = 1386.0 / t - 1.222;
++            let (g, dx, dy, dyy) =
++                curvature_terms::<true, true, true>(&pressure_powers(x, true), y, &R1);
++            let r = reference_terms(x, y, &R1);
++            let scale: f64 = R1
++                .iter()
++                .map(|&(i, j, n)| (n * x.powi(i) * y.powi(j - 2)).abs())
++                .sum::<f64>()
++                * 1e3;
++            for (got, want) in [g, dx, dy, dyy].into_iter().zip(r) {
++                assert!(close(got, want, scale), "R1 {p} {t}: {got} {want}");
++            }
++        }
++        for (p, t) in [(1e3, 300.0), (1e5, 400.0), (2e6, 700.0), (1.6e7, 1073.0)] {
++            let x = p / 1e6;
++            let y = 540.0 / t - 0.5;
++            let (g, dx, dy, dyy) =
++                curvature_terms::<true, true, true>(&pressure_powers(x, false), y, &R2);
++            let r = reference_terms(x, y, &R2);
++            for (got, want) in [g, dx, dy, dyy].into_iter().zip(r) {
++                assert!(
++                    close(got, want, want.abs() + 1e-9),
++                    "R2 {p} {t}: {got} {want}"
++                );
++            }
++        }
++        assert_eq!(R1_GROUPS.len(), 13);
++        assert_eq!(R2_GROUPS.len(), 17);
++        assert_eq!(R2_GROUPS[R2_GROUPS.len() - 1], (24, 40, 43));
++    }
++
+     #[test]
+     fn blocked_power_tables_match_repeated_multiplication() {
+         for x in [0.3, 0.97, 1.0, 1.4, -0.8, 6.9] {
+-- 
+2.43.0
+

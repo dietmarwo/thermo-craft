@@ -1,0 +1,372 @@
+From d21e17a0ff524ec379c0bd09cce101189b42329e Mon Sep 17 00:00:00 2001
+From: Claude <noreply@anthropic.com>
+Date: Wed, 4 Nov 2026 11:45:46 -0400
+Subject: [PATCH 04/13] Round 4: Reuse saturation properties as the near
+ inverse bracket value
+
+The bracket end at the saturation temperature repeats the saturation
+state's own computation, so its enthalpy or entropy is taken from the
+pair and only the far end (273.16 K or 1073.15 K) is evaluated. The
+inverse now derives its pressure from the pair, and a unit test asserts
+the bit equality across the pressure range. Results are bit-identical.
+
+Workload: domain (48 candidates at 950 K), matrix API both sides.
+Official 11-sample run: 0.556 ms -> 0.491 ms, 1.13x (paired 1.14x).
+41-sample confirmation: 0.558 ms -> 0.495 ms, paired 1.13x.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+---
+ evidence/performance-0.3.0/plan.md            | 19 ++++
+ .../round04-matrix-domain-confirm41.json      | 97 +++++++++++++++++++
+ .../round04-matrix-domain.json                | 37 +++++++
+ src/domain.rs                                 |  5 +-
+ src/if97.rs                                   | 97 +++++++++++++------
+ 5 files changed, 224 insertions(+), 31 deletions(-)
+ create mode 100644 evidence/performance-0.3.0/round04-matrix-domain-confirm41.json
+ create mode 100644 evidence/performance-0.3.0/round04-matrix-domain.json
+
+diff --git a/evidence/performance-0.3.0/plan.md b/evidence/performance-0.3.0/plan.md
+index b91a509..5aa291e 100644
+--- a/evidence/performance-0.3.0/plan.md
++++ b/evidence/performance-0.3.0/plan.md
+@@ -103,3 +103,22 @@ the median of per-sample-pair ratios. For every round from 2 on:
+ - Result: official 1.482 -> 0.805 ms, 1.84x (paired 1.61x); confirmation
+   1.311 -> 0.791 ms, paired 1.66x. Kept. Probe output is byte-identical for
+   `serial`, `trace` and `domain2`; parity passed on every workload and mode.
++
++## Round 4: reuse the saturation property as the near bracket value
++
++- Profile after round 3: a serial candidate makes about 23 Gibbs
++  evaluations: four for the two saturation pairs, and per single-phase
++  inverse two bracket-end values, 3-4 Newton evaluations and one final
++  state. The bracket end at the saturation temperature repeats the
++  saturation state's own computation (same pressure powers, same terms,
++  same operation order), so its value equals that state's enthalpy or
++  entropy bit for bit.
++- Change: take that end value from the saturation pair; evaluate only the
++  far end (273.16 K or 1073.15 K). A unit test asserts the bit equality.
++- Workload: `domain` with the matrix API on both sides (isolates the
++  kernel; four single-phase inverses per candidate).
++- Expected effect: about 4 of about 30 Gibbs evaluations removed per
++  candidate, roughly 1.08-1.15x. Bit-identical results.
++- Result: official 0.556 -> 0.491 ms, 1.13x (paired 1.14x); confirmation
++  0.558 -> 0.495 ms, paired 1.13x. Kept. Probe output byte-identical for
++  `serial`, `domain`, `domain2` and `trace`; parity passed everywhere.
+diff --git a/evidence/performance-0.3.0/round04-matrix-domain-confirm41.json b/evidence/performance-0.3.0/round04-matrix-domain-confirm41.json
+new file mode 100644
+index 0000000..9677f94
+--- /dev/null
++++ b/evidence/performance-0.3.0/round04-matrix-domain-confirm41.json
+@@ -0,0 +1,97 @@
++{
++  "workload": "domain",
++  "before_api": "matrix",
++  "after_api": "matrix",
++  "before_seconds": [
++    0.0005577068,
++    0.000565631,
++    0.000555468,
++    0.000530136,
++    0.0005684092,
++    0.0004796198,
++    0.0003471394,
++    0.00035078,
++    0.0003654816,
++    0.00043695440000000006,
++    0.000542022,
++    0.0005712736000000001,
++    0.0005901428,
++    0.0005757848,
++    0.0005562096,
++    0.0005863324,
++    0.0005819132,
++    0.0005620852,
++    0.0005518798,
++    0.0005929092,
++    0.0005894864,
++    0.0003707586,
++    0.000415922,
++    0.0003471638,
++    0.00035089219999999996,
++    0.0003537508,
++    0.0006644828,
++    0.000575965,
++    0.0005922338,
++    0.0005877326000000001,
++    0.000581785,
++    0.0005792084,
++    0.0005806618000000001,
++    0.0005828507999999999,
++    0.0005739338,
++    0.0005289782,
++    0.0005635918000000001,
++    0.000535511,
++    0.0005414558,
++    0.0004945279999999999,
++    0.0005520288
++  ],
++  "after_seconds": [
++    0.0004759796,
++    0.0005217010000000001,
++    0.00046703580000000003,
++    0.0004777596,
++    0.000473609,
++    0.0003785544,
++    0.0003273284,
++    0.0003336926,
++    0.0007682457999999999,
++    0.00032670160000000003,
++    0.0003599036,
++    0.0005166516,
++    0.0005130082,
++    0.0005139262,
++    0.0005121106000000001,
++    0.0004875388,
++    0.0005088536000000001,
++    0.0004975068,
++    0.000532332,
++    0.0005138386,
++    0.0005422182,
++    0.0003374832,
++    0.00036258739999999996,
++    0.00034255959999999997,
++    0.0003173676,
++    0.0003126982,
++    0.0005111924000000001,
++    0.000513205,
++    0.000505035,
++    0.0005307932,
++    0.0005135329999999999,
++    0.0005098488,
++    0.0005110393999999999,
++    0.000558884,
++    0.0004948848,
++    0.0004925422,
++    0.0004933698000000001,
++    0.0004983640000000001,
++    0.00045725640000000004,
++    0.000445423,
++    0.0003221296
++  ],
++  "medians_seconds": [
++    0.0005577068,
++    0.0004948848
++  ],
++  "speedup": 1.1269426743355222,
++  "paired_median_speedup": 1.1312850537674985
++}
+diff --git a/evidence/performance-0.3.0/round04-matrix-domain.json b/evidence/performance-0.3.0/round04-matrix-domain.json
+new file mode 100644
+index 0000000..0426340
+--- /dev/null
++++ b/evidence/performance-0.3.0/round04-matrix-domain.json
+@@ -0,0 +1,37 @@
++{
++  "workload": "domain",
++  "before_api": "matrix",
++  "after_api": "matrix",
++  "before_seconds": [
++    0.0005663226000000001,
++    0.0005769376,
++    0.0005556572,
++    0.0005563014,
++    0.0005454002,
++    0.000575682,
++    0.0005677228,
++    0.0005538953999999999,
++    0.0005524239999999999,
++    0.0005449236,
++    0.0005484966
++  ],
++  "after_seconds": [
++    0.0004903672000000001,
++    0.0005076646,
++    0.0004809832,
++    0.00047860259999999994,
++    0.0005059402,
++    0.0005068012,
++    0.0004861432,
++    0.0005191612,
++    0.0004907182000000001,
++    0.00048464659999999997,
++    0.0004955358
++  ],
++  "medians_seconds": [
++    0.0005556572,
++    0.0004907182000000001
++  ],
++  "speedup": 1.1323346067050295,
++  "paired_median_speedup": 1.1359128589277214
++}
+diff --git a/src/domain.rs b/src/domain.rs
+index e184092..2adb1a0 100644
+--- a/src/domain.rs
++++ b/src/domain.rs
+@@ -126,10 +126,9 @@ fn solve(p: &Plant, parameters: &[f64], work: &mut Work<'_>) -> Evaluation {
+     let cond = p.condenser[0];
+     let inlet = p.inlet;
+     let turbine = |before: State, pair: [State; 2], work: &mut Work<'_>| {
+-        let pressure = pair[0].p_pa;
+-        let ideal = invert::<false>(pressure, pair, before.s_j_kg_k, work)?;
++        let ideal = invert::<false>(pair, before.s_j_kg_k, work)?;
+         let h = before.h_j_kg - p.turbine_efficiency * (before.h_j_kg - ideal.h_j_kg);
+-        invert::<true>(pressure, pair, h, work)
++        invert::<true>(pair, h, work)
+     };
+     let pump = |liquid: State, dest: f64| liquid.v_m3_kg * (dest - liquid.p_pa) / p.pump_efficiency;
+     let (
+diff --git a/src/if97.rs b/src/if97.rs
+index c7288f2..190afb5 100644
+--- a/src/if97.rs
++++ b/src/if97.rs
+@@ -215,13 +215,15 @@ fn mix([a, b]: [State; 2], x: f64) -> State {
+         quality: Some(x),
+     }
+ }
++/// Single-phase or wet state at the saturation pair's pressure with the given
++/// enthalpy (`ENTHALPY`) or entropy.
+ pub fn invert<const ENTHALPY: bool>(
+-    p: f64,
+     pair: [State; 2],
+     target: f64,
+     work: &mut Work<'_>,
+ ) -> Result<State, Failure> {
+     let [a, b] = pair;
++    let p = a.p_pa;
+     let property = |state: State| {
+         if ENTHALPY {
+             state.h_j_kg
+@@ -246,31 +248,14 @@ pub fn invert<const ENTHALPY: bool>(
+     } else {
+         0.0
+     };
+-    let eval = |t| {
+-        let (tau, g, dy) = if liquid_phase {
+-            let tau = 1386.0 / t;
+-            let (g, _, dy) = if ENTHALPY {
+-                terms::<false, false>(&powers, tau - 1.222, &R1)
+-            } else {
+-                terms::<true, false>(&powers, tau - 1.222, &R1)
+-            };
+-            (tau, g, dy)
+-        } else {
+-            let tau = 540.0 / t;
+-            let (g, _, dy) = if ENTHALPY {
+-                vapor_terms::<false, false>(pi, log_pi, tau, &powers)
+-            } else {
+-                vapor_terms::<true, false>(pi, log_pi, tau, &powers)
+-            };
+-            (tau, g, dy)
+-        };
+-        if ENTHALPY {
+-            R * t * tau * dy
+-        } else {
+-            R * (tau * dy - g)
+-        }
++    let eval = |t| scalar_property::<ENTHALPY>(liquid_phase, pi, log_pi, &powers, t);
++    // The saturation-side bracket value repeats the saturation state's computation
++    // exactly, so it is taken from the pair; only the far end is evaluated.
++    let (at_left, at_right) = if liquid_phase {
++        (eval(left), low)
++    } else {
++        (high, eval(right))
+     };
+-    let (at_left, at_right) = (eval(left), eval(right));
+     if target < at_left || target > at_right {
+         return Err(infeasible("inverse state outside bounded IF97 envelope"));
+     }
+@@ -312,6 +297,38 @@ pub fn invert<const ENTHALPY: bool>(
+     })
+ }
+ 
++/// Enthalpy or entropy at fixed pressure, with the same operations as `liquid_at`/`vapor_at`.
++fn scalar_property<const ENTHALPY: bool>(
++    liquid_phase: bool,
++    pi: f64,
++    log_pi: f64,
++    powers: &[f64; 33],
++    t: f64,
++) -> f64 {
++    let (tau, g, dy) = if liquid_phase {
++        let tau = 1386.0 / t;
++        let (g, _, dy) = if ENTHALPY {
++            terms::<false, false>(powers, tau - 1.222, &R1)
++        } else {
++            terms::<true, false>(powers, tau - 1.222, &R1)
++        };
++        (tau, g, dy)
++    } else {
++        let tau = 540.0 / t;
++        let (g, _, dy) = if ENTHALPY {
++            vapor_terms::<false, false>(pi, log_pi, tau, powers)
++        } else {
++            vapor_terms::<true, false>(pi, log_pi, tau, powers)
++        };
++        (tau, g, dy)
++    };
++    if ENTHALPY {
++        R * t * tau * dy
++    } else {
++        R * (tau * dy - g)
++    }
++}
++
+ /// Logical work charged per single-phase inverse state.
+ const INVERSE_STEPS: usize = 40;
+ 
+@@ -409,7 +426,7 @@ mod tests {
+             monitored: false,
+             metrics_enabled: false,
+         };
+-        let solved = invert::<ENTHALPY>(p, saturation(p).unwrap(), target, &mut work).unwrap();
++        let solved = invert::<ENTHALPY>(saturation(p).unwrap(), target, &mut work).unwrap();
+         assert_eq!(work.used, 40);
+         let reference = bisection::<ENTHALPY>(p, liquid_phase, target);
+         let bracket = if liquid_phase { 800.0 } else { 1073.15 } / 2f64.powi(41);
+@@ -447,6 +464,30 @@ mod tests {
+         }
+     }
+ 
++    #[test]
++    fn saturation_bracket_values_repeat_the_saturation_states_bit_for_bit() {
++        for p in [
++            1e3, 1.5e3, 1e4, 1.5e4, 1e5, 3e5, 1e6, 2e6, 8e6, 1.2e7, 1.6e7,
++        ] {
++            let [a, b] = saturation(p).unwrap();
++            let pi = p / 1e6;
++            let liquid_powers = pressure_powers(7.1 - p / 16.53e6, true);
++            let vapor_powers = pressure_powers(pi, false);
++            let h = scalar_property::<true>(true, pi, 0.0, &liquid_powers, a.t_k);
++            let s = scalar_property::<false>(true, pi, 0.0, &liquid_powers, a.t_k);
++            assert_eq!(
++                (h.to_bits(), s.to_bits()),
++                (a.h_j_kg.to_bits(), a.s_j_kg_k.to_bits())
++            );
++            let h = scalar_property::<true>(false, pi, 0.0, &vapor_powers, b.t_k);
++            let s = scalar_property::<false>(false, pi, pi.ln(), &vapor_powers, b.t_k);
++            assert_eq!(
++                (h.to_bits(), s.to_bits()),
++                (b.h_j_kg.to_bits(), b.s_j_kg_k.to_bits())
++            );
++        }
++    }
++
+     #[test]
+     fn inverse_charges_forty_steps_and_stops_at_the_limit() {
+         let p = 2e6;
+@@ -459,10 +500,10 @@ mod tests {
+             monitored: false,
+             metrics_enabled: false,
+         };
+-        let failure = invert::<true>(p, saturation(p).unwrap(), target, &mut work).unwrap_err();
++        let failure = invert::<true>(saturation(p).unwrap(), target, &mut work).unwrap_err();
+         assert_eq!((failure.status, work.used), ("work_limit", 25));
+         let outside = pt(p, 1073.0).unwrap().h_j_kg * 1.01;
+-        let failure = invert::<true>(p, saturation(p).unwrap(), outside, &mut work).unwrap_err();
++        let failure = invert::<true>(saturation(p).unwrap(), outside, &mut work).unwrap_err();
+         assert_eq!(failure.status, "infeasible");
+     }
+ }
+-- 
+2.43.0
+

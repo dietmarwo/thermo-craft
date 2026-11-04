@@ -1,0 +1,500 @@
+From 9db4b056378157fce85e0d8f73518f256013db03 Mon Sep 17 00:00:00 2001
+From: Claude <noreply@anthropic.com>
+Date: Wed, 4 Nov 2026 11:58:49 -0400
+Subject: [PATCH 09/13] Round 9: Skip the hot bracket evaluation when a floor
+ proves the target
+
+Vapor enthalpy and entropy at 1073.15 K fall with pressure, so a
+process-wide table on 64 log-spaced pressures gives a floor for the hot
+bracket end. A target below the floor is inside the bracket and the
+exact evaluation is skipped; otherwise the previous evaluation and
+comparison run, so infeasible classification is unchanged. The Newton
+start uses the table interpolated in ln p when the evaluation is
+skipped. A unit test scans 20,000 pressures. Values change in the last
+bits.
+
+Workload: domain (48 candidates at 950 K), matrix API both sides.
+Official 11-sample run: 0.129 ms -> 0.111 ms, 1.16x (paired 1.14x).
+41-sample confirmation: 0.128 ms -> 0.116 ms, paired 1.12x.
+validate.py passed against the release CLI.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+---
+ evidence/performance-0.3.0/plan.md            |  25 ++++
+ .../round09-matrix-domain-confirm41.json      |  97 +++++++++++++
+ .../round09-matrix-domain.json                |  37 +++++
+ .../performance-0.3.0/round09-validation.json | 133 ++++++++++++++++++
+ src/if97.rs                                   | 119 +++++++++++++++-
+ 5 files changed, 409 insertions(+), 2 deletions(-)
+ create mode 100644 evidence/performance-0.3.0/round09-matrix-domain-confirm41.json
+ create mode 100644 evidence/performance-0.3.0/round09-matrix-domain.json
+ create mode 100644 evidence/performance-0.3.0/round09-validation.json
+
+diff --git a/evidence/performance-0.3.0/plan.md b/evidence/performance-0.3.0/plan.md
+index ebe6853..3f48bbf 100644
+--- a/evidence/performance-0.3.0/plan.md
++++ b/evidence/performance-0.3.0/plan.md
+@@ -199,3 +199,28 @@ the median of per-sample-pair ratios. For every round from 2 on:
+ - Result: official 0.604 -> 0.514 ms, 1.18x (paired 1.11x); confirmation
+   0.626 -> 0.470 ms, paired 1.26x. Kept. Probe output byte-identical for
+   `serial`, `parallel` and `domain`; parity passed everywhere.
++
++## Round 9: skip the far bracket evaluation when a floor proves the target is inside
++
++- Profile reasoning after round 8: a vapor-side inverse costs about five
++  Gibbs evaluations: one at the 1073.15 K bracket end, 3-4 Newton steps and
++  the final state. The far-end value is only used for the range check and
++  for the secant start.
++- Change: a process-wide table of h and s at 1073.15 K on 64 log-spaced
++  pressures (both decrease with pressure at fixed temperature). For a
++  pressure in [P_k, P_k+1], the value at P_k+1 less a 1e-10 relative margin
++  is a floor; a target below it is inside the bracket, so the exact
++  evaluation is skipped. Otherwise the old evaluation and comparison run
++  unchanged, so the infeasible classification is identical. The secant
++  start uses the table interpolated in ln p when the far end is skipped.
++  A unit test scans 20,000 pressures to confirm the floors.
++- Workload: `domain` with the matrix API on both sides.
++- Expected effect: about one of five evaluations per vapor inverse,
++  roughly 1.1-1.18x on the kernel.
++- Newton iterates change, so values change in the last bits; run
++  `validate.py`.
++- Result: official 0.129 -> 0.111 ms, 1.16x (paired 1.14x); confirmation
++  0.128 -> 0.116 ms, paired 1.12x. Kept. Instrumented probes (not kept)
++  showed every far-end evaluation skipped on `serial` and `domain` with
++  unchanged Newton iteration counts. Parity passed everywhere;
++  `validate.py` passed (`round09-validation.json`).
+diff --git a/evidence/performance-0.3.0/round09-matrix-domain-confirm41.json b/evidence/performance-0.3.0/round09-matrix-domain-confirm41.json
+new file mode 100644
+index 0000000..073e6a6
+--- /dev/null
++++ b/evidence/performance-0.3.0/round09-matrix-domain-confirm41.json
+@@ -0,0 +1,97 @@
++{
++  "workload": "domain",
++  "before_api": "matrix",
++  "after_api": "matrix",
++  "before_seconds": [
++    0.0001581212,
++    0.0001226046,
++    9.45256e-05,
++    0.0001191098,
++    0.0001174696,
++    0.000124394,
++    0.0001292644,
++    0.000132382,
++    0.0001401862,
++    0.0001367276,
++    0.0001249756,
++    0.0001146694,
++    0.0001151216,
++    0.0001455188,
++    0.000133676,
++    0.0001455392,
++    0.0001278342,
++    0.0001315544,
++    0.00013715599999999999,
++    0.0001320418,
++    0.0001439878,
++    0.00012803,
++    0.0001213054,
++    0.0001177282,
++    0.0001184804,
++    0.000128532,
++    0.00012627300000000002,
++    0.0001233872,
++    0.00013147160000000002,
++    0.00013407300000000002,
++    0.0001277154,
++    0.0001322916,
++    0.0001424478,
++    0.0001249014,
++    0.0001255732,
++    0.0001279176,
++    0.0001397848,
++    0.000125297,
++    0.0001205282,
++    0.00013699680000000002,
++    0.0001348466
++  ],
++  "after_seconds": [
++    0.000107576,
++    0.0001102248,
++    9.3663e-05,
++    9.05836e-05,
++    0.0001120304,
++    0.0001193492,
++    0.00011539639999999999,
++    0.0001118644,
++    0.000144088,
++    0.0001192268,
++    0.0001552932,
++    0.00011219800000000001,
++    0.00011904000000000001,
++    0.00011672939999999999,
++    0.000122643,
++    0.0001111396,
++    0.0001241588,
++    0.00011769,
++    0.0001320606,
++    0.00011814880000000001,
++    0.0001108966,
++    0.000151284,
++    0.00010614120000000001,
++    0.0001033146,
++    0.000128814,
++    0.00010892339999999999,
++    0.0001174804,
++    0.00012637880000000002,
++    0.0001294866,
++    0.0001161404,
++    0.000110161,
++    0.0001169886,
++    0.00011611080000000001,
++    0.0001137012,
++    0.000115968,
++    0.0001228316,
++    0.00011226039999999999,
++    0.0001056354,
++    0.0001058406,
++    0.00013182580000000002,
++    0.0001178284
++  ],
++  "medians_seconds": [
++    0.00012803,
++    0.0001161404
++  ],
++  "speedup": 1.1023726455221439,
++  "paired_median_speedup": 1.1175890064054819
++}
+diff --git a/evidence/performance-0.3.0/round09-matrix-domain.json b/evidence/performance-0.3.0/round09-matrix-domain.json
+new file mode 100644
+index 0000000..4511805
+--- /dev/null
++++ b/evidence/performance-0.3.0/round09-matrix-domain.json
+@@ -0,0 +1,37 @@
++{
++  "workload": "domain",
++  "before_api": "matrix",
++  "after_api": "matrix",
++  "before_seconds": [
++    0.0001618078,
++    0.0001268742,
++    0.0001288836,
++    0.00016024019999999998,
++    0.0001245504,
++    0.000141195,
++    0.0001822114,
++    9.39132e-05,
++    0.00010363359999999999,
++    0.0001366166,
++    0.00012417019999999999
++  ],
++  "after_seconds": [
++    0.0001152494,
++    0.0001111192,
++    0.0001168418,
++    0.0001401516,
++    0.0001088392,
++    0.0001183442,
++    0.000140978,
++    9.53674e-05,
++    0.0001080032,
++    8.855939999999999e-05,
++    0.00010909680000000002
++  ],
++  "medians_seconds": [
++    0.0001288836,
++    0.0001111192
++  ],
++  "speedup": 1.1598679616123946,
++  "paired_median_speedup": 1.1433347889000196
++}
+diff --git a/evidence/performance-0.3.0/round09-validation.json b/evidence/performance-0.3.0/round09-validation.json
+new file mode 100644
+index 0000000..a85bf4c
+--- /dev/null
++++ b/evidence/performance-0.3.0/round09-validation.json
+@@ -0,0 +1,133 @@
++{
++  "best_efficiency": 0.38408189269858095,
++  "bounded_grid_evaluations": 20,
++  "energy_residual_j_kg": 3.4924596548080444e-10,
++  "iapws_relative_errors": [
++    [
++      1.8588552919140966e-10,
++      1.026331020170801e-09,
++      3.126331415970185e-10
++    ],
++    [
++      9.966250047455105e-11,
++      2.0077939311136106e-11,
++      2.8096212023598355e-09
++    ],
++    [
++      3.294311490265045e-10,
++      3.1261260247106293e-10,
++      9.562335367974129e-10
++    ],
++    [
++      1.1185783410638805e-09,
++      2.103588303548065e-09,
++      1.8872570173300574e-10
++    ]
++  ],
++  "relative_tolerance": 5e-08,
++  "robust_training_winner": [
++    500000.0,
++    2000000.0
++  ],
++  "simple_efficiency": 0.34163555526433553,
++  "stress_set": [
++    {
++      "cond_pa": 10000.0,
++      "eta": 0.88,
++      "nominal": {
++        "score": -0.39560123911712947,
++        "status": "complete"
++      },
++      "robust": {
++        "score": -0.39486842100545405,
++        "status": "complete"
++      }
++    },
++    {
++      "cond_pa": 22000.0,
++      "eta": 0.86,
++      "nominal": {
++        "score": -0.3657012938427118,
++        "status": "complete"
++      },
++      "robust": {
++        "score": -0.3656874067933011,
++        "status": "complete"
++      }
++    },
++    {
++      "cond_pa": 30000.0,
++      "eta": 0.91,
++      "nominal": {
++        "score": -0.3723747580510455,
++        "status": "complete"
++      },
++      "robust": {
++        "score": -0.37251009750982367,
++        "status": "complete"
++      }
++    }
++  ],
++  "winner": [
++    300000.0,
++    2000000.0
++  ],
++  "winner_states": [
++    {
++      "h_j_kg": 3497478.001987539,
++      "p_pa": 8000000.0,
++      "quality": null,
++      "s_j_kg_k": 6850.105323909179,
++      "t_k": 813.15,
++      "v_m3_kg": 0.044501896058347944
++    },
++    {
++      "h_j_kg": 3122928.5156972194,
++      "p_pa": 2000000.0,
++      "quality": null,
++      "s_j_kg_k": 6934.508471371903,
++      "t_k": 616.5632350176231,
++      "v_m3_kg": 0.13690304535299846
++    },
++    {
++      "h_j_kg": 2752236.650489915,
++      "p_pa": 300000.0,
++      "quality": null,
++      "s_j_kg_k": 7057.811765153382,
++      "t_k": 419.02431775434036,
++      "v_m3_kg": 0.6270366397940801
++    },
++    {
++      "h_j_kg": 2343501.761038321,
++      "p_pa": 15000.0,
++      "quality": 0.8925963835552144,
++      "s_j_kg_k": 7228.197358624368,
++      "t_k": 327.120266921189,
++      "v_m3_kg": 8.944248488138808
++    },
++    {
++      "h_j_kg": 225935.12135565604,
++      "p_pa": 15000.0,
++      "quality": 0.0,
++      "s_j_kg_k": 754.8386490891539,
++      "t_k": 327.120266921189,
++      "v_m3_kg": 0.0010140296189788533
++    },
++    {
++      "h_j_kg": 561455.410257108,
++      "p_pa": 300000.0,
++      "quality": 0.0,
++      "s_j_kg_k": 1671.7646728693803,
++      "t_k": 406.67535794654543,
++      "v_m3_kg": 0.001073176438547049
++    },
++    {
++      "h_j_kg": 908621.8511364574,
++      "p_pa": 2000000.0,
++      "quality": 0.0,
++      "s_j_kg_k": 2447.0239083620654,
++      "t_k": 485.5345353184905,
++      "v_m3_kg": 0.0011767502442472583
++    }
++  ]
++}
+diff --git a/src/if97.rs b/src/if97.rs
+index 70c8fac..967e5a6 100644
+--- a/src/if97.rs
++++ b/src/if97.rs
+@@ -382,11 +382,20 @@ pub fn invert<const ENTHALPY: bool>(
+     };
+     let eval = |t| scalar_property::<ENTHALPY>(liquid_phase, pi, log_pi, &powers, t);
+     // The saturation-side bracket value repeats the saturation state's computation
+-    // exactly, so it is taken from the pair; only the far end is evaluated.
++    // exactly, so it is taken from the pair. The far end is evaluated unless the
++    // hot-end floor already proves that a vapor target is inside the bracket.
+     let (at_left, at_right) = if liquid_phase {
+         (eval(left), low)
+     } else {
+-        (high, eval(right))
++        let log_p = if ENTHALPY {
++            p.ln()
++        } else {
++            log_pi + 1e6f64.ln()
++        };
++        match hot_end().floor::<ENTHALPY>(p, log_p) {
++            (floor, estimate) if target < floor => (high, estimate),
++            _ => (high, eval(right)),
++        }
+     };
+     if target < at_left || target > at_right {
+         return Err(infeasible("inverse state outside bounded IF97 envelope"));
+@@ -461,6 +470,73 @@ fn scalar_property<const ENTHALPY: bool>(
+     }
+ }
+ 
++/// Vapor enthalpy and entropy at 1073.15 K on log-spaced pressures. Both fall
++/// with pressure at fixed temperature, so the value at the upper end of a
++/// pressure interval bounds the hot bracket end from below on that interval.
++struct HotEnd {
++    pressures: [f64; HOT_END_POINTS],
++    log_pressures: [f64; HOT_END_POINTS],
++    enthalpy: [f64; HOT_END_POINTS],
++    entropy: [f64; HOT_END_POINTS],
++}
++
++const HOT_END_POINTS: usize = 64;
++
++fn hot_end() -> &'static HotEnd {
++    static TABLE: std::sync::OnceLock<HotEnd> = std::sync::OnceLock::new();
++    TABLE.get_or_init(|| {
++        let (low, high) = (1e3f64.ln(), 16e6f64.ln());
++        let mut table = HotEnd {
++            pressures: [0.0; HOT_END_POINTS],
++            log_pressures: [0.0; HOT_END_POINTS],
++            enthalpy: [0.0; HOT_END_POINTS],
++            entropy: [0.0; HOT_END_POINTS],
++        };
++        for k in 0..HOT_END_POINTS {
++            let p = if k + 1 == HOT_END_POINTS {
++                16e6
++            } else {
++                (low + (high - low) * k as f64 / (HOT_END_POINTS - 1) as f64).exp()
++            };
++            let state = vapor(p, 1073.15);
++            table.pressures[k] = p;
++            table.log_pressures[k] = p.ln();
++            table.enthalpy[k] = state.h_j_kg;
++            table.entropy[k] = state.s_j_kg_k;
++        }
++        table
++    })
++}
++
++impl HotEnd {
++    /// (floor, estimate) of enthalpy or entropy at (p, 1073.15 K): a value no larger
++    /// than the exact one, and a log-pressure interpolation for the Newton start.
++    fn floor<const ENTHALPY: bool>(&self, p: f64, log_p: f64) -> (f64, f64) {
++        let values = if ENTHALPY {
++            &self.enthalpy
++        } else {
++            &self.entropy
++        };
++        let last = HOT_END_POINTS - 1;
++        if !(self.pressures[0]..=self.pressures[last]).contains(&p) {
++            return (f64::NEG_INFINITY, f64::NAN);
++        }
++        let (low, high) = (self.log_pressures[0], self.log_pressures[last]);
++        let mut k = (((log_p - low) / (high - low)) * last as f64) as usize;
++        k = k.min(last - 1);
++        while k > 0 && self.pressures[k] > p {
++            k -= 1;
++        }
++        while k + 1 < last && self.pressures[k + 1] < p {
++            k += 1;
++        }
++        let floor = values[k + 1] * (1.0 - 1e-10);
++        let w =
++            (log_p - self.log_pressures[k]) / (self.log_pressures[k + 1] - self.log_pressures[k]);
++        (floor, values[k] + w * (values[k + 1] - values[k]))
++    }
++}
++
+ /// Logical work charged per single-phase inverse state.
+ const INVERSE_STEPS: usize = 40;
+ 
+@@ -744,6 +820,45 @@ mod tests {
+         }
+     }
+ 
++    #[test]
++    fn hot_end_floors_bound_the_exact_values() {
++        let table = hot_end();
++        for k in 0..=20_000 {
++            let p = (1e3f64.ln() + (16e6f64.ln() - 1e3f64.ln()) * f64::from(k) / 20_000.0).exp();
++            let p = p.clamp(1e3, 16e6);
++            let state = vapor(p, 1073.15);
++            let (h_floor, h_estimate) = table.floor::<true>(p, p.ln());
++            let (s_floor, s_estimate) = table.floor::<false>(p, p.ln());
++            assert!(h_floor <= state.h_j_kg && s_floor <= state.s_j_kg_k, "{p}");
++            assert!((h_estimate / state.h_j_kg - 1.0).abs() < 1e-3, "{p}");
++            assert!((s_estimate / state.s_j_kg_k - 1.0).abs() < 1e-3, "{p}");
++        }
++        assert_eq!(table.floor::<true>(999.0, 999f64.ln()).0, f64::NEG_INFINITY);
++        // The classification at the hot end matches a direct comparison.
++        let budget = Budget::default();
++        for p in [1e3, 2e4, 3e5, 2e6, 1.6e7] {
++            let edge = vapor(p, 1073.15);
++            for (scale, inside) in [(1.0, true), (1.0 - 1e-12, true), (1.0 + 1e-12, false)] {
++                for enthalpy in [true, false] {
++                    let mut work = crate::Work {
++                        budget: &budget,
++                        deadline: None,
++                        used: 0,
++                        monitored: false,
++                        metrics_enabled: false,
++                    };
++                    let pair = saturation(p).unwrap();
++                    let result = if enthalpy {
++                        invert::<true>(pair, edge.h_j_kg * scale, &mut work)
++                    } else {
++                        invert::<false>(pair, edge.s_j_kg_k * scale, &mut work)
++                    };
++                    assert_eq!(result.is_ok(), inside, "{p} {scale} {enthalpy}");
++                }
++            }
++        }
++    }
++
+     #[test]
+     fn inverse_charges_forty_steps_and_stops_at_the_limit() {
+         let p = 2e6;
+-- 
+2.43.0
+

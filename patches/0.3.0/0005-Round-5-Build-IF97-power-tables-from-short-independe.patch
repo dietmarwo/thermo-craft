@@ -1,0 +1,428 @@
+From 246084c93209a5f96dbc5fca0e8796315700a9a6 Mon Sep 17 00:00:00 2001
+From: Claude <noreply@anthropic.com>
+Date: Wed, 4 Nov 2026 11:47:26 -0400
+Subject: [PATCH 05/13] Round 5: Build IF97 power tables from short independent
+ chains
+
+Reduced-temperature and pressure power tables were built as one long
+chain of dependent multiplications (58 steps for Region 2). Build the
+first eight powers by squaring and every later one as x^(k-8) * x^8, so
+eight independent chains of at most seven steps replace the long chain
+with the same number of multiplications. Values change in the last bits.
+
+Workload: serial (96 candidates, one worker), matrix API both sides.
+Official 11-sample run: 0.674 ms -> 0.389 ms, 1.73x (paired 1.79x).
+41-sample confirmation: 0.489 ms -> 0.288 ms, paired 1.68x.
+validate.py passed against the release CLI.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+---
+ evidence/performance-0.3.0/plan.md            |  20 +++
+ .../round05-matrix-serial-confirm41.json      |  97 +++++++++++++
+ .../round05-matrix-serial.json                |  37 +++++
+ .../performance-0.3.0/round05-validation.json | 133 ++++++++++++++++++
+ src/if97.rs                                   |  54 +++++--
+ 5 files changed, 331 insertions(+), 10 deletions(-)
+ create mode 100644 evidence/performance-0.3.0/round05-matrix-serial-confirm41.json
+ create mode 100644 evidence/performance-0.3.0/round05-matrix-serial.json
+ create mode 100644 evidence/performance-0.3.0/round05-validation.json
+
+diff --git a/evidence/performance-0.3.0/plan.md b/evidence/performance-0.3.0/plan.md
+index 5aa291e..c250419 100644
+--- a/evidence/performance-0.3.0/plan.md
++++ b/evidence/performance-0.3.0/plan.md
+@@ -122,3 +122,23 @@ the median of per-sample-pair ratios. For every round from 2 on:
+ - Result: official 0.556 -> 0.491 ms, 1.13x (paired 1.14x); confirmation
+   0.558 -> 0.495 ms, paired 1.13x. Kept. Probe output byte-identical for
+   `serial`, `domain`, `domain2` and `trace`; parity passed everywhere.
++
++## Round 5: blocked power tables
++
++- Profile: a scalar Region 2 evaluation first builds y^0..y^58 as one
++  sequential chain of 58 dependent multiplications (about 230 cycles of
++  latency), Region 1 builds 43 negative and 17 positive powers the same way,
++  and each pressure-power table is a 24- or 32-long chain.
++- Change: build every power table from x^1..x^8 and then
++  x^k = x^(k-8) * x^8, so eight independent chains of at most seven steps
++  replace the long chain. Same number of multiplications.
++- Workload: `serial` with the matrix API on both sides.
++- Expected effect: roughly 1.15-1.3x on the kernel; the per-term
++  accumulation chains then become the main latency bound.
++- Last bits change (different multiplication association); run
++  `validate.py` against the release CLI.
++- Result: official 0.674 -> 0.389 ms, 1.73x (paired 1.79x); confirmation
++  0.489 -> 0.288 ms, paired 1.68x. Kept. Larger than expected: the power
++  chain dominated the evaluation latency. Parity passed on every workload
++  and mode; `validate.py` passed against the release CLI
++  (`round05-validation.json`).
+diff --git a/evidence/performance-0.3.0/round05-matrix-serial-confirm41.json b/evidence/performance-0.3.0/round05-matrix-serial-confirm41.json
+new file mode 100644
+index 0000000..bb5eb65
+--- /dev/null
++++ b/evidence/performance-0.3.0/round05-matrix-serial-confirm41.json
+@@ -0,0 +1,97 @@
++{
++  "workload": "serial",
++  "before_api": "matrix",
++  "after_api": "matrix",
++  "before_seconds": [
++    0.00068965775,
++    0.000686542,
++    0.0004815565,
++    0.00052620525,
++    0.0004875995,
++    0.0004837155,
++    0.000467904,
++    0.00047518825,
++    0.000488568,
++    0.00051138,
++    0.00050839325,
++    0.000490719,
++    0.000497739,
++    0.00095985225,
++    0.00097080675,
++    0.00091554725,
++    0.00071283125,
++    0.00071386325,
++    0.00074204825,
++    0.00069672725,
++    0.00069932125,
++    0.00049478775,
++    0.00044975,
++    0.000509271,
++    0.000480838,
++    0.0005064965,
++    0.00047677325,
++    0.00049456575,
++    0.000477165,
++    0.0004865815,
++    0.000485639,
++    0.00046329025,
++    0.00046079175,
++    0.0004641735,
++    0.000459989,
++    0.00044308175,
++    0.00045782825,
++    0.000462379,
++    0.00046240875,
++    0.000464003,
++    0.000501481
++  ],
++  "after_seconds": [
++    0.000443821,
++    0.000423205,
++    0.00038445225,
++    0.00029223125,
++    0.0002921505,
++    0.00032559825,
++    0.00025100575,
++    0.00026328925,
++    0.00030462675,
++    0.000270438,
++    0.000302345,
++    0.00032025075,
++    0.00026612825,
++    0.000263645,
++    0.00025538275,
++    0.0007624115,
++    0.00045691075,
++    0.000486701,
++    0.00045093375,
++    0.00043277375,
++    0.0004726615,
++    0.0003787065,
++    0.00027024725,
++    0.00032261275,
++    0.00027020275,
++    0.00028386525,
++    0.00027199425,
++    0.0002725805,
++    0.00026888975,
++    0.000371527,
++    0.00028698575,
++    0.00025746225,
++    0.0002704705,
++    0.00027243175,
++    0.00029492075,
++    0.000255963,
++    0.00025833,
++    0.00026102325,
++    0.000339635,
++    0.00028766875,
++    0.00026669425
++  ],
++  "medians_seconds": [
++    0.000488568,
++    0.00028766875
++  ],
++  "speedup": 1.6983700871227756,
++  "paired_median_speedup": 1.6815004382410823
++}
+diff --git a/evidence/performance-0.3.0/round05-matrix-serial.json b/evidence/performance-0.3.0/round05-matrix-serial.json
+new file mode 100644
+index 0000000..42ed58f
+--- /dev/null
++++ b/evidence/performance-0.3.0/round05-matrix-serial.json
+@@ -0,0 +1,37 @@
++{
++  "workload": "serial",
++  "before_api": "matrix",
++  "after_api": "matrix",
++  "before_seconds": [
++    0.000673719,
++    0.00061181175,
++    0.0004820025,
++    0.00058143325,
++    0.0006543875,
++    0.00124014625,
++    0.0004536265,
++    0.00124772875,
++    0.00068478375,
++    0.00069714425,
++    0.00068130275
++  ],
++  "after_seconds": [
++    0.000429405,
++    0.000267463,
++    0.0002610655,
++    0.0002932555,
++    0.00038916375,
++    0.000442092,
++    0.00025333575,
++    0.00027025625,
++    0.000418372,
++    0.00044039125,
++    0.00041792075
++  ],
++  "medians_seconds": [
++    0.000673719,
++    0.00038916375
++  ],
++  "speedup": 1.7311967006176705,
++  "paired_median_speedup": 1.7906138395390305
++}
+diff --git a/evidence/performance-0.3.0/round05-validation.json b/evidence/performance-0.3.0/round05-validation.json
+new file mode 100644
+index 0000000..bbb04bc
+--- /dev/null
++++ b/evidence/performance-0.3.0/round05-validation.json
+@@ -0,0 +1,133 @@
++{
++  "best_efficiency": 0.3840818926985809,
++  "bounded_grid_evaluations": 20,
++  "energy_residual_j_kg": 3.4924596548080444e-10,
++  "iapws_relative_errors": [
++    [
++      1.8588552919140966e-10,
++      1.026330798126196e-09,
++      3.1263291955241357e-10
++    ],
++    [
++      9.966250047455105e-11,
++      2.007816135574103e-11,
++      2.8096214244044404e-09
++    ],
++    [
++      3.294311490265045e-10,
++      3.1261260247106293e-10,
++      9.562335367974129e-10
++    ],
++    [
++      1.1185783410638805e-09,
++      2.103588303548065e-09,
++      1.8872570173300574e-10
++    ]
++  ],
++  "relative_tolerance": 5e-08,
++  "robust_training_winner": [
++    500000.0,
++    2000000.0
++  ],
++  "simple_efficiency": 0.3416355552643352,
++  "stress_set": [
++    {
++      "cond_pa": 10000.0,
++      "eta": 0.88,
++      "nominal": {
++        "score": -0.39560123911712936,
++        "status": "complete"
++      },
++      "robust": {
++        "score": -0.3948684210054544,
++        "status": "complete"
++      }
++    },
++    {
++      "cond_pa": 22000.0,
++      "eta": 0.86,
++      "nominal": {
++        "score": -0.365701293842712,
++        "status": "complete"
++      },
++      "robust": {
++        "score": -0.3656874067933014,
++        "status": "complete"
++      }
++    },
++    {
++      "cond_pa": 30000.0,
++      "eta": 0.91,
++      "nominal": {
++        "score": -0.3723747580510457,
++        "status": "complete"
++      },
++      "robust": {
++        "score": -0.3725100975098242,
++        "status": "complete"
++      }
++    }
++  ],
++  "winner": [
++    300000.0,
++    2000000.0
++  ],
++  "winner_states": [
++    {
++      "h_j_kg": 3497478.001987539,
++      "p_pa": 8000000.0,
++      "quality": null,
++      "s_j_kg_k": 6850.105323909179,
++      "t_k": 813.15,
++      "v_m3_kg": 0.044501896058347944
++    },
++    {
++      "h_j_kg": 3122928.515697219,
++      "p_pa": 2000000.0,
++      "quality": null,
++      "s_j_kg_k": 6934.508471371903,
++      "t_k": 616.563235017623,
++      "v_m3_kg": 0.1369030453529984
++    },
++    {
++      "h_j_kg": 2752236.6504899156,
++      "p_pa": 300000.0,
++      "quality": null,
++      "s_j_kg_k": 7057.811765153383,
++      "t_k": 419.0243177543405,
++      "v_m3_kg": 0.6270366397940803
++    },
++    {
++      "h_j_kg": 2343501.7610383215,
++      "p_pa": 15000.0,
++      "quality": 0.8925963835552146,
++      "s_j_kg_k": 7228.197358624368,
++      "t_k": 327.120266921189,
++      "v_m3_kg": 8.94424848813881
++    },
++    {
++      "h_j_kg": 225935.12135565607,
++      "p_pa": 15000.0,
++      "quality": 0.0,
++      "s_j_kg_k": 754.8386490891539,
++      "t_k": 327.120266921189,
++      "v_m3_kg": 0.0010140296189788533
++    },
++    {
++      "h_j_kg": 561455.4102571082,
++      "p_pa": 300000.0,
++      "quality": 0.0,
++      "s_j_kg_k": 1671.7646728693805,
++      "t_k": 406.67535794654543,
++      "v_m3_kg": 0.001073176438547049
++    },
++    {
++      "h_j_kg": 908621.8511364574,
++      "p_pa": 2000000.0,
++      "quality": 0.0,
++      "s_j_kg_k": 2447.0239083620654,
++      "t_k": 485.5345353184905,
++      "v_m3_kg": 0.0011767502442472583
++    }
++  ]
++}
+diff --git a/src/if97.rs b/src/if97.rs
+index 190afb5..b840c55 100644
+--- a/src/if97.rs
++++ b/src/if97.rs
+@@ -18,12 +18,32 @@ pub struct State {
+ 
+ fn pressure_powers(x: f64, liquid: bool) -> [f64; 33] {
+     let mut powers = [1.0; 33];
+-    for i in 1..=if liquid { 32 } else { 24 } {
+-        powers[i] = powers[i - 1] * x;
+-    }
++    fill_powers(x, &mut powers[..=if liquid { 32 } else { 24 }]);
+     powers
+ }
+ 
++/// Fill `powers[k] = x^k`. The first eight powers come from squaring and
++/// x^k = x^(k-8) * x^8 after that, so eight short independent chains replace one
++/// long chain of dependent multiplications.
++#[inline(always)]
++fn fill_powers(x: f64, powers: &mut [f64]) {
++    let n = powers.len();
++    let mut low = [1.0; 9];
++    low[1] = x;
++    low[2] = x * x;
++    low[3] = low[2] * x;
++    low[4] = low[2] * low[2];
++    low[5] = low[4] * x;
++    low[6] = low[4] * low[2];
++    low[7] = low[4] * low[3];
++    low[8] = low[4] * low[4];
++    let head = n.min(9);
++    powers[..head].copy_from_slice(&low[..head]);
++    for k in 9..n {
++        powers[k] = powers[k - 8] * low[8];
++    }
++}
++
+ fn terms<const G: bool, const DX: bool>(
+     xp: &[f64; 33],
+     y: f64,
+@@ -44,14 +64,9 @@ fn curvature_terms<const G: bool, const DX: bool, const DYY: bool>(
+     let mut yn = [1.0; 44];
+     let liquid = coeffs.len() == R1.len();
+     if liquid {
+-        let inv_y = 1.0 / y;
+-        for i in 1..if DYY { 44 } else { 43 } {
+-            yn[i] = yn[i - 1] * inv_y;
+-        }
+-    }
+-    for i in 1..=if liquid { 17 } else { 58 } {
+-        yp[i] = yp[i - 1] * y;
++        fill_powers(1.0 / y, &mut yn[..if DYY { 44 } else { 43 }]);
+     }
++    fill_powers(y, &mut yp[..=if liquid { 17 } else { 58 }]);
+     let power_y = |j: i32| {
+         if j < 0 {
+             yn[j.unsigned_abs() as usize]
+@@ -464,6 +479,25 @@ mod tests {
+         }
+     }
+ 
++    #[test]
++    fn blocked_power_tables_match_repeated_multiplication() {
++        for x in [0.3, 0.97, 1.0, 1.4, -0.8, 6.9] {
++            for n in [1, 2, 5, 8, 9, 10, 17, 25, 33, 44, 59] {
++                let mut blocked = vec![f64::NAN; n];
++                fill_powers(x, &mut blocked);
++                let mut reference = 1.0f64;
++                for (k, &value) in blocked.iter().enumerate() {
++                    let scale = reference.abs().max(f64::MIN_POSITIVE);
++                    assert!(
++                        (value - reference).abs() <= 64.0 * f64::EPSILON * scale,
++                        "{x} {k}"
++                    );
++                    reference *= x;
++                }
++            }
++        }
++    }
++
+     #[test]
+     fn saturation_bracket_values_repeat_the_saturation_states_bit_for_bit() {
+         for p in [
+-- 
+2.43.0
+

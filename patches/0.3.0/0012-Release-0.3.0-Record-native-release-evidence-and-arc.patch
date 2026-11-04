@@ -1,0 +1,448 @@
+From 1bb9c5d4a8d6fac3e600355c51df6d512cef2ea3 Mon Sep 17 00:00:00 2001
+From: Claude <noreply@anthropic.com>
+Date: Wed, 4 Nov 2026 12:40:02 -0400
+Subject: [PATCH 12/13] Release 0.3.0: Record native release evidence and
+ archive 0.2.0 records
+
+Move the 0.2.0 release evidence to evidence/release-0.2.0 and the 0.2.0
+patch series to patches/0.2.0. Record the 0.3.0 capabilities, CLI
+request, native sweep and independent validation against the release
+CLI.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+---
+ evidence/capabilities.json                    |   2 +-
+ evidence/cli.json                             |   2 +-
+ evidence/native-sweep.json                    |   2 +-
+ .../{ => release-0.2.0}/campaign-replay.json  |   0
+ evidence/release-0.2.0/capabilities.json      |   1 +
+ evidence/release-0.2.0/cli.json               |   1 +
+ evidence/{ => release-0.2.0}/installed.json   |   0
+ evidence/release-0.2.0/native-sweep.json      |   1 +
+ .../performance-native.json                   |   0
+ .../performance-search.json                   |   0
+ evidence/{ => release-0.2.0}/power-cache.json |   0
+ .../{ => release-0.2.0}/scipy-search.json     |   0
+ .../{ => release-0.2.0}/tutorial-check.json   |   0
+ evidence/release-0.2.0/validation.json        | 133 ++++++++++++++++++
+ evidence/validation.json                      |  50 +++----
+ ...d-reproducible-performance-workloads.patch |   0
+ ...-worker-and-singleton-batches-inline.patch |   0
+ ...l-records-in-input-order-without-sor.patch |   0
+ ...ash-set-to-validate-batch-identities.patch |   0
+ ...the-typed-prepared-response-directly.patch |   0
+ ...te-identifiers-through-serialization.patch |   0
+ ...en-the-unmonitored-work-counter-path.patch |   0
+ ...tive-path-with-full-feasibility-chec.patch |   0
+ ...owers-across-inverse-state-iteration.patch |   0
+ ...plete-domain-performance-iteration-9.patch |   0
+ ...roperty-specific-IF97-inverse-probes.patch |   0
+ ...ance-release-tutorials-and-architect.patch |   0
+ 27 files changed, 164 insertions(+), 28 deletions(-)
+ rename evidence/{ => release-0.2.0}/campaign-replay.json (100%)
+ create mode 100644 evidence/release-0.2.0/capabilities.json
+ create mode 100644 evidence/release-0.2.0/cli.json
+ rename evidence/{ => release-0.2.0}/installed.json (100%)
+ create mode 100644 evidence/release-0.2.0/native-sweep.json
+ rename evidence/{ => release-0.2.0}/performance-native.json (100%)
+ rename evidence/{ => release-0.2.0}/performance-search.json (100%)
+ rename evidence/{ => release-0.2.0}/power-cache.json (100%)
+ rename evidence/{ => release-0.2.0}/scipy-search.json (100%)
+ rename evidence/{ => release-0.2.0}/tutorial-check.json (100%)
+ create mode 100644 evidence/release-0.2.0/validation.json
+ rename patches/{ => 0.2.0}/0001-Add-reproducible-performance-workloads.patch (100%)
+ rename patches/{ => 0.2.0}/0002-Run-single-worker-and-singleton-batches-inline.patch (100%)
+ rename patches/{ => 0.2.0}/0003-Assemble-parallel-records-in-input-order-without-sor.patch (100%)
+ rename patches/{ => 0.2.0}/0004-Use-a-sized-hash-set-to-validate-batch-identities.patch (100%)
+ rename patches/{ => 0.2.0}/0005-Serialize-the-typed-prepared-response-directly.patch (100%)
+ rename patches/{ => 0.2.0}/0006-Borrow-candidate-identifiers-through-serialization.patch (100%)
+ rename patches/{ => 0.2.0}/0007-Shorten-the-unmonitored-work-counter-path.patch (100%)
+ rename patches/{ => 0.2.0}/0008-Add-a-lean-objective-path-with-full-feasibility-chec.patch (100%)
+ rename patches/{ => 0.2.0}/0009-Reuse-pressure-powers-across-inverse-state-iteration.patch (100%)
+ rename patches/{ => 0.2.0}/0010-Complete-domain-performance-iteration-9.patch (100%)
+ rename patches/{ => 0.2.0}/0011-Use-property-specific-IF97-inverse-probes.patch (100%)
+ rename patches/{ => 0.2.0}/0012-Document-performance-release-tutorials-and-architect.patch (100%)
+
+diff --git a/evidence/capabilities.json b/evidence/capabilities.json
+index ce01792..321e792 100644
+--- a/evidence/capabilities.json
++++ b/evidence/capabilities.json
+@@ -1 +1 @@
+-{"batch":true,"models":["bounded_if97_regions_1_2_4","closed_rankine","two_open_heater_rankine"],"schema":"thermo-craft.capabilities/0.1","version":"0.2.0","worker_limit":64}
++{"batch":true,"models":["bounded_if97_regions_1_2_4","closed_rankine","two_open_heater_rankine"],"schema":"thermo-craft.capabilities/0.1","version":"0.3.0","worker_limit":64}
+diff --git a/evidence/cli.json b/evidence/cli.json
+index 7c4c7c4..6129959 100644
+--- a/evidence/cli.json
++++ b/evidence/cli.json
+@@ -1 +1 @@
+-{"model_sha256":"4cfb905f015f9323e2bb6cf689b214dd525ee3cfdba4903ea6a915cf1b3e91cc","records":[{"detail":null,"id":"example","metrics":{"condenser_mass_fraction":0.7504309367907478,"efficiency":0.3840818926983688,"energy_residual_j_kg":3.4924596548080444e-10,"exhaust_quality":0.8925963835554728,"extractions_low_high":[0.11480548964893794,0.13476357356031424],"gross_work_j_kg":1002012.8970422046,"heat_in_j_kg":2580030.524019228,"heat_rejected_j_kg":1589087.5171343582,"heater_residuals_j_kg":[5.820766091346741e-11,0.0],"net_work_j_kg":990943.0068848693,"pump_work_j_kg":11069.89015733534,"states":[{"h_j_kg":3497478.001987539,"p_pa":8000000.0,"quality":null,"s_j_kg_k":6850.105323909179,"t_k":813.15,"v_m3_kg":0.044501896058347944},{"h_j_kg":3122928.5156973703,"p_pa":2000000.0,"quality":null,"s_j_kg_k":6934.508471372149,"t_k":616.5632350176909,"v_m3_kg":0.1369030453530159},{"h_j_kg":2752236.650490674,"p_pa":300000.0,"quality":null,"s_j_kg_k":7057.811765155195,"t_k":419.02431775468904,"v_m3_kg":0.6270366397946731},{"h_j_kg":2343501.761038934,"p_pa":15000.0,"quality":0.8925963835554728,"s_j_kg_k":7228.197358626241,"t_k":327.120266921189,"v_m3_kg":8.944248488141396},{"h_j_kg":225935.12135565604,"p_pa":15000.0,"quality":0.0,"s_j_kg_k":754.8386490891539,"t_k":327.120266921189,"v_m3_kg":0.0010140296189788533},{"h_j_kg":561455.4102571082,"p_pa":300000.0,"quality":0.0,"s_j_kg_k":1671.7646728693805,"t_k":406.67535794654543,"v_m3_kg":0.001073176438547049},{"h_j_kg":908621.8511364574,"p_pa":2000000.0,"quality":0.0,"s_j_kg_k":2447.0239083620654,"t_k":485.5345353184905,"v_m3_kg":0.0011767502442472583}]},"score":-0.3840818926983688,"status":"complete","steps":121}],"schema":"thermo-craft.result/0.1","version":"0.2.0"}
++{"model_sha256":"4cfb905f015f9323e2bb6cf689b214dd525ee3cfdba4903ea6a915cf1b3e91cc","records":[{"detail":null,"id":"example","metrics":{"condenser_mass_fraction":0.7504309367907065,"efficiency":0.38408189269858095,"energy_residual_j_kg":3.4924596548080444e-10,"exhaust_quality":0.8925963835552144,"extractions_low_high":[0.11480548964897135,0.1347635735603222],"gross_work_j_kg":1002012.897042752,"heat_in_j_kg":2580030.524019228,"heat_rejected_j_kg":1589087.5171338108,"heater_residuals_j_kg":[0.0,0.0],"net_work_j_kg":990943.0068854167,"pump_work_j_kg":11069.890157335307,"states":[{"h_j_kg":3497478.001987539,"p_pa":8000000.0,"quality":null,"s_j_kg_k":6850.105323909179,"t_k":813.15,"v_m3_kg":0.044501896058347944},{"h_j_kg":3122928.5156972194,"p_pa":2000000.0,"quality":null,"s_j_kg_k":6934.508471371903,"t_k":616.5632350176231,"v_m3_kg":0.13690304535299846},{"h_j_kg":2752236.650489915,"p_pa":300000.0,"quality":null,"s_j_kg_k":7057.811765153382,"t_k":419.02431775434036,"v_m3_kg":0.6270366397940801},{"h_j_kg":2343501.761038321,"p_pa":15000.0,"quality":0.8925963835552144,"s_j_kg_k":7228.197358624368,"t_k":327.120266921189,"v_m3_kg":8.944248488138808},{"h_j_kg":225935.12135565604,"p_pa":15000.0,"quality":0.0,"s_j_kg_k":754.8386490891539,"t_k":327.120266921189,"v_m3_kg":0.0010140296189788533},{"h_j_kg":561455.410257108,"p_pa":300000.0,"quality":0.0,"s_j_kg_k":1671.7646728693803,"t_k":406.67535794654543,"v_m3_kg":0.001073176438547049},{"h_j_kg":908621.8511364574,"p_pa":2000000.0,"quality":0.0,"s_j_kg_k":2447.0239083620654,"t_k":485.5345353184905,"v_m3_kg":0.0011767502442472583}]},"score":-0.38408189269858095,"status":"complete","steps":121}],"schema":"thermo-craft.result/0.1","version":"0.3.0"}
+diff --git a/evidence/native-sweep.json b/evidence/native-sweep.json
+index 1e39c4d..b822c08 100644
+--- a/evidence/native-sweep.json
++++ b/evidence/native-sweep.json
+@@ -1 +1 @@
+-{"detail":null,"id":"2","metrics":{"condenser_mass_fraction":0.7504309367907478,"efficiency":0.3840818926983688,"energy_residual_j_kg":3.4924596548080444e-10,"exhaust_quality":0.8925963835554728,"extractions_low_high":[0.11480548964893794,0.13476357356031424],"gross_work_j_kg":1002012.8970422046,"heat_in_j_kg":2580030.524019228,"heat_rejected_j_kg":1589087.5171343582,"heater_residuals_j_kg":[5.820766091346741e-11,0.0],"net_work_j_kg":990943.0068848693,"pump_work_j_kg":11069.89015733534,"states":[{"h_j_kg":3497478.001987539,"p_pa":8000000.0,"quality":null,"s_j_kg_k":6850.105323909179,"t_k":813.15,"v_m3_kg":0.044501896058347944},{"h_j_kg":3122928.5156973703,"p_pa":2000000.0,"quality":null,"s_j_kg_k":6934.508471372149,"t_k":616.5632350176909,"v_m3_kg":0.1369030453530159},{"h_j_kg":2752236.650490674,"p_pa":300000.0,"quality":null,"s_j_kg_k":7057.811765155195,"t_k":419.02431775468904,"v_m3_kg":0.6270366397946731},{"h_j_kg":2343501.761038934,"p_pa":15000.0,"quality":0.8925963835554728,"s_j_kg_k":7228.197358626241,"t_k":327.120266921189,"v_m3_kg":8.944248488141396},{"h_j_kg":225935.12135565604,"p_pa":15000.0,"quality":0.0,"s_j_kg_k":754.8386490891539,"t_k":327.120266921189,"v_m3_kg":0.0010140296189788533},{"h_j_kg":561455.4102571082,"p_pa":300000.0,"quality":0.0,"s_j_kg_k":1671.7646728693805,"t_k":406.67535794654543,"v_m3_kg":0.001073176438547049},{"h_j_kg":908621.8511364574,"p_pa":2000000.0,"quality":0.0,"s_j_kg_k":2447.0239083620654,"t_k":485.5345353184905,"v_m3_kg":0.0011767502442472583}]},"score":-0.3840818926983688,"status":"complete","steps":121}
++{"detail":null,"id":"2","metrics":{"condenser_mass_fraction":0.7504309367907065,"efficiency":0.38408189269858095,"energy_residual_j_kg":3.4924596548080444e-10,"exhaust_quality":0.8925963835552144,"extractions_low_high":[0.11480548964897135,0.1347635735603222],"gross_work_j_kg":1002012.897042752,"heat_in_j_kg":2580030.524019228,"heat_rejected_j_kg":1589087.5171338108,"heater_residuals_j_kg":[0.0,0.0],"net_work_j_kg":990943.0068854167,"pump_work_j_kg":11069.890157335307,"states":[{"h_j_kg":3497478.001987539,"p_pa":8000000.0,"quality":null,"s_j_kg_k":6850.105323909179,"t_k":813.15,"v_m3_kg":0.044501896058347944},{"h_j_kg":3122928.5156972194,"p_pa":2000000.0,"quality":null,"s_j_kg_k":6934.508471371903,"t_k":616.5632350176231,"v_m3_kg":0.13690304535299846},{"h_j_kg":2752236.650489915,"p_pa":300000.0,"quality":null,"s_j_kg_k":7057.811765153382,"t_k":419.02431775434036,"v_m3_kg":0.6270366397940801},{"h_j_kg":2343501.761038321,"p_pa":15000.0,"quality":0.8925963835552144,"s_j_kg_k":7228.197358624368,"t_k":327.120266921189,"v_m3_kg":8.944248488138808},{"h_j_kg":225935.12135565604,"p_pa":15000.0,"quality":0.0,"s_j_kg_k":754.8386490891539,"t_k":327.120266921189,"v_m3_kg":0.0010140296189788533},{"h_j_kg":561455.410257108,"p_pa":300000.0,"quality":0.0,"s_j_kg_k":1671.7646728693803,"t_k":406.67535794654543,"v_m3_kg":0.001073176438547049},{"h_j_kg":908621.8511364574,"p_pa":2000000.0,"quality":0.0,"s_j_kg_k":2447.0239083620654,"t_k":485.5345353184905,"v_m3_kg":0.0011767502442472583}]},"score":-0.38408189269858095,"status":"complete","steps":121}
+diff --git a/evidence/campaign-replay.json b/evidence/release-0.2.0/campaign-replay.json
+similarity index 100%
+rename from evidence/campaign-replay.json
+rename to evidence/release-0.2.0/campaign-replay.json
+diff --git a/evidence/release-0.2.0/capabilities.json b/evidence/release-0.2.0/capabilities.json
+new file mode 100644
+index 0000000..ce01792
+--- /dev/null
++++ b/evidence/release-0.2.0/capabilities.json
+@@ -0,0 +1 @@
++{"batch":true,"models":["bounded_if97_regions_1_2_4","closed_rankine","two_open_heater_rankine"],"schema":"thermo-craft.capabilities/0.1","version":"0.2.0","worker_limit":64}
+diff --git a/evidence/release-0.2.0/cli.json b/evidence/release-0.2.0/cli.json
+new file mode 100644
+index 0000000..7c4c7c4
+--- /dev/null
++++ b/evidence/release-0.2.0/cli.json
+@@ -0,0 +1 @@
++{"model_sha256":"4cfb905f015f9323e2bb6cf689b214dd525ee3cfdba4903ea6a915cf1b3e91cc","records":[{"detail":null,"id":"example","metrics":{"condenser_mass_fraction":0.7504309367907478,"efficiency":0.3840818926983688,"energy_residual_j_kg":3.4924596548080444e-10,"exhaust_quality":0.8925963835554728,"extractions_low_high":[0.11480548964893794,0.13476357356031424],"gross_work_j_kg":1002012.8970422046,"heat_in_j_kg":2580030.524019228,"heat_rejected_j_kg":1589087.5171343582,"heater_residuals_j_kg":[5.820766091346741e-11,0.0],"net_work_j_kg":990943.0068848693,"pump_work_j_kg":11069.89015733534,"states":[{"h_j_kg":3497478.001987539,"p_pa":8000000.0,"quality":null,"s_j_kg_k":6850.105323909179,"t_k":813.15,"v_m3_kg":0.044501896058347944},{"h_j_kg":3122928.5156973703,"p_pa":2000000.0,"quality":null,"s_j_kg_k":6934.508471372149,"t_k":616.5632350176909,"v_m3_kg":0.1369030453530159},{"h_j_kg":2752236.650490674,"p_pa":300000.0,"quality":null,"s_j_kg_k":7057.811765155195,"t_k":419.02431775468904,"v_m3_kg":0.6270366397946731},{"h_j_kg":2343501.761038934,"p_pa":15000.0,"quality":0.8925963835554728,"s_j_kg_k":7228.197358626241,"t_k":327.120266921189,"v_m3_kg":8.944248488141396},{"h_j_kg":225935.12135565604,"p_pa":15000.0,"quality":0.0,"s_j_kg_k":754.8386490891539,"t_k":327.120266921189,"v_m3_kg":0.0010140296189788533},{"h_j_kg":561455.4102571082,"p_pa":300000.0,"quality":0.0,"s_j_kg_k":1671.7646728693805,"t_k":406.67535794654543,"v_m3_kg":0.001073176438547049},{"h_j_kg":908621.8511364574,"p_pa":2000000.0,"quality":0.0,"s_j_kg_k":2447.0239083620654,"t_k":485.5345353184905,"v_m3_kg":0.0011767502442472583}]},"score":-0.3840818926983688,"status":"complete","steps":121}],"schema":"thermo-craft.result/0.1","version":"0.2.0"}
+diff --git a/evidence/installed.json b/evidence/release-0.2.0/installed.json
+similarity index 100%
+rename from evidence/installed.json
+rename to evidence/release-0.2.0/installed.json
+diff --git a/evidence/release-0.2.0/native-sweep.json b/evidence/release-0.2.0/native-sweep.json
+new file mode 100644
+index 0000000..1e39c4d
+--- /dev/null
++++ b/evidence/release-0.2.0/native-sweep.json
+@@ -0,0 +1 @@
++{"detail":null,"id":"2","metrics":{"condenser_mass_fraction":0.7504309367907478,"efficiency":0.3840818926983688,"energy_residual_j_kg":3.4924596548080444e-10,"exhaust_quality":0.8925963835554728,"extractions_low_high":[0.11480548964893794,0.13476357356031424],"gross_work_j_kg":1002012.8970422046,"heat_in_j_kg":2580030.524019228,"heat_rejected_j_kg":1589087.5171343582,"heater_residuals_j_kg":[5.820766091346741e-11,0.0],"net_work_j_kg":990943.0068848693,"pump_work_j_kg":11069.89015733534,"states":[{"h_j_kg":3497478.001987539,"p_pa":8000000.0,"quality":null,"s_j_kg_k":6850.105323909179,"t_k":813.15,"v_m3_kg":0.044501896058347944},{"h_j_kg":3122928.5156973703,"p_pa":2000000.0,"quality":null,"s_j_kg_k":6934.508471372149,"t_k":616.5632350176909,"v_m3_kg":0.1369030453530159},{"h_j_kg":2752236.650490674,"p_pa":300000.0,"quality":null,"s_j_kg_k":7057.811765155195,"t_k":419.02431775468904,"v_m3_kg":0.6270366397946731},{"h_j_kg":2343501.761038934,"p_pa":15000.0,"quality":0.8925963835554728,"s_j_kg_k":7228.197358626241,"t_k":327.120266921189,"v_m3_kg":8.944248488141396},{"h_j_kg":225935.12135565604,"p_pa":15000.0,"quality":0.0,"s_j_kg_k":754.8386490891539,"t_k":327.120266921189,"v_m3_kg":0.0010140296189788533},{"h_j_kg":561455.4102571082,"p_pa":300000.0,"quality":0.0,"s_j_kg_k":1671.7646728693805,"t_k":406.67535794654543,"v_m3_kg":0.001073176438547049},{"h_j_kg":908621.8511364574,"p_pa":2000000.0,"quality":0.0,"s_j_kg_k":2447.0239083620654,"t_k":485.5345353184905,"v_m3_kg":0.0011767502442472583}]},"score":-0.3840818926983688,"status":"complete","steps":121}
+diff --git a/evidence/performance-native.json b/evidence/release-0.2.0/performance-native.json
+similarity index 100%
+rename from evidence/performance-native.json
+rename to evidence/release-0.2.0/performance-native.json
+diff --git a/evidence/performance-search.json b/evidence/release-0.2.0/performance-search.json
+similarity index 100%
+rename from evidence/performance-search.json
+rename to evidence/release-0.2.0/performance-search.json
+diff --git a/evidence/power-cache.json b/evidence/release-0.2.0/power-cache.json
+similarity index 100%
+rename from evidence/power-cache.json
+rename to evidence/release-0.2.0/power-cache.json
+diff --git a/evidence/scipy-search.json b/evidence/release-0.2.0/scipy-search.json
+similarity index 100%
+rename from evidence/scipy-search.json
+rename to evidence/release-0.2.0/scipy-search.json
+diff --git a/evidence/tutorial-check.json b/evidence/release-0.2.0/tutorial-check.json
+similarity index 100%
+rename from evidence/tutorial-check.json
+rename to evidence/release-0.2.0/tutorial-check.json
+diff --git a/evidence/release-0.2.0/validation.json b/evidence/release-0.2.0/validation.json
+new file mode 100644
+index 0000000..b86c44c
+--- /dev/null
++++ b/evidence/release-0.2.0/validation.json
+@@ -0,0 +1,133 @@
++{
++  "best_efficiency": 0.3840818926983688,
++  "bounded_grid_evaluations": 20,
++  "energy_residual_j_kg": 3.4924596548080444e-10,
++  "iapws_relative_errors": [
++    [
++      1.8588552919140966e-10,
++      1.026330798126196e-09,
++      3.1263291955241357e-10
++    ],
++    [
++      9.966250047455105e-11,
++      2.007816135574103e-11,
++      2.8096214244044404e-09
++    ],
++    [
++      3.294311490265045e-10,
++      3.1261260247106293e-10,
++      9.562335367974129e-10
++    ],
++    [
++      1.1185783410638805e-09,
++      2.103588303548065e-09,
++      1.8872570173300574e-10
++    ]
++  ],
++  "relative_tolerance": 5e-08,
++  "robust_training_winner": [
++    500000.0,
++    2000000.0
++  ],
++  "simple_efficiency": 0.34163555526433553,
++  "stress_set": [
++    {
++      "cond_pa": 10000.0,
++      "eta": 0.88,
++      "nominal": {
++        "score": -0.39560123911692147,
++        "status": "complete"
++      },
++      "robust": {
++        "score": -0.3948684210052321,
++        "status": "complete"
++      }
++    },
++    {
++      "cond_pa": 22000.0,
++      "eta": 0.86,
++      "nominal": {
++        "score": -0.36570129384255945,
++        "status": "complete"
++      },
++      "robust": {
++        "score": -0.36568740679336137,
++        "status": "complete"
++      }
++    },
++    {
++      "cond_pa": 30000.0,
++      "eta": 0.91,
++      "nominal": {
++        "score": -0.37237475805098796,
++        "status": "complete"
++      },
++      "robust": {
++        "score": -0.37251009750984737,
++        "status": "complete"
++      }
++    }
++  ],
++  "winner": [
++    300000.0,
++    2000000.0
++  ],
++  "winner_states": [
++    {
++      "h_j_kg": 3497478.001987539,
++      "p_pa": 8000000.0,
++      "quality": null,
++      "s_j_kg_k": 6850.105323909179,
++      "t_k": 813.15,
++      "v_m3_kg": 0.044501896058347944
++    },
++    {
++      "h_j_kg": 3122928.5156973703,
++      "p_pa": 2000000.0,
++      "quality": null,
++      "s_j_kg_k": 6934.508471372149,
++      "t_k": 616.5632350176909,
++      "v_m3_kg": 0.1369030453530159
++    },
++    {
++      "h_j_kg": 2752236.650490674,
++      "p_pa": 300000.0,
++      "quality": null,
++      "s_j_kg_k": 7057.811765155195,
++      "t_k": 419.02431775468904,
++      "v_m3_kg": 0.6270366397946731
++    },
++    {
++      "h_j_kg": 2343501.761038934,
++      "p_pa": 15000.0,
++      "quality": 0.8925963835554728,
++      "s_j_kg_k": 7228.197358626241,
++      "t_k": 327.120266921189,
++      "v_m3_kg": 8.944248488141396
++    },
++    {
++      "h_j_kg": 225935.12135565604,
++      "p_pa": 15000.0,
++      "quality": 0.0,
++      "s_j_kg_k": 754.8386490891539,
++      "t_k": 327.120266921189,
++      "v_m3_kg": 0.0010140296189788533
++    },
++    {
++      "h_j_kg": 561455.4102571082,
++      "p_pa": 300000.0,
++      "quality": 0.0,
++      "s_j_kg_k": 1671.7646728693805,
++      "t_k": 406.67535794654543,
++      "v_m3_kg": 0.001073176438547049
++    },
++    {
++      "h_j_kg": 908621.8511364574,
++      "p_pa": 2000000.0,
++      "quality": 0.0,
++      "s_j_kg_k": 2447.0239083620654,
++      "t_k": 485.5345353184905,
++      "v_m3_kg": 0.0011767502442472583
++    }
++  ]
++}
+diff --git a/evidence/validation.json b/evidence/validation.json
+index b86c44c..a85bf4c 100644
+--- a/evidence/validation.json
++++ b/evidence/validation.json
+@@ -1,17 +1,17 @@
+ {
+-  "best_efficiency": 0.3840818926983688,
++  "best_efficiency": 0.38408189269858095,
+   "bounded_grid_evaluations": 20,
+   "energy_residual_j_kg": 3.4924596548080444e-10,
+   "iapws_relative_errors": [
+     [
+       1.8588552919140966e-10,
+-      1.026330798126196e-09,
+-      3.1263291955241357e-10
++      1.026331020170801e-09,
++      3.126331415970185e-10
+     ],
+     [
+       9.966250047455105e-11,
+-      2.007816135574103e-11,
+-      2.8096214244044404e-09
++      2.0077939311136106e-11,
++      2.8096212023598355e-09
+     ],
+     [
+       3.294311490265045e-10,
+@@ -35,11 +35,11 @@
+       "cond_pa": 10000.0,
+       "eta": 0.88,
+       "nominal": {
+-        "score": -0.39560123911692147,
++        "score": -0.39560123911712947,
+         "status": "complete"
+       },
+       "robust": {
+-        "score": -0.3948684210052321,
++        "score": -0.39486842100545405,
+         "status": "complete"
+       }
+     },
+@@ -47,11 +47,11 @@
+       "cond_pa": 22000.0,
+       "eta": 0.86,
+       "nominal": {
+-        "score": -0.36570129384255945,
++        "score": -0.3657012938427118,
+         "status": "complete"
+       },
+       "robust": {
+-        "score": -0.36568740679336137,
++        "score": -0.3656874067933011,
+         "status": "complete"
+       }
+     },
+@@ -59,11 +59,11 @@
+       "cond_pa": 30000.0,
+       "eta": 0.91,
+       "nominal": {
+-        "score": -0.37237475805098796,
++        "score": -0.3723747580510455,
+         "status": "complete"
+       },
+       "robust": {
+-        "score": -0.37251009750984737,
++        "score": -0.37251009750982367,
+         "status": "complete"
+       }
+     }
+@@ -82,28 +82,28 @@
+       "v_m3_kg": 0.044501896058347944
+     },
+     {
+-      "h_j_kg": 3122928.5156973703,
++      "h_j_kg": 3122928.5156972194,
+       "p_pa": 2000000.0,
+       "quality": null,
+-      "s_j_kg_k": 6934.508471372149,
+-      "t_k": 616.5632350176909,
+-      "v_m3_kg": 0.1369030453530159
++      "s_j_kg_k": 6934.508471371903,
++      "t_k": 616.5632350176231,
++      "v_m3_kg": 0.13690304535299846
+     },
+     {
+-      "h_j_kg": 2752236.650490674,
++      "h_j_kg": 2752236.650489915,
+       "p_pa": 300000.0,
+       "quality": null,
+-      "s_j_kg_k": 7057.811765155195,
+-      "t_k": 419.02431775468904,
+-      "v_m3_kg": 0.6270366397946731
++      "s_j_kg_k": 7057.811765153382,
++      "t_k": 419.02431775434036,
++      "v_m3_kg": 0.6270366397940801
+     },
+     {
+-      "h_j_kg": 2343501.761038934,
++      "h_j_kg": 2343501.761038321,
+       "p_pa": 15000.0,
+-      "quality": 0.8925963835554728,
+-      "s_j_kg_k": 7228.197358626241,
++      "quality": 0.8925963835552144,
++      "s_j_kg_k": 7228.197358624368,
+       "t_k": 327.120266921189,
+-      "v_m3_kg": 8.944248488141396
++      "v_m3_kg": 8.944248488138808
+     },
+     {
+       "h_j_kg": 225935.12135565604,
+@@ -114,10 +114,10 @@
+       "v_m3_kg": 0.0010140296189788533
+     },
+     {
+-      "h_j_kg": 561455.4102571082,
++      "h_j_kg": 561455.410257108,
+       "p_pa": 300000.0,
+       "quality": 0.0,
+-      "s_j_kg_k": 1671.7646728693805,
++      "s_j_kg_k": 1671.7646728693803,
+       "t_k": 406.67535794654543,
+       "v_m3_kg": 0.001073176438547049
+     },
+diff --git a/patches/0001-Add-reproducible-performance-workloads.patch b/patches/0.2.0/0001-Add-reproducible-performance-workloads.patch
+similarity index 100%
+rename from patches/0001-Add-reproducible-performance-workloads.patch
+rename to patches/0.2.0/0001-Add-reproducible-performance-workloads.patch
+diff --git a/patches/0002-Run-single-worker-and-singleton-batches-inline.patch b/patches/0.2.0/0002-Run-single-worker-and-singleton-batches-inline.patch
+similarity index 100%
+rename from patches/0002-Run-single-worker-and-singleton-batches-inline.patch
+rename to patches/0.2.0/0002-Run-single-worker-and-singleton-batches-inline.patch
+diff --git a/patches/0003-Assemble-parallel-records-in-input-order-without-sor.patch b/patches/0.2.0/0003-Assemble-parallel-records-in-input-order-without-sor.patch
+similarity index 100%
+rename from patches/0003-Assemble-parallel-records-in-input-order-without-sor.patch
+rename to patches/0.2.0/0003-Assemble-parallel-records-in-input-order-without-sor.patch
+diff --git a/patches/0004-Use-a-sized-hash-set-to-validate-batch-identities.patch b/patches/0.2.0/0004-Use-a-sized-hash-set-to-validate-batch-identities.patch
+similarity index 100%
+rename from patches/0004-Use-a-sized-hash-set-to-validate-batch-identities.patch
+rename to patches/0.2.0/0004-Use-a-sized-hash-set-to-validate-batch-identities.patch
+diff --git a/patches/0005-Serialize-the-typed-prepared-response-directly.patch b/patches/0.2.0/0005-Serialize-the-typed-prepared-response-directly.patch
+similarity index 100%
+rename from patches/0005-Serialize-the-typed-prepared-response-directly.patch
+rename to patches/0.2.0/0005-Serialize-the-typed-prepared-response-directly.patch
+diff --git a/patches/0006-Borrow-candidate-identifiers-through-serialization.patch b/patches/0.2.0/0006-Borrow-candidate-identifiers-through-serialization.patch
+similarity index 100%
+rename from patches/0006-Borrow-candidate-identifiers-through-serialization.patch
+rename to patches/0.2.0/0006-Borrow-candidate-identifiers-through-serialization.patch
+diff --git a/patches/0007-Shorten-the-unmonitored-work-counter-path.patch b/patches/0.2.0/0007-Shorten-the-unmonitored-work-counter-path.patch
+similarity index 100%
+rename from patches/0007-Shorten-the-unmonitored-work-counter-path.patch
+rename to patches/0.2.0/0007-Shorten-the-unmonitored-work-counter-path.patch
+diff --git a/patches/0008-Add-a-lean-objective-path-with-full-feasibility-chec.patch b/patches/0.2.0/0008-Add-a-lean-objective-path-with-full-feasibility-chec.patch
+similarity index 100%
+rename from patches/0008-Add-a-lean-objective-path-with-full-feasibility-chec.patch
+rename to patches/0.2.0/0008-Add-a-lean-objective-path-with-full-feasibility-chec.patch
+diff --git a/patches/0009-Reuse-pressure-powers-across-inverse-state-iteration.patch b/patches/0.2.0/0009-Reuse-pressure-powers-across-inverse-state-iteration.patch
+similarity index 100%
+rename from patches/0009-Reuse-pressure-powers-across-inverse-state-iteration.patch
+rename to patches/0.2.0/0009-Reuse-pressure-powers-across-inverse-state-iteration.patch
+diff --git a/patches/0010-Complete-domain-performance-iteration-9.patch b/patches/0.2.0/0010-Complete-domain-performance-iteration-9.patch
+similarity index 100%
+rename from patches/0010-Complete-domain-performance-iteration-9.patch
+rename to patches/0.2.0/0010-Complete-domain-performance-iteration-9.patch
+diff --git a/patches/0011-Use-property-specific-IF97-inverse-probes.patch b/patches/0.2.0/0011-Use-property-specific-IF97-inverse-probes.patch
+similarity index 100%
+rename from patches/0011-Use-property-specific-IF97-inverse-probes.patch
+rename to patches/0.2.0/0011-Use-property-specific-IF97-inverse-probes.patch
+diff --git a/patches/0012-Document-performance-release-tutorials-and-architect.patch b/patches/0.2.0/0012-Document-performance-release-tutorials-and-architect.patch
+similarity index 100%
+rename from patches/0012-Document-performance-release-tutorials-and-architect.patch
+rename to patches/0.2.0/0012-Document-performance-release-tutorials-and-architect.patch
+-- 
+2.43.0
+

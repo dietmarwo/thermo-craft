@@ -1,0 +1,417 @@
+From 96459440f92007b0c2455468e6a9f21ddea2ba5c Mon Sep 17 00:00:00 2001
+From: Claude <noreply@anthropic.com>
+Date: Wed, 4 Nov 2026 11:43:19 -0400
+Subject: [PATCH 03/13] Round 3: Serialize typed record metrics instead of JSON
+ value trees
+
+The domain now returns a typed Metrics enum (skipped, property state,
+cycle) whose struct fields are declared in sorted key order, and records
+serialize it directly. This removes about a hundred map and string
+allocations per full record while keeping the JSON byte-identical.
+Failure diagnostics keep their optional serde_json::Value.
+
+Workload: serial (96 full records, one worker), full API both sides.
+Official 11-sample run: 1.482 ms -> 0.805 ms, 1.84x (paired 1.61x).
+41-sample confirmation: 1.311 ms -> 0.791 ms, paired 1.66x.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+---
+ evidence/performance-0.3.0/plan.md            | 16 +++
+ .../round03-serial-confirm41.json             | 97 +++++++++++++++++++
+ .../performance-0.3.0/round03-serial.json     | 37 +++++++
+ src/domain.rs                                 | 56 +++++++++--
+ src/if97.rs                                   |  7 +-
+ src/lib.rs                                    | 51 ++++++++--
+ 6 files changed, 247 insertions(+), 17 deletions(-)
+ create mode 100644 evidence/performance-0.3.0/round03-serial-confirm41.json
+ create mode 100644 evidence/performance-0.3.0/round03-serial.json
+
+diff --git a/evidence/performance-0.3.0/plan.md b/evidence/performance-0.3.0/plan.md
+index 488ece0..b91a509 100644
+--- a/evidence/performance-0.3.0/plan.md
++++ b/evidence/performance-0.3.0/plan.md
+@@ -87,3 +87,19 @@ the median of per-sample-pair ratios. For every round from 2 on:
+   2.269 -> 0.750 ms, paired 3.03x. Kept. Probe parity passed on every
+   workload and API mode; `validate.py` passed against the release CLI
+   (`round02-validation.json`; best efficiency moved by 2.1e-13).
++
++## Round 3: typed metrics serialized directly
++
++- Profile after round 2 (scratch harness, 96 serial candidates): lean
++  domain about 0.54 ms per batch, full `evaluate_json` about 1.8 ms. Building
++  `serde_json::Value` metrics (a sorted map per record and per state, about
++  100 allocations per record) and encoding them costs about 13 us per record.
++- Change: the domain returns a typed `Metrics` enum (skipped, property state,
++  cycle) whose struct fields are declared in sorted key order, so the JSON is
++  byte-identical to the sorted `Value` maps. Records serialize it directly.
++- Workload: `serial` (96 full records, one worker), full API both sides.
++- Expected effect: about 1.5-2x on full serial records; lean and matrix
++  paths unaffected. Bit-identical values.
++- Result: official 1.482 -> 0.805 ms, 1.84x (paired 1.61x); confirmation
++  1.311 -> 0.791 ms, paired 1.66x. Kept. Probe output is byte-identical for
++  `serial`, `trace` and `domain2`; parity passed on every workload and mode.
+diff --git a/evidence/performance-0.3.0/round03-serial-confirm41.json b/evidence/performance-0.3.0/round03-serial-confirm41.json
+new file mode 100644
+index 0000000..0706dfd
+--- /dev/null
++++ b/evidence/performance-0.3.0/round03-serial-confirm41.json
+@@ -0,0 +1,97 @@
++{
++  "workload": "serial",
++  "before_api": "full",
++  "after_api": "full",
++  "before_seconds": [
++    0.00141173325,
++    0.00174132875,
++    0.00130254475,
++    0.001310596,
++    0.00130399475,
++    0.001255286,
++    0.001326116,
++    0.00099543425,
++    0.0010655455,
++    0.001049612,
++    0.0012068975,
++    0.0013605025,
++    0.00131856825,
++    0.0013061995,
++    0.001370979,
++    0.00127284875,
++    0.00129536475,
++    0.00167738325,
++    0.00159008525,
++    0.00136099175,
++    0.0013102865,
++    0.00168121975,
++    0.00162144075,
++    0.00137839625,
++    0.00130404625,
++    0.001352367,
++    0.00152930675,
++    0.00160444525,
++    0.00126077025,
++    0.001658137,
++    0.00124998325,
++    0.0012430695,
++    0.00158328625,
++    0.00131526975,
++    0.00125924275,
++    0.0013728845,
++    0.0012555965,
++    0.00099107125,
++    0.00100719625,
++    0.00132614,
++    0.0012511745
++  ],
++  "after_seconds": [
++    0.0008507245,
++    0.00091979375,
++    0.00081786925,
++    0.0007910795,
++    0.00188945425,
++    0.00081445275,
++    0.00084486425,
++    0.00065210325,
++    0.00058759075,
++    0.000623304,
++    0.0006214205,
++    0.000629577,
++    0.00080163525,
++    0.00080978025,
++    0.00078743625,
++    0.000766971,
++    0.00074406275,
++    0.000731144,
++    0.00092626625,
++    0.000845516,
++    0.0008207805,
++    0.00104121275,
++    0.00111328475,
++    0.00092555175,
++    0.000811283,
++    0.000865288,
++    0.0007722685,
++    0.000816993,
++    0.00074312075,
++    0.00072325075,
++    0.000757902,
++    0.000778912,
++    0.000925733,
++    0.00080304725,
++    0.000724749,
++    0.000850167,
++    0.000757304,
++    0.00061664875,
++    0.000772348,
++    0.00078113075,
++    0.0006120125
++  ],
++  "medians_seconds": [
++    0.001310596,
++    0.0007910795
++  ],
++  "speedup": 1.6567184461233035,
++  "paired_median_speedup": 1.6567184461233035
++}
+diff --git a/evidence/performance-0.3.0/round03-serial.json b/evidence/performance-0.3.0/round03-serial.json
+new file mode 100644
+index 0000000..a328b39
+--- /dev/null
++++ b/evidence/performance-0.3.0/round03-serial.json
+@@ -0,0 +1,37 @@
++{
++  "workload": "serial",
++  "before_api": "full",
++  "after_api": "full",
++  "before_seconds": [
++    0.0019505595,
++    0.001864808,
++    0.00188387,
++    0.001861825,
++    0.0013355745,
++    0.00131708025,
++    0.0012994765,
++    0.00136699375,
++    0.00120204925,
++    0.00148203375,
++    0.001784269
++  ],
++  "after_seconds": [
++    0.00114239375,
++    0.00115541675,
++    0.001176392,
++    0.00118701025,
++    0.0007728255,
++    0.00079652075,
++    0.00080491125,
++    0.0007760425,
++    0.00078354575,
++    0.000731641,
++    0.0011509275
++  ],
++  "medians_seconds": [
++    0.00148203375,
++    0.00080491125
++  ],
++  "speedup": 1.8412387079942043,
++  "paired_median_speedup": 1.6144345106370424
++}
+diff --git a/src/domain.rs b/src/domain.rs
+index a938037..e184092 100644
+--- a/src/domain.rs
++++ b/src/domain.rs
+@@ -2,8 +2,7 @@
+ mod if97;
+ use crate::{Evaluation, Work, infeasible, invalid};
+ use if97::{State, invert, pq, pt, saturation};
+-use serde::Deserialize;
+-use serde_json::json;
++use serde::{Deserialize, Serialize};
+ 
+ pub const CAPABILITIES: &[&str] = &[
+     "bounded_if97_regions_1_2_4",
+@@ -30,6 +29,36 @@ pub enum Model {
+     Property,
+     Rankine(Plant),
+ }
++
++/// Typed record metrics. Struct fields are declared in sorted key order, so the
++/// JSON is byte-identical to the sorted `serde_json::Value` maps of 0.2.0.
++#[derive(Default, Serialize)]
++#[serde(untagged)]
++pub enum Metrics {
++    /// Lean and matrix evaluations: serialized as `null`.
++    #[default]
++    Skipped,
++    Property {
++        state: State,
++    },
++    Cycle(Cycle),
++}
++
++#[derive(Serialize)]
++pub struct Cycle {
++    condenser_mass_fraction: f64,
++    efficiency: f64,
++    energy_residual_j_kg: f64,
++    exhaust_quality: f64,
++    extractions_low_high: [f64; 2],
++    gross_work_j_kg: f64,
++    heat_in_j_kg: f64,
++    heat_rejected_j_kg: f64,
++    heater_residuals_j_kg: [f64; 2],
++    net_work_j_kg: f64,
++    pump_work_j_kg: f64,
++    states: Option<Vec<State>>,
++}
+ pub struct Plant {
+     inlet: State,
+     condenser: [State; 2],
+@@ -88,7 +117,7 @@ pub fn evaluate(model: &Model, parameters: &[f64], work: &mut Work<'_>) -> Evalu
+                     ));
+                 }
+             };
+-            Ok((state.h_j_kg, work.metrics(|| json!({"state":state}))))
++            Ok((state.h_j_kg, work.metrics(|| Metrics::Property { state })))
+         }
+         Model::Rankine(plant) => solve(plant, parameters, work),
+     }
+@@ -198,10 +227,21 @@ fn solve(p: &Plant, parameters: &[f64], work: &mut Work<'_>) -> Evaluation {
+     let efficiency = net / inlet_heat;
+     Ok((
+         -efficiency,
+-        work.metrics(|| json!({"efficiency":efficiency,"gross_work_j_kg":turbine_work,
+-        "pump_work_j_kg":pump_work,"net_work_j_kg":net,"heat_in_j_kg":inlet_heat,
+-        "heat_rejected_j_kg":heat_rejected,"exhaust_quality":quality,"energy_residual_j_kg":residual,
+-        "condenser_mass_fraction":condenser_mass,"extractions_low_high":extractions,
+-        "heater_residuals_j_kg":heater_residuals,"states":states})),
++        work.metrics(|| {
++            Metrics::Cycle(Cycle {
++                condenser_mass_fraction: condenser_mass,
++                efficiency,
++                energy_residual_j_kg: residual,
++                exhaust_quality: quality,
++                extractions_low_high: extractions,
++                gross_work_j_kg: turbine_work,
++                heat_in_j_kg: inlet_heat,
++                heat_rejected_j_kg: heat_rejected,
++                heater_residuals_j_kg: heater_residuals,
++                net_work_j_kg: net,
++                pump_work_j_kg: pump_work,
++                states,
++            })
++        }),
+     ))
+ }
+diff --git a/src/if97.rs b/src/if97.rs
+index cf05590..c7288f2 100644
+--- a/src/if97.rs
++++ b/src/if97.rs
+@@ -5,14 +5,15 @@ use crate::{Failure, Work, infeasible, invalid};
+ use coefficients::{IDEAL, R1, R2, SAT};
+ const R: f64 = 461.526;
+ 
++/// Fields are declared in sorted key order so direct serialization matches a sorted JSON map.
+ #[derive(Clone, Copy, Debug, serde::Serialize)]
+ pub struct State {
+-    pub p_pa: f64,
+-    pub t_k: f64,
+     pub h_j_kg: f64,
++    pub p_pa: f64,
++    pub quality: Option<f64>,
+     pub s_j_kg_k: f64,
++    pub t_k: f64,
+     pub v_m3_kg: f64,
+-    pub quality: Option<f64>,
+ }
+ 
+ fn pressure_powers(x: f64, liquid: bool) -> [f64; 33] {
+diff --git a/src/lib.rs b/src/lib.rs
+index 650da33..01da9be 100644
+--- a/src/lib.rs
++++ b/src/lib.rs
+@@ -13,7 +13,7 @@ use std::{
+     time::{Duration, Instant},
+ };
+ 
+-pub type Evaluation = Result<(f64, Value), Failure>;
++pub(crate) type Evaluation = Result<(f64, domain::Metrics), Failure>;
+ 
+ #[derive(Debug, Clone)]
+ pub struct Failure {
+@@ -79,11 +79,12 @@ pub struct Work<'a> {
+     metrics_enabled: bool,
+ }
+ impl Work<'_> {
+-    pub fn metrics(&self, make: impl FnOnce() -> Value) -> Value {
++    /// Build diagnostics only for full records; lean and matrix calls get the default.
++    pub fn metrics<T: Default>(&self, make: impl FnOnce() -> T) -> T {
+         if self.metrics_enabled {
+             make()
+         } else {
+-            Value::Null
++            T::default()
+         }
+     }
+ 
+@@ -134,13 +135,21 @@ pub struct MatrixScore {
+     pub score: Option<f64>,
+ }
+ 
++/// Domain metrics for complete records, or a failure's optional diagnostic value.
++#[derive(Serialize)]
++#[serde(untagged)]
++enum RecordMetrics {
++    Domain(domain::Metrics),
++    Value(Value),
++}
++
+ #[derive(Serialize)]
+ struct Record<'a> {
+     id: &'a str,
+     status: &'static str,
+     steps: u64,
+     score: Option<f64>,
+-    metrics: Option<Value>,
++    metrics: Option<RecordMetrics>,
+     detail: Option<String>,
+ }
+ 
+@@ -277,7 +286,7 @@ impl Prepared {
+                 status: "complete",
+                 steps,
+                 score: Some(score),
+-                metrics: Some(metrics),
++                metrics: Some(RecordMetrics::Domain(metrics)),
+                 detail: None,
+             },
+             (steps, Err(e)) => Record {
+@@ -285,7 +294,11 @@ impl Prepared {
+                 status: e.status,
+                 steps,
+                 score: None,
+-                metrics: if metrics_enabled { e.metrics } else { None },
++                metrics: if metrics_enabled {
++                    e.metrics.map(RecordMetrics::Value)
++                } else {
++                    None
++                },
+                 detail: Some(e.detail),
+             },
+         }
+@@ -632,6 +645,32 @@ mod tests {
+         assert_eq!(prepared.model_sha256(), hash);
+     }
+ 
++    #[test]
++    fn typed_metrics_serialize_like_sorted_value_maps() {
++        let example = fixture();
++        let mut simple = example["model"].clone();
++        simple["extraction"] = json!(false);
++        for (model, parameters) in [
++            (example["model"].clone(), example["parameters"].clone()),
++            (simple, json!([])),
++            (json!({"kind": "property"}), json!([3e6, 300.0])),
++            (json!({"kind": "property"}), json!([1e5, 0.5, 0.0])),
++        ] {
++            let prepared = Prepared::new(&model.to_string()).unwrap();
++            let candidates = json!([{"id": "a", "parameters": parameters}]).to_string();
++            let parameters: Vec<f64> = serde_json::from_value(parameters).unwrap();
++            let budget = Budget::default();
++            let (_, result) = prepared.outcome(&parameters, &budget, None, true);
++            let (_, metrics) = result.unwrap();
++            let text = serde_json::to_string(&metrics).unwrap();
++            // `Value` maps are sorted, so equal text means the typed field order is sorted.
++            assert_eq!(text, serde_json::to_value(&metrics).unwrap().to_string());
++            assert!(text.starts_with('{') && text.len() > 100, "{text}");
++            let lean = prepared.scores_json(&candidates, "{}").unwrap();
++            assert!(lean.contains(r#""metrics":null"#));
++        }
++    }
++
+     #[test]
+     fn model_and_candidate_validation_are_independent() {
+         let mut example = fixture();
+-- 
+2.43.0
+
