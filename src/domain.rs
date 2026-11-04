@@ -1,6 +1,6 @@
 #[path = "if97.rs"]
 mod if97;
-use crate::{Candidate, Evaluation, Work, infeasible, invalid};
+use crate::{Evaluation, Work, infeasible, invalid};
 use if97::{State, invert, pq, pt, saturation};
 use serde::Deserialize;
 use serde_json::json;
@@ -75,11 +75,11 @@ pub fn prepare(input: Input) -> Result<Model, String> {
         }
     }
 }
-pub fn evaluate(model: &Model, candidate: &Candidate, work: &mut Work<'_>) -> Evaluation {
+pub fn evaluate(model: &Model, parameters: &[f64], work: &mut Work<'_>) -> Evaluation {
     work.step()?;
     match model {
         Model::Property => {
-            let state = match candidate.parameters.as_slice() {
+            let state = match parameters {
                 [p, t] => pt(*p, *t)?,
                 [p, x, 0.0] => pq(*p, *x)?,
                 _ => {
@@ -90,7 +90,7 @@ pub fn evaluate(model: &Model, candidate: &Candidate, work: &mut Work<'_>) -> Ev
             };
             Ok((state.h_j_kg, work.metrics(|| json!({"state":state}))))
         }
-        Model::Rankine(plant) => solve(plant, &candidate.parameters, work),
+        Model::Rankine(plant) => solve(plant, parameters, work),
     }
 }
 fn solve(p: &Plant, parameters: &[f64], work: &mut Work<'_>) -> Evaluation {

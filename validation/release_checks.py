@@ -1,11 +1,27 @@
-"""Check the installed lean API and run the Python snippets in the tutorial."""
+"""Check the installed lean and matrix APIs and run the Python snippets in the tutorial."""
 
 import importlib
 import json
+import math
 from pathlib import Path
 import re
 import sys
 from tempfile import TemporaryDirectory
+
+
+def check_matrix(prepared, rows, **budget):
+    """Compare score_matrix with scores for equal-length rows; return the statuses."""
+    lean = prepared.scores([{"id": str(i), "parameters": row} for i, row in enumerate(rows)],
+                           **budget)["records"]
+    scores, statuses, steps = prepared.score_matrix(rows, **budget)
+    assert statuses == [r["status"] for r in lean], (statuses, lean)
+    assert steps == [r["steps"] for r in lean], (steps, lean)
+    for score, row in zip(scores, lean, strict=True):
+        if row["status"] == "complete":
+            assert score == row["score"], (score, row)
+        else:
+            assert row["score"] is None and math.isnan(score), (score, row)
+    return statuses
 
 module, tutorial = sys.argv[1:]
 package = importlib.import_module(module)
@@ -23,6 +39,12 @@ with TemporaryDirectory() as tmp:
         assert lean["records"] == [r | {"metrics": None} for r in full["records"]]
         if "cancel_file" in budget:
             assert lean["records"][0]["status"] == "cancelled"
+        matrix_rows = [example["parameters"]] * 2
+        if len(example["parameters"]) == 2:
+            matrix_rows.append(list(reversed(example["parameters"])))
+        statuses = check_matrix(prepared, matrix_rows, **budget)
+        if "cancel_file" in budget:
+            assert set(statuses) == {"cancelled"}
     if module == "population_epidemiology":
         calendar = package.Prepared({"kind": "calendar", "initial_on_probability": 0.5,
                                      "segments": [{"duration": 1, "on_rate": 0, "off_rate": 0}] * 3})
@@ -54,6 +76,24 @@ except ValueError:
     pass
 else:
     raise AssertionError("scores accepted a traced candidate")
+for bad in ([[1.0, 2.0], [1.0]], []):
+    try:
+        prepared.score_matrix(bad)
+    except ValueError:
+        pass
+    else:
+        raise AssertionError(f"score_matrix accepted {bad!r}")
+if module == "thermo_craft":
+    properties = package.Prepared({"kind": "property"})
+    assert check_matrix(properties, [[3e6, 300.0], [1.0, 400.0], [1e5, 700.0]],
+                        workers=2) == ["complete", "invalid", "complete"]
+try:
+    import numpy
+except ImportError:
+    numpy = None
+if numpy is not None:
+    array = numpy.array([example["parameters"]] * 3, dtype=float)
+    assert prepared.score_matrix(array) == prepared.score_matrix(array.tolist())
 
 snippets = re.findall(r"^```python\n(.*?)^```", Path(tutorial).read_text(), re.M | re.S)
 assert len(snippets) >= 4
@@ -61,4 +101,5 @@ namespace = {}
 for i, snippet in enumerate(snippets, 1):
     exec(compile(snippet, f"tutorial-{i}", "exec"), namespace)
 print(json.dumps({"status": "passed", "tutorial_python_blocks": len(snippets),
-                  "lean_api_and_budget_parity": True}))
+                  "lean_api_and_budget_parity": True, "matrix_api_parity": True,
+                  "numpy_matrix_input": numpy is not None}))

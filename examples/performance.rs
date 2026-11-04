@@ -1,6 +1,17 @@
 use serde_json::{Value, json};
 use std::{hint::black_box, time::Instant};
-use thermo_craft::Prepared;
+use thermo_craft::{MatrixScore, Prepared};
+
+enum Api {
+    Full,
+    Lean,
+    Matrix,
+}
+
+enum Output {
+    Json(String),
+    Rows(Vec<MatrixScore>),
+}
 
 fn main() {
     let mut args = std::env::args().skip(1);
@@ -38,20 +49,57 @@ fn main() {
             json!({"id": format!("candidate-{i:04}"), "parameters": values, "trace": traced})
         })
         .collect();
+    // Row-major parameter matrix holding exactly the values of the JSON candidates.
+    let matrix: Vec<f64> = candidates
+        .iter()
+        .flat_map(|c| c["parameters"].as_array().unwrap().iter())
+        .map(|v| v.as_f64().unwrap())
+        .collect();
     let candidates = serde_json::to_string(&candidates).unwrap();
     let budget = json!({"workers":workers}).to_string();
     let evaluator = Prepared::new(&model.to_string()).unwrap();
-    let lean = std::env::var_os("CRAFT_SCORES").is_some();
-    let evaluate = || {
-        if lean {
-            evaluator.scores_json(&candidates, &budget)
-        } else {
-            evaluator.evaluate_json(&candidates, &budget)
-        }
+    let api = if std::env::var_os("CRAFT_MATRIX").is_some() {
+        assert!(!traced, "matrix mode evaluates untraced candidates only");
+        Api::Matrix
+    } else if std::env::var_os("CRAFT_SCORES").is_some() {
+        Api::Lean
+    } else {
+        Api::Full
+    };
+    let evaluate = || match api {
+        Api::Full => evaluator
+            .evaluate_json(&candidates, &budget)
+            .map(Output::Json),
+        Api::Lean => evaluator
+            .scores_json(&candidates, &budget)
+            .map(Output::Json),
+        Api::Matrix => evaluator
+            .score_matrix(count, &matrix, &budget)
+            .map(Output::Rows),
     };
     let first = evaluate().unwrap();
     if args.next().as_deref() == Some("probe") {
-        println!("{first}");
+        match first {
+            Output::Json(text) => println!("{text}"),
+            // Print matrix outcomes in the shape of `scores_json` records for pairing.
+            Output::Rows(rows) => {
+                let records: Vec<_> = rows
+                    .iter()
+                    .enumerate()
+                    .map(|(i, row)| {
+                        json!({"id": format!("candidate-{i:04}"), "status": row.status,
+                               "steps": row.steps, "score": row.score,
+                               "metrics": null, "detail": null})
+                    })
+                    .collect();
+                println!(
+                    "{}",
+                    json!({"model_sha256": evaluator.model_sha256(), "records": records,
+                           "schema": concat!(env!("CARGO_PKG_NAME"), ".result/0.1"),
+                           "version": env!("CARGO_PKG_VERSION")})
+                );
+            }
+        }
         return;
     }
     black_box(first);
