@@ -354,32 +354,43 @@ fn deadline(budget: &Budget) -> Option<Instant> {
         .map(|n| Instant::now() + Duration::from_millis(n))
 }
 
-/// Evaluate `count` indexed items inline or on scoped workers, returning them in index order.
+/// Logical CPUs available to this process, read once (the query costs tens of microseconds).
+fn hardware_threads() -> usize {
+    static THREADS: OnceLock<usize> = OnceLock::new();
+    *THREADS.get_or_init(|| std::thread::available_parallelism().map_or(1, usize::from))
+}
+
+/// Evaluate `count` indexed items and return them in index order. `workers` is an
+/// upper bound: at most `min(workers, count, hardware_threads())` threads run, one
+/// of them the calling thread, and one thread evaluates inline.
 fn dispatch<T: Send + Sync>(
     count: usize,
     workers: usize,
     evaluate: impl Fn(usize) -> T + Sync,
 ) -> Vec<T> {
-    if workers == 1 || count == 1 {
+    let threads = workers.min(count).min(hardware_threads());
+    if threads <= 1 {
         return (0..count).map(evaluate).collect();
     }
     let next = AtomicUsize::new(0);
     let slots: Vec<_> = (0..count).map(|_| OnceLock::new()).collect();
-    std::thread::scope(|scope| {
-        for _ in 0..workers.min(count) {
-            scope.spawn(|| {
-                loop {
-                    let index = next.fetch_add(1, Ordering::Relaxed);
-                    if index >= count {
-                        break;
-                    }
-                    assert!(
-                        slots[index].set(evaluate(index)).is_ok(),
-                        "duplicate work index"
-                    );
-                }
-            });
+    let work = || {
+        loop {
+            let index = next.fetch_add(1, Ordering::Relaxed);
+            if index >= count {
+                break;
+            }
+            assert!(
+                slots[index].set(evaluate(index)).is_ok(),
+                "duplicate work index"
+            );
         }
+    };
+    std::thread::scope(|scope| {
+        for _ in 1..threads {
+            scope.spawn(work);
+        }
+        work();
     });
     slots
         .into_iter()
@@ -668,6 +679,29 @@ mod tests {
             assert!(text.starts_with('{') && text.len() > 100, "{text}");
             let lean = prepared.scores_json(&candidates, "{}").unwrap();
             assert!(lean.contains(r#""metrics":null"#));
+        }
+    }
+
+    #[test]
+    fn dispatch_keeps_index_order_and_caps_threads() {
+        let cap = hardware_threads();
+        assert!(cap >= 1);
+        for count in [1, 2, 3, 17, 200] {
+            for workers in [1, 2, 3, 4, 8, 64] {
+                let rows = dispatch(count, workers, |i| (i, std::thread::current().id()));
+                assert!(rows.iter().enumerate().all(|(i, row)| row.0 == i));
+                let mut threads: Vec<_> = rows.iter().map(|row| format!("{:?}", row.1)).collect();
+                threads.sort();
+                threads.dedup();
+                assert!(
+                    threads.len() <= workers.min(count).min(cap),
+                    "{count} {workers}"
+                );
+                if workers.min(count).min(cap) == 1 {
+                    let caller = format!("{:?}", std::thread::current().id());
+                    assert_eq!(threads, [caller]);
+                }
+            }
         }
     }
 

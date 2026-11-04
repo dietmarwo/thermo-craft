@@ -179,3 +179,23 @@ the median of per-sample-pair ratios. For every round from 2 on:
   0.169 -> 0.125 ms, paired 1.36x. Kept. Probe output byte-identical for
   `serial`, `domain`, `domain2` and `trace`; a unit test checks bit
   identity with the round-6 loop on a pressure/temperature grid.
+
+## Round 8: worker dispatch on the calling thread, capped at the CPU count
+
+- Profile after round 7 (scratch harness, 96 full serial records, min of 25):
+  one worker 390-526 us, two workers 460-480 us, four workers 464-525 us;
+  spawning and joining one scoped thread costs 16-46 us on this VM, and
+  `available_parallelism()` costs about 64 us per call. With four requested
+  workers the engine starts four threads on two vCPUs while the calling
+  thread only waits.
+- Change: run one worker loop on the calling thread, spawn at most
+  `min(workers, candidates, available_parallelism()) - 1` extra threads,
+  and cache the CPU count for the process. Record order, statuses, steps
+  and values are unchanged. The request still says `workers: 4`.
+- Workload: `parallel` (96 full records, four requested workers), full API
+  both sides.
+- Expected effect: three fewer thread starts and no oversubscription,
+  roughly 1.2-1.5x. Bit-identical results.
+- Result: official 0.604 -> 0.514 ms, 1.18x (paired 1.11x); confirmation
+  0.626 -> 0.470 ms, paired 1.26x. Kept. Probe output byte-identical for
+  `serial`, `parallel` and `domain`; parity passed everywhere.
