@@ -53,8 +53,46 @@ fn terms<const G: bool, const DX: bool>(
     (g, dx, dy)
 }
 
+/// Coefficient table ranges sharing one pressure exponent: (exponent, start, end).
+type Groups<const N: usize> = [(usize, usize, usize); N];
+
+const fn count_groups(coeffs: &[(i32, i32, f64)]) -> usize {
+    let mut count = 1;
+    let mut k = 1;
+    while k < coeffs.len() {
+        assert!(
+            coeffs[k].0 >= coeffs[k - 1].0,
+            "coefficients must be sorted by I"
+        );
+        if coeffs[k].0 != coeffs[k - 1].0 {
+            count += 1;
+        }
+        k += 1;
+    }
+    count
+}
+
+const fn groups<const N: usize>(coeffs: &[(i32, i32, f64)]) -> Groups<N> {
+    let mut out = [(0, 0, 0); N];
+    let mut group = 0;
+    let mut start = 0;
+    let mut k = 1;
+    while k <= coeffs.len() {
+        if k == coeffs.len() || coeffs[k].0 != coeffs[start].0 {
+            out[group] = (coeffs[start].0 as usize, start, k);
+            group += 1;
+            start = k;
+        }
+        k += 1;
+    }
+    out
+}
+
+const R1_GROUPS: Groups<{ count_groups(&R1) }> = groups(&R1);
+const R2_GROUPS: Groups<{ count_groups(&R2) }> = groups(&R2);
+
 /// Gibbs sum and its derivatives: (gamma, gamma_pi, gamma_tau, gamma_tau_tau).
-/// The first three accumulate in the same order whatever `DYY` is.
+/// Terms are summed per pressure exponent first, then scaled by that power.
 fn curvature_terms<const G: bool, const DX: bool, const DYY: bool>(
     xp: &[f64; 33],
     y: f64,
@@ -74,21 +112,31 @@ fn curvature_terms<const G: bool, const DX: bool, const DYY: bool>(
             yp[j as usize]
         }
     };
+    let groups: &[(usize, usize, usize)] = if liquid { &R1_GROUPS } else { &R2_GROUPS };
     let (mut g, mut dx, mut dy, mut dyy) = (0.0, 0.0, 0.0, 0.0);
-    for &(i, j, n) in coeffs {
-        let a = xp[i as usize];
-        let b = power_y(j);
+    for &(i, start, end) in groups {
+        let (mut sum, mut sum_y, mut sum_yy) = (0.0, 0.0, 0.0);
+        for &(_, j, n) in &coeffs[start..end] {
+            if G || DX {
+                sum += n * power_y(j);
+            }
+            if j != 0 {
+                sum_y += n * f64::from(j) * power_y(j - 1);
+            }
+            if DYY && j != 0 && j != 1 {
+                sum_yy += n * f64::from(j * (j - 1)) * power_y(j - 2);
+            }
+        }
+        let a = xp[i];
         if G {
-            g += n * a * b;
+            g += a * sum;
         }
         if DX && i != 0 {
-            dx += n * f64::from(i) * xp[(i - 1) as usize] * b;
+            dx += i as f64 * xp[i - 1] * sum;
         }
-        if j != 0 {
-            dy += n * f64::from(j) * a * power_y(j - 1);
-        }
-        if DYY && j != 0 && j != 1 {
-            dyy += n * f64::from(j * (j - 1)) * a * power_y(j - 2);
+        dy += a * sum_y;
+        if DYY {
+            dyy += a * sum_yy;
         }
     }
     (g, dx, dy, dyy)
@@ -477,6 +525,54 @@ mod tests {
             check::<true>(p, 1073.1);
             check::<false>(p, 1073.1);
         }
+    }
+
+    /// Plain term-by-term sums with `powi`, the textbook form of the Gibbs series.
+    fn reference_terms(x: f64, y: f64, coeffs: &[(i32, i32, f64)]) -> [f64; 4] {
+        let mut out = [0.0; 4];
+        for &(i, j, n) in coeffs {
+            out[0] += n * x.powi(i) * y.powi(j);
+            out[1] += n * f64::from(i) * x.powi(i - 1) * y.powi(j);
+            out[2] += n * f64::from(j) * x.powi(i) * y.powi(j - 1);
+            out[3] += n * f64::from(j * (j - 1)) * x.powi(i) * y.powi(j - 2);
+        }
+        out
+    }
+
+    #[test]
+    fn grouped_terms_match_term_by_term_sums() {
+        let close = |a: f64, b: f64, scale: f64| (a - b).abs() <= 1e-12 * scale.max(1e-300);
+        for (p, t) in [(1e3, 280.0), (3e6, 300.0), (8e6, 500.0), (1.6e7, 600.0)] {
+            let x = 7.1 - p / 16.53e6;
+            let y = 1386.0 / t - 1.222;
+            let (g, dx, dy, dyy) =
+                curvature_terms::<true, true, true>(&pressure_powers(x, true), y, &R1);
+            let r = reference_terms(x, y, &R1);
+            let scale: f64 = R1
+                .iter()
+                .map(|&(i, j, n)| (n * x.powi(i) * y.powi(j - 2)).abs())
+                .sum::<f64>()
+                * 1e3;
+            for (got, want) in [g, dx, dy, dyy].into_iter().zip(r) {
+                assert!(close(got, want, scale), "R1 {p} {t}: {got} {want}");
+            }
+        }
+        for (p, t) in [(1e3, 300.0), (1e5, 400.0), (2e6, 700.0), (1.6e7, 1073.0)] {
+            let x = p / 1e6;
+            let y = 540.0 / t - 0.5;
+            let (g, dx, dy, dyy) =
+                curvature_terms::<true, true, true>(&pressure_powers(x, false), y, &R2);
+            let r = reference_terms(x, y, &R2);
+            for (got, want) in [g, dx, dy, dyy].into_iter().zip(r) {
+                assert!(
+                    close(got, want, want.abs() + 1e-9),
+                    "R2 {p} {t}: {got} {want}"
+                );
+            }
+        }
+        assert_eq!(R1_GROUPS.len(), 13);
+        assert_eq!(R2_GROUPS.len(), 17);
+        assert_eq!(R2_GROUPS[R2_GROUPS.len() - 1], (24, 40, 43));
     }
 
     #[test]

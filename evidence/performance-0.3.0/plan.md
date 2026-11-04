@@ -142,3 +142,20 @@ the median of per-sample-pair ratios. For every round from 2 on:
   chain dominated the evaluation latency. Parity passed on every workload
   and mode; `validate.py` passed against the release CLI
   (`round05-validation.json`).
+
+## Round 6: factor pressure powers out of the Gibbs term sums
+
+- Profile reasoning after round 5: each of g, g_pi, g_tau and g_tautau is
+  accumulated over all 43 (Region 2) or 34 (Region 1) terms in one serial
+  add chain, and every term multiplies by its pressure power again.
+- Change: group the coefficient tables by pressure exponent (tables are
+  already sorted by it; groups are computed at compile time). Sum the short
+  per-group reduced-temperature series first, then combine each group with
+  its pressure power. g and g_pi share the same inner sum. Fewer
+  multiplications and per-group chains of at most eight terms.
+- Workload: `serial` with the matrix API on both sides.
+- Expected effect: roughly 1.1-1.3x on the kernel.
+- Last bits change (summation order); run `validate.py`.
+- Result: official 0.273 -> 0.256 ms, 1.07x (paired 1.11x); confirmation
+  0.280 -> 0.255 ms, paired 1.11x. Kept. Parity passed on every workload
+  and mode; `validate.py` passed (`round06-validation.json`).
