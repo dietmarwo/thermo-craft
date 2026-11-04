@@ -1,1 +1,1 @@
-{"batch":true,"models":["bounded_if97_regions_1_2_4","closed_rankine","two_open_heater_rankine"],"schema":"thermo-craft.capabilities/0.1","version":"0.2.0","worker_limit":64}
+{"batch":true,"models":["bounded_if97_regions_1_2_4","closed_rankine","two_open_heater_rankine"],"schema":"thermo-craft.capabilities/0.1","version":"0.3.0","worker_limit":64}
