@@ -2,8 +2,7 @@
 mod if97;
 use crate::{Evaluation, Work, infeasible, invalid};
 use if97::{State, invert, pq, pt, saturation};
-use serde::Deserialize;
-use serde_json::json;
+use serde::{Deserialize, Serialize};
 
 pub const CAPABILITIES: &[&str] = &[
     "bounded_if97_regions_1_2_4",
@@ -29,6 +28,36 @@ pub enum Input {
 pub enum Model {
     Property,
     Rankine(Plant),
+}
+
+/// Typed record metrics. Struct fields are declared in sorted key order, so the
+/// JSON is byte-identical to the sorted `serde_json::Value` maps of 0.2.0.
+#[derive(Default, Serialize)]
+#[serde(untagged)]
+pub enum Metrics {
+    /// Lean and matrix evaluations: serialized as `null`.
+    #[default]
+    Skipped,
+    Property {
+        state: State,
+    },
+    Cycle(Cycle),
+}
+
+#[derive(Serialize)]
+pub struct Cycle {
+    condenser_mass_fraction: f64,
+    efficiency: f64,
+    energy_residual_j_kg: f64,
+    exhaust_quality: f64,
+    extractions_low_high: [f64; 2],
+    gross_work_j_kg: f64,
+    heat_in_j_kg: f64,
+    heat_rejected_j_kg: f64,
+    heater_residuals_j_kg: [f64; 2],
+    net_work_j_kg: f64,
+    pump_work_j_kg: f64,
+    states: Option<Vec<State>>,
 }
 pub struct Plant {
     inlet: State,
@@ -88,7 +117,7 @@ pub fn evaluate(model: &Model, parameters: &[f64], work: &mut Work<'_>) -> Evalu
                     ));
                 }
             };
-            Ok((state.h_j_kg, work.metrics(|| json!({"state":state}))))
+            Ok((state.h_j_kg, work.metrics(|| Metrics::Property { state })))
         }
         Model::Rankine(plant) => solve(plant, parameters, work),
     }
@@ -198,10 +227,21 @@ fn solve(p: &Plant, parameters: &[f64], work: &mut Work<'_>) -> Evaluation {
     let efficiency = net / inlet_heat;
     Ok((
         -efficiency,
-        work.metrics(|| json!({"efficiency":efficiency,"gross_work_j_kg":turbine_work,
-        "pump_work_j_kg":pump_work,"net_work_j_kg":net,"heat_in_j_kg":inlet_heat,
-        "heat_rejected_j_kg":heat_rejected,"exhaust_quality":quality,"energy_residual_j_kg":residual,
-        "condenser_mass_fraction":condenser_mass,"extractions_low_high":extractions,
-        "heater_residuals_j_kg":heater_residuals,"states":states})),
+        work.metrics(|| {
+            Metrics::Cycle(Cycle {
+                condenser_mass_fraction: condenser_mass,
+                efficiency,
+                energy_residual_j_kg: residual,
+                exhaust_quality: quality,
+                extractions_low_high: extractions,
+                gross_work_j_kg: turbine_work,
+                heat_in_j_kg: inlet_heat,
+                heat_rejected_j_kg: heat_rejected,
+                heater_residuals_j_kg: heater_residuals,
+                net_work_j_kg: net,
+                pump_work_j_kg: pump_work,
+                states,
+            })
+        }),
     ))
 }

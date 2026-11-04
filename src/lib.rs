@@ -13,7 +13,7 @@ use std::{
     time::{Duration, Instant},
 };
 
-pub type Evaluation = Result<(f64, Value), Failure>;
+pub(crate) type Evaluation = Result<(f64, domain::Metrics), Failure>;
 
 #[derive(Debug, Clone)]
 pub struct Failure {
@@ -79,11 +79,12 @@ pub struct Work<'a> {
     metrics_enabled: bool,
 }
 impl Work<'_> {
-    pub fn metrics(&self, make: impl FnOnce() -> Value) -> Value {
+    /// Build diagnostics only for full records; lean and matrix calls get the default.
+    pub fn metrics<T: Default>(&self, make: impl FnOnce() -> T) -> T {
         if self.metrics_enabled {
             make()
         } else {
-            Value::Null
+            T::default()
         }
     }
 
@@ -134,13 +135,21 @@ pub struct MatrixScore {
     pub score: Option<f64>,
 }
 
+/// Domain metrics for complete records, or a failure's optional diagnostic value.
+#[derive(Serialize)]
+#[serde(untagged)]
+enum RecordMetrics {
+    Domain(domain::Metrics),
+    Value(Value),
+}
+
 #[derive(Serialize)]
 struct Record<'a> {
     id: &'a str,
     status: &'static str,
     steps: u64,
     score: Option<f64>,
-    metrics: Option<Value>,
+    metrics: Option<RecordMetrics>,
     detail: Option<String>,
 }
 
@@ -277,7 +286,7 @@ impl Prepared {
                 status: "complete",
                 steps,
                 score: Some(score),
-                metrics: Some(metrics),
+                metrics: Some(RecordMetrics::Domain(metrics)),
                 detail: None,
             },
             (steps, Err(e)) => Record {
@@ -285,7 +294,11 @@ impl Prepared {
                 status: e.status,
                 steps,
                 score: None,
-                metrics: if metrics_enabled { e.metrics } else { None },
+                metrics: if metrics_enabled {
+                    e.metrics.map(RecordMetrics::Value)
+                } else {
+                    None
+                },
                 detail: Some(e.detail),
             },
         }
@@ -630,6 +643,32 @@ mod tests {
             Sha256::digest(example["model"].to_string().as_bytes())
         );
         assert_eq!(prepared.model_sha256(), hash);
+    }
+
+    #[test]
+    fn typed_metrics_serialize_like_sorted_value_maps() {
+        let example = fixture();
+        let mut simple = example["model"].clone();
+        simple["extraction"] = json!(false);
+        for (model, parameters) in [
+            (example["model"].clone(), example["parameters"].clone()),
+            (simple, json!([])),
+            (json!({"kind": "property"}), json!([3e6, 300.0])),
+            (json!({"kind": "property"}), json!([1e5, 0.5, 0.0])),
+        ] {
+            let prepared = Prepared::new(&model.to_string()).unwrap();
+            let candidates = json!([{"id": "a", "parameters": parameters}]).to_string();
+            let parameters: Vec<f64> = serde_json::from_value(parameters).unwrap();
+            let budget = Budget::default();
+            let (_, result) = prepared.outcome(&parameters, &budget, None, true);
+            let (_, metrics) = result.unwrap();
+            let text = serde_json::to_string(&metrics).unwrap();
+            // `Value` maps are sorted, so equal text means the typed field order is sorted.
+            assert_eq!(text, serde_json::to_value(&metrics).unwrap().to_string());
+            assert!(text.starts_with('{') && text.len() > 100, "{text}");
+            let lean = prepared.scores_json(&candidates, "{}").unwrap();
+            assert!(lean.contains(r#""metrics":null"#));
+        }
     }
 
     #[test]

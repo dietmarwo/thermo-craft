@@ -5,14 +5,15 @@ use crate::{Failure, Work, infeasible, invalid};
 use coefficients::{IDEAL, R1, R2, SAT};
 const R: f64 = 461.526;
 
+/// Fields are declared in sorted key order so direct serialization matches a sorted JSON map.
 #[derive(Clone, Copy, Debug, serde::Serialize)]
 pub struct State {
-    pub p_pa: f64,
-    pub t_k: f64,
     pub h_j_kg: f64,
-    pub s_j_kg_k: f64,
-    pub v_m3_kg: f64,
+    pub p_pa: f64,
     pub quality: Option<f64>,
+    pub s_j_kg_k: f64,
+    pub t_k: f64,
+    pub v_m3_kg: f64,
 }
 
 fn pressure_powers(x: f64, liquid: bool) -> [f64; 33] {

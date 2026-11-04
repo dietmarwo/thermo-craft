@@ -87,3 +87,19 @@ the median of per-sample-pair ratios. For every round from 2 on:
   2.269 -> 0.750 ms, paired 3.03x. Kept. Probe parity passed on every
   workload and API mode; `validate.py` passed against the release CLI
   (`round02-validation.json`; best efficiency moved by 2.1e-13).
+
+## Round 3: typed metrics serialized directly
+
+- Profile after round 2 (scratch harness, 96 serial candidates): lean
+  domain about 0.54 ms per batch, full `evaluate_json` about 1.8 ms. Building
+  `serde_json::Value` metrics (a sorted map per record and per state, about
+  100 allocations per record) and encoding them costs about 13 us per record.
+- Change: the domain returns a typed `Metrics` enum (skipped, property state,
+  cycle) whose struct fields are declared in sorted key order, so the JSON is
+  byte-identical to the sorted `Value` maps. Records serialize it directly.
+- Workload: `serial` (96 full records, one worker), full API both sides.
+- Expected effect: about 1.5-2x on full serial records; lean and matrix
+  paths unaffected. Bit-identical values.
+- Result: official 1.482 -> 0.805 ms, 1.84x (paired 1.61x); confirmation
+  1.311 -> 0.791 ms, paired 1.66x. Kept. Probe output is byte-identical for
+  `serial`, `trace` and `domain2`; parity passed on every workload and mode.
