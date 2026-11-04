@@ -126,10 +126,9 @@ fn solve(p: &Plant, parameters: &[f64], work: &mut Work<'_>) -> Evaluation {
     let cond = p.condenser[0];
     let inlet = p.inlet;
     let turbine = |before: State, pair: [State; 2], work: &mut Work<'_>| {
-        let pressure = pair[0].p_pa;
-        let ideal = invert::<false>(pressure, pair, before.s_j_kg_k, work)?;
+        let ideal = invert::<false>(pair, before.s_j_kg_k, work)?;
         let h = before.h_j_kg - p.turbine_efficiency * (before.h_j_kg - ideal.h_j_kg);
-        invert::<true>(pressure, pair, h, work)
+        invert::<true>(pair, h, work)
     };
     let pump = |liquid: State, dest: f64| liquid.v_m3_kg * (dest - liquid.p_pa) / p.pump_efficiency;
     let (

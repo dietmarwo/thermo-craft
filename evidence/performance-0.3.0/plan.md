@@ -103,3 +103,22 @@ the median of per-sample-pair ratios. For every round from 2 on:
 - Result: official 1.482 -> 0.805 ms, 1.84x (paired 1.61x); confirmation
   1.311 -> 0.791 ms, paired 1.66x. Kept. Probe output is byte-identical for
   `serial`, `trace` and `domain2`; parity passed on every workload and mode.
+
+## Round 4: reuse the saturation property as the near bracket value
+
+- Profile after round 3: a serial candidate makes about 23 Gibbs
+  evaluations: four for the two saturation pairs, and per single-phase
+  inverse two bracket-end values, 3-4 Newton evaluations and one final
+  state. The bracket end at the saturation temperature repeats the
+  saturation state's own computation (same pressure powers, same terms,
+  same operation order), so its value equals that state's enthalpy or
+  entropy bit for bit.
+- Change: take that end value from the saturation pair; evaluate only the
+  far end (273.16 K or 1073.15 K). A unit test asserts the bit equality.
+- Workload: `domain` with the matrix API on both sides (isolates the
+  kernel; four single-phase inverses per candidate).
+- Expected effect: about 4 of about 30 Gibbs evaluations removed per
+  candidate, roughly 1.08-1.15x. Bit-identical results.
+- Result: official 0.556 -> 0.491 ms, 1.13x (paired 1.14x); confirmation
+  0.558 -> 0.495 ms, paired 1.13x. Kept. Probe output byte-identical for
+  `serial`, `domain`, `domain2` and `trace`; parity passed everywhere.

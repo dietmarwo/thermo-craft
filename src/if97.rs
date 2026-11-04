@@ -215,13 +215,15 @@ fn mix([a, b]: [State; 2], x: f64) -> State {
         quality: Some(x),
     }
 }
+/// Single-phase or wet state at the saturation pair's pressure with the given
+/// enthalpy (`ENTHALPY`) or entropy.
 pub fn invert<const ENTHALPY: bool>(
-    p: f64,
     pair: [State; 2],
     target: f64,
     work: &mut Work<'_>,
 ) -> Result<State, Failure> {
     let [a, b] = pair;
+    let p = a.p_pa;
     let property = |state: State| {
         if ENTHALPY {
             state.h_j_kg
@@ -246,31 +248,14 @@ pub fn invert<const ENTHALPY: bool>(
     } else {
         0.0
     };
-    let eval = |t| {
-        let (tau, g, dy) = if liquid_phase {
-            let tau = 1386.0 / t;
-            let (g, _, dy) = if ENTHALPY {
-                terms::<false, false>(&powers, tau - 1.222, &R1)
-            } else {
-                terms::<true, false>(&powers, tau - 1.222, &R1)
-            };
-            (tau, g, dy)
-        } else {
-            let tau = 540.0 / t;
-            let (g, _, dy) = if ENTHALPY {
-                vapor_terms::<false, false>(pi, log_pi, tau, &powers)
-            } else {
-                vapor_terms::<true, false>(pi, log_pi, tau, &powers)
-            };
-            (tau, g, dy)
-        };
-        if ENTHALPY {
-            R * t * tau * dy
-        } else {
-            R * (tau * dy - g)
-        }
+    let eval = |t| scalar_property::<ENTHALPY>(liquid_phase, pi, log_pi, &powers, t);
+    // The saturation-side bracket value repeats the saturation state's computation
+    // exactly, so it is taken from the pair; only the far end is evaluated.
+    let (at_left, at_right) = if liquid_phase {
+        (eval(left), low)
+    } else {
+        (high, eval(right))
     };
-    let (at_left, at_right) = (eval(left), eval(right));
     if target < at_left || target > at_right {
         return Err(infeasible("inverse state outside bounded IF97 envelope"));
     }
@@ -310,6 +295,38 @@ pub fn invert<const ENTHALPY: bool>(
     } else {
         vapor_at(p, t, &powers)
     })
+}
+
+/// Enthalpy or entropy at fixed pressure, with the same operations as `liquid_at`/`vapor_at`.
+fn scalar_property<const ENTHALPY: bool>(
+    liquid_phase: bool,
+    pi: f64,
+    log_pi: f64,
+    powers: &[f64; 33],
+    t: f64,
+) -> f64 {
+    let (tau, g, dy) = if liquid_phase {
+        let tau = 1386.0 / t;
+        let (g, _, dy) = if ENTHALPY {
+            terms::<false, false>(powers, tau - 1.222, &R1)
+        } else {
+            terms::<true, false>(powers, tau - 1.222, &R1)
+        };
+        (tau, g, dy)
+    } else {
+        let tau = 540.0 / t;
+        let (g, _, dy) = if ENTHALPY {
+            vapor_terms::<false, false>(pi, log_pi, tau, powers)
+        } else {
+            vapor_terms::<true, false>(pi, log_pi, tau, powers)
+        };
+        (tau, g, dy)
+    };
+    if ENTHALPY {
+        R * t * tau * dy
+    } else {
+        R * (tau * dy - g)
+    }
 }
 
 /// Logical work charged per single-phase inverse state.
@@ -409,7 +426,7 @@ mod tests {
             monitored: false,
             metrics_enabled: false,
         };
-        let solved = invert::<ENTHALPY>(p, saturation(p).unwrap(), target, &mut work).unwrap();
+        let solved = invert::<ENTHALPY>(saturation(p).unwrap(), target, &mut work).unwrap();
         assert_eq!(work.used, 40);
         let reference = bisection::<ENTHALPY>(p, liquid_phase, target);
         let bracket = if liquid_phase { 800.0 } else { 1073.15 } / 2f64.powi(41);
@@ -448,6 +465,30 @@ mod tests {
     }
 
     #[test]
+    fn saturation_bracket_values_repeat_the_saturation_states_bit_for_bit() {
+        for p in [
+            1e3, 1.5e3, 1e4, 1.5e4, 1e5, 3e5, 1e6, 2e6, 8e6, 1.2e7, 1.6e7,
+        ] {
+            let [a, b] = saturation(p).unwrap();
+            let pi = p / 1e6;
+            let liquid_powers = pressure_powers(7.1 - p / 16.53e6, true);
+            let vapor_powers = pressure_powers(pi, false);
+            let h = scalar_property::<true>(true, pi, 0.0, &liquid_powers, a.t_k);
+            let s = scalar_property::<false>(true, pi, 0.0, &liquid_powers, a.t_k);
+            assert_eq!(
+                (h.to_bits(), s.to_bits()),
+                (a.h_j_kg.to_bits(), a.s_j_kg_k.to_bits())
+            );
+            let h = scalar_property::<true>(false, pi, 0.0, &vapor_powers, b.t_k);
+            let s = scalar_property::<false>(false, pi, pi.ln(), &vapor_powers, b.t_k);
+            assert_eq!(
+                (h.to_bits(), s.to_bits()),
+                (b.h_j_kg.to_bits(), b.s_j_kg_k.to_bits())
+            );
+        }
+    }
+
+    #[test]
     fn inverse_charges_forty_steps_and_stops_at_the_limit() {
         let p = 2e6;
         let target = pt(p, 650.0).unwrap().h_j_kg;
@@ -459,10 +500,10 @@ mod tests {
             monitored: false,
             metrics_enabled: false,
         };
-        let failure = invert::<true>(p, saturation(p).unwrap(), target, &mut work).unwrap_err();
+        let failure = invert::<true>(saturation(p).unwrap(), target, &mut work).unwrap_err();
         assert_eq!((failure.status, work.used), ("work_limit", 25));
         let outside = pt(p, 1073.0).unwrap().h_j_kg * 1.01;
-        let failure = invert::<true>(p, saturation(p).unwrap(), outside, &mut work).unwrap_err();
+        let failure = invert::<true>(saturation(p).unwrap(), outside, &mut work).unwrap_err();
         assert_eq!(failure.status, "infeasible");
     }
 }
