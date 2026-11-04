@@ -44,6 +44,94 @@ pub enum Metrics {
     Cycle(Cycle),
 }
 
+impl Metrics {
+    /// Write the same bytes as the derived serializer, with static keys.
+    pub fn write_json(&self, out: &mut Vec<u8>) -> Result<(), String> {
+        match self {
+            Metrics::Skipped => out.extend_from_slice(b"null"),
+            Metrics::Property { state } => {
+                out.extend_from_slice(br#"{"state":"#);
+                write_state(out, state)?;
+                out.push(b'}');
+            }
+            Metrics::Cycle(c) => {
+                let numbers: [(&[u8], f64); 4] = [
+                    (br#"{"condenser_mass_fraction":"#, c.condenser_mass_fraction),
+                    (br#","efficiency":"#, c.efficiency),
+                    (br#","energy_residual_j_kg":"#, c.energy_residual_j_kg),
+                    (br#","exhaust_quality":"#, c.exhaust_quality),
+                ];
+                write_numbers(out, &numbers)?;
+                out.extend_from_slice(br#","extractions_low_high":"#);
+                write_pair(out, c.extractions_low_high)?;
+                let numbers: [(&[u8], f64); 3] = [
+                    (br#","gross_work_j_kg":"#, c.gross_work_j_kg),
+                    (br#","heat_in_j_kg":"#, c.heat_in_j_kg),
+                    (br#","heat_rejected_j_kg":"#, c.heat_rejected_j_kg),
+                ];
+                write_numbers(out, &numbers)?;
+                out.extend_from_slice(br#","heater_residuals_j_kg":"#);
+                write_pair(out, c.heater_residuals_j_kg)?;
+                let numbers: [(&[u8], f64); 2] = [
+                    (br#","net_work_j_kg":"#, c.net_work_j_kg),
+                    (br#","pump_work_j_kg":"#, c.pump_work_j_kg),
+                ];
+                write_numbers(out, &numbers)?;
+                out.extend_from_slice(br#","states":"#);
+                match &c.states {
+                    None => out.extend_from_slice(b"null"),
+                    Some(states) => {
+                        out.push(b'[');
+                        for (i, state) in states.iter().enumerate() {
+                            if i > 0 {
+                                out.push(b',');
+                            }
+                            write_state(out, state)?;
+                        }
+                        out.push(b']');
+                    }
+                }
+                out.push(b'}');
+            }
+        }
+        Ok(())
+    }
+}
+
+fn write_numbers(out: &mut Vec<u8>, fields: &[(&[u8], f64)]) -> Result<(), String> {
+    for &(key, value) in fields {
+        out.extend_from_slice(key);
+        crate::write_value(out, &value)?;
+    }
+    Ok(())
+}
+
+fn write_pair(out: &mut Vec<u8>, [a, b]: [f64; 2]) -> Result<(), String> {
+    out.push(b'[');
+    crate::write_value(out, &a)?;
+    out.push(b',');
+    crate::write_value(out, &b)?;
+    out.push(b']');
+    Ok(())
+}
+
+fn write_state(out: &mut Vec<u8>, s: &State) -> Result<(), String> {
+    write_numbers(
+        out,
+        &[(br#"{"h_j_kg":"#, s.h_j_kg), (br#","p_pa":"#, s.p_pa)],
+    )?;
+    out.extend_from_slice(br#","quality":"#);
+    crate::write_value(out, &s.quality)?;
+    let numbers: [(&[u8], f64); 3] = [
+        (br#","s_j_kg_k":"#, s.s_j_kg_k),
+        (br#","t_k":"#, s.t_k),
+        (br#","v_m3_kg":"#, s.v_m3_kg),
+    ];
+    write_numbers(out, &numbers)?;
+    out.push(b'}');
+    Ok(())
+}
+
 #[derive(Serialize)]
 pub struct Cycle {
     condenser_mass_fraction: f64,

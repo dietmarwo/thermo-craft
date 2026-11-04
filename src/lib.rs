@@ -161,6 +161,59 @@ struct Batch<'a> {
     version: &'static str,
 }
 
+/// Append one JSON value with serde_json's escaping and number formatting.
+pub(crate) fn write_value<T: Serialize + ?Sized>(
+    out: &mut Vec<u8>,
+    value: &T,
+) -> Result<(), String> {
+    serde_json::to_writer(out, value).map_err(|e| e.to_string())
+}
+
+impl Record<'_> {
+    fn write_json(&self, out: &mut Vec<u8>) -> Result<(), String> {
+        out.extend_from_slice(br#"{"id":"#);
+        write_value(out, self.id)?;
+        out.extend_from_slice(br#","status":"#);
+        write_value(out, self.status)?;
+        out.extend_from_slice(br#","steps":"#);
+        write_value(out, &self.steps)?;
+        out.extend_from_slice(br#","score":"#);
+        write_value(out, &self.score)?;
+        out.extend_from_slice(br#","metrics":"#);
+        match &self.metrics {
+            None => out.extend_from_slice(b"null"),
+            Some(RecordMetrics::Domain(metrics)) => metrics.write_json(out)?,
+            Some(RecordMetrics::Value(value)) => write_value(out, value)?,
+        }
+        out.extend_from_slice(br#","detail":"#);
+        write_value(out, &self.detail)?;
+        out.push(b'}');
+        Ok(())
+    }
+}
+
+impl Batch<'_> {
+    /// The same bytes as `serde_json::to_string(self)`, written with static keys.
+    fn to_json(&self) -> Result<String, String> {
+        let mut out = Vec::with_capacity(160 + 192 * self.records.len());
+        out.extend_from_slice(br#"{"model_sha256":"#);
+        write_value(&mut out, self.model_sha256)?;
+        out.extend_from_slice(br#","records":["#);
+        for (i, record) in self.records.iter().enumerate() {
+            if i > 0 {
+                out.push(b',');
+            }
+            record.write_json(&mut out)?;
+        }
+        out.extend_from_slice(br#"],"schema":"#);
+        write_value(&mut out, self.schema)?;
+        out.extend_from_slice(br#","version":"#);
+        write_value(&mut out, self.version)?;
+        out.push(b'}');
+        String::from_utf8(out).map_err(|e| e.to_string())
+    }
+}
+
 pub struct Prepared {
     model: domain::Model,
     model_sha256: String,
@@ -199,8 +252,8 @@ impl Prepared {
         budget: Budget,
         metrics_enabled: bool,
     ) -> Result<String, String> {
-        serde_json::to_string(&self.evaluate(&candidates, budget, metrics_enabled)?)
-            .map_err(|e| e.to_string())
+        self.evaluate(&candidates, budget, metrics_enabled)?
+            .to_json()
     }
 
     /// SHA-256 of the exact model bytes passed to [`Prepared::new`].
@@ -703,6 +756,71 @@ mod tests {
                 }
             }
         }
+    }
+
+    #[test]
+    fn direct_json_matches_the_derived_serializer() {
+        let example = fixture();
+        let mut simple = example["model"].clone();
+        simple["extraction"] = json!(false);
+        let cancel =
+            std::env::temp_dir().join(format!("thermo-json-cancel-{}", std::process::id()));
+        std::fs::write(&cancel, b"").unwrap();
+        let cancel_budget = json!({"cancel_file": cancel}).to_string();
+        let rankine = json!([
+            {"id": "valid", "parameters": example["parameters"]},
+            {"id": "infeasible", "parameters": [2e6, 1e6]},
+            {"id": "wrong \"size\" \\ \u{1} é ☃", "parameters": [1.0, 2.0, 3.0]},
+        ]);
+        let cases = [
+            (example["model"].clone(), rankine.clone()),
+            (
+                simple,
+                json!([{"id": "s", "parameters": []}, {"id": "t", "parameters": [1.0]}]),
+            ),
+            (
+                json!({"kind": "property"}),
+                json!([
+                    {"id": "pt", "parameters": [3e6, 300.0]},
+                    {"id": "wet", "parameters": [1e5, 0.5, 0.0]},
+                    {"id": "low", "parameters": [1.0, 400.0]},
+                ]),
+            ),
+        ];
+        for (model, candidates) in cases {
+            let prepared = Prepared::new(&model.to_string()).unwrap();
+            let parsed: Vec<Candidate> = serde_json::from_value(candidates).unwrap();
+            for budget in [
+                "{}",
+                r#"{"max_steps":50,"workers":2}"#,
+                cancel_budget.as_str(),
+            ] {
+                for metrics_enabled in [true, false] {
+                    let budget: Budget = serde_json::from_str(budget).unwrap();
+                    let batch = prepared.evaluate(&parsed, budget, metrics_enabled).unwrap();
+                    assert_eq!(
+                        batch.to_json().unwrap(),
+                        serde_json::to_string(&batch).unwrap()
+                    );
+                }
+            }
+        }
+        std::fs::remove_file(&cancel).unwrap();
+        // Failure diagnostics carried as a JSON value use the same writer.
+        let record = Record {
+            id: "f",
+            status: "infeasible",
+            steps: 3,
+            score: None,
+            metrics: Some(RecordMetrics::Value(json!({"b": [1.5, null], "a": "x"}))),
+            detail: Some("detail with \"quotes\"".into()),
+        };
+        let mut out = Vec::new();
+        record.write_json(&mut out).unwrap();
+        assert_eq!(
+            String::from_utf8(out).unwrap(),
+            serde_json::to_string(&record).unwrap()
+        );
     }
 
     #[test]

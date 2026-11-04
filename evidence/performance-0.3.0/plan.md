@@ -224,3 +224,45 @@ the median of per-sample-pair ratios. For every round from 2 on:
   showed every far-end evaluation skipped on `serial` and `domain` with
   unchanged Newton iteration counts. Parity passed everywhere;
   `validate.py` passed (`round09-validation.json`).
+
+## Round 10: carry pressure tables and logarithms with each saturation pair
+
+- Profile after round 9 (scratch harness, min of 25): serial matrix batch
+  168-173 us (about 1.75 us per candidate), vapor state 99 ns, liquid 77 ns,
+  saturation pair 209 ns. Instrumented probes (not kept): enthalpy inverses
+  take 3 Newton evaluations, entropy inverses 4. Besides the Gibbs sums, a
+  serial candidate builds seven pressure-power tables and takes seven
+  logarithms, although every single-phase inverse runs at a pressure whose
+  saturation pair already built the same table and logarithm: the inverse
+  rebuilds the vapor table, takes ln(pi) for entropy or ln(p) for the floor
+  lookup, and its final state takes ln(pi) again.
+- Change: `saturation` returns a `Saturation` value holding the pair, both
+  pressure-power tables, ln(p/1 MPa) and ln(p). Inverses and their final
+  states reuse them. Same expressions, so results are bit-identical.
+- Workload: `serial` with the matrix API on both sides.
+- Expected effect: about three tables and five logarithms fewer per
+  candidate, roughly 1.05-1.1x.
+- Result: official 0.210 -> 0.178 ms, 1.18x (paired 1.19x); confirmation
+  0.190 -> 0.183 ms, ratio of medians 1.04x, paired 1.006x. The
+  confirmation's paired median is below 1.03, so the attempt is rejected
+  and reverted (`rejected/attempt-a-shared-pressure-quantities-*.json`).
+  Output was byte-identical and parity passed.
+
+## Round 10 (second attempt): write result JSON directly
+
+- Profile after round 9 (scratch harness, min of 25): a full serial
+  record is about 1,470 bytes with 55 numbers; serde's derived serializer
+  takes 186 us for 96 records' metrics, a hand-written writer producing
+  identical bytes takes 99 us, and number formatting alone takes 96 us.
+  Encoding is about half of a full serial batch.
+- Change: the result envelope, records and domain metrics are written
+  directly with static keys; numbers, strings, IDs, details and failure
+  `Value`s still go through `serde_json::to_writer`, so escaping and
+  number formatting are serde_json's. The derived `Serialize` impls stay
+  for the CLI's `Value` path and as the test reference; unit tests assert
+  byte equality for full, lean, failing and escaped-ID batches.
+- Workload: `serial` (96 full records, one worker), full API both sides.
+- Expected effect: roughly 1.2-1.3x. Byte-identical output.
+- Result: official 0.443 -> 0.407 ms, 1.09x (paired 1.15x); confirmation
+  0.425 -> 0.361 ms, paired 1.17x. Kept. Probe output byte-identical on all
+  seven workloads (full) and on lean `serial`, `invalid` and `domain2`.
