@@ -67,3 +67,23 @@ the median of per-sample-pair ratios. For every round from 2 on:
    `paired_median_speedup` are at least 1.03. This is stricter than the
    brief's rule, never looser. Otherwise revert and save both JSON files
    under `rejected/`.
+
+## Round 2: safeguarded Newton inverse at fixed pressure
+
+- Change: replace the 40-step bisection on temperature with a Newton solve
+  on the same bracket, using cp (enthalpy) or cp/T (entropy) from a new
+  second reduced-temperature derivative. A step leaving the bracket falls
+  back to bisection. The 40 logical steps are still charged, before the
+  solve, with the same limit, cancel and deadline checks. The range check
+  and the final state reconstruction are unchanged.
+- Workload: `domain` (48 full records at 950 K, four single-phase
+  inverses per candidate). Full API on both sides.
+- Expected effect: 3-4 Gibbs evaluations per inverse instead of 42, so
+  roughly 3-5x on the domain kernel and at least 2x on full domain records.
+- Values change in the last bits (the root is now accurate to about 1e-13 K
+  instead of the 2^-41 bisection bracket); run `validation/validate.py`
+  against the release CLI.
+- Result: official 3.281 -> 1.099 ms, 2.99x (paired 2.98x); confirmation
+  2.269 -> 0.750 ms, paired 3.03x. Kept. Probe parity passed on every
+  workload and API mode; `validate.py` passed against the release CLI
+  (`round02-validation.json`; best efficiency moved by 2.1e-13).
