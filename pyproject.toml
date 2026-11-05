@@ -6,7 +6,11 @@ build-backend = "maturin"
 name = "thermo-craft"
 version = "0.3.0"
 requires-python = ">=3.10"
-description = "Prepared thermo-craft research evaluations"
+description = "Python API for a Rust steam-cycle evaluator: IAPWS-IF97 water and steam properties and Rankine cycles with open feedwater heaters"
+keywords = ["thermodynamics", "IAPWS-IF97", "steam tables", "Rankine cycle", "power plant", "simulation", "optimization", "Rust"]
+
+[project.urls]
+Repository = "https://github.com/dietmarwo/thermo-craft"
 
 [tool.maturin]
 module-name = "thermo_craft._native"

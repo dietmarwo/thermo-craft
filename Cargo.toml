@@ -3,8 +3,11 @@ name = "thermo-craft"
 version = "0.3.0"
 edition = "2024"
 rust-version = "1.88"
-description = "Bounded thermo-craft research evaluator"
+description = "Steam-cycle evaluator: IAPWS-IF97 water and steam properties and Rankine cycles with open feedwater heaters for cycle optimization"
 license = "MIT"
+repository = "https://github.com/dietmarwo/thermo-craft"
+keywords = ["thermodynamics", "iapws-if97", "steam", "rankine-cycle", "simulation"]
+categories = ["science", "simulation"]
 # Ship source, docs, examples, models and validation; release evidence,
 # packages and patch series live in the release ZIP only.
 include = [
