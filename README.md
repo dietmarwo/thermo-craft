@@ -1,3 +1,5 @@
+![thermo-craft — steam cycles and optimization](docs/images/banner.png)
+
 # thermo-craft 0.3.0
 
 A bounded research evaluator for IAPWS-IF97 water and steam properties
