@@ -1,0 +1,1012 @@
+{
+  "evaluation": {
+    "all_complete": true,
+    "cli_exit": 0,
+    "records": 1,
+    "stderr": ""
+  },
+  "evaluator": "thermo-craft",
+  "passed": true,
+  "preset": "smoke",
+  "runs": [
+    {
+      "best": {
+        "budget": 400,
+        "evaluations": 400,
+        "evaluator": "thermo-craft",
+        "model_sha256": "c365d173c54842e093a18c9108be103b21c11d7b4fa943fff8a45eb32420001e",
+        "optimizer": "cmaes",
+        "parameters": [
+          365931.0179105482,
+          2077041.9778621283
+        ],
+        "schema": "domain-evaluator.search/0.1",
+        "score": -0.384129142501243,
+        "seed": 1,
+        "status": "complete",
+        "statuses": {
+          "complete": 399,
+          "infeasible": 1
+        },
+        "steps": 60840,
+        "termination": "evaluation_budget"
+      },
+      "checks": {
+        "cli_status": {
+          "held_out": {
+            "all_complete": true,
+            "cli_exit": 0,
+            "records": 1,
+            "stderr": ""
+          },
+          "nominal": {
+            "all_complete": true,
+            "cli_exit": 0,
+            "records": 1,
+            "stderr": ""
+          }
+        },
+        "metrics": {
+          "held_out_efficiency": 0.35192761380346754,
+          "nominal_efficiency": 0.384129142501243
+        },
+        "model_hashes": {
+          "held_out": {
+            "cli": "c05f967a8aae568146dcbd6f3f928644ca5aae81554c710027a287b22a55a75a",
+            "expected": "c05f967a8aae568146dcbd6f3f928644ca5aae81554c710027a287b22a55a75a"
+          },
+          "nominal": {
+            "cli": "c365d173c54842e093a18c9108be103b21c11d7b4fa943fff8a45eb32420001e",
+            "expected": "c365d173c54842e093a18c9108be103b21c11d7b4fa943fff8a45eb32420001e"
+          }
+        },
+        "model_replayed": true,
+        "passed": true,
+        "records": {
+          "held_out": {
+            "detail": null,
+            "id": "winner",
+            "metrics": {
+              "condenser_mass_fraction": 0.7640750698304662,
+              "efficiency": 0.35192761380346754,
+              "energy_residual_j_kg": 4.656612873077393e-10,
+              "exhaust_quality": 0.9298338348866658,
+              "extractions_low_high": [
+                0.10929750785498213,
+                0.12662742231455154
+              ],
+              "gross_work_j_kg": 916007.7944628653,
+              "heat_in_j_kg": 2571327.2337290114,
+              "heat_rejected_j_kg": 1666406.1760548889,
+              "heater_residuals_j_kg": [
+                5.820766091346741e-11,
+                0.0
+              ],
+              "net_work_j_kg": 904921.057674122,
+              "pump_work_j_kg": 11086.736788743328,
+              "states": [
+                {
+                  "h_j_kg": 3497478.001987539,
+                  "p_pa": 8000000.0,
+                  "quality": null,
+                  "s_j_kg_k": 6850.105323909179,
+                  "t_k": 813.15,
+                  "v_m3_kg": 0.044501896058347944
+                },
+                {
+                  "h_j_kg": 3152465.2571212547,
+                  "p_pa": 2077041.9778621283,
+                  "quality": null,
+                  "s_j_kg_k": 6965.078251102944,
+                  "t_k": 630.5089313433389,
+                  "v_m3_kg": 0.1350707408680494
+                },
+                {
+                  "h_j_kg": 2818948.5439763125,
+                  "p_pa": 365931.0179105482,
+                  "quality": null,
+                  "s_j_kg_k": 7121.657121078594,
+                  "t_k": 452.3240355167153,
+                  "v_m3_kg": 0.5570345115252353
+                },
+                {
+                  "h_j_kg": 2452871.0351288286,
+                  "p_pa": 25000.0,
+                  "quality": 0.9298338348866658,
+                  "s_j_kg_k": 7343.415892475463,
+                  "t_k": 338.11328264554675,
+                  "v_m3_kg": 5.768181845176696
+                },
+                {
+                  "h_j_kg": 271925.41623220267,
+                  "p_pa": 25000.0,
+                  "quality": 0.0,
+                  "s_j_kg_k": 893.088367484906,
+                  "t_k": 338.11328264554675,
+                  "v_m3_kg": 0.00101983332265239
+                },
+                {
+                  "h_j_kg": 591050.8006275212,
+                  "p_pa": 365931.0179105482,
+                  "quality": 0.0,
+                  "s_j_kg_k": 1743.754258759302,
+                  "t_k": 413.5810419027571,
+                  "v_m3_kg": 0.001080208147787254
+                },
+                {
+                  "h_j_kg": 917413.9900385739,
+                  "p_pa": 2077041.9778621283,
+                  "quality": 0.0,
+                  "s_j_kg_k": 2464.9097481215063,
+                  "t_k": 487.4538353980016,
+                  "v_m3_kg": 0.0011800560716181692
+                }
+              ]
+            },
+            "score": -0.35192761380346754,
+            "status": "complete",
+            "steps": 161
+          },
+          "nominal": {
+            "detail": null,
+            "id": "winner",
+            "metrics": {
+              "condenser_mass_fraction": 0.747963710793021,
+              "efficiency": 0.384129142501243,
+              "energy_residual_j_kg": 3.4924596548080444e-10,
+              "exhaust_quality": 0.8924512715046579,
+              "extractions_low_high": [
+                0.12437203481275708,
+                0.12766425439422185
+              ],
+              "gross_work_j_kg": 998806.695130171,
+              "heat_in_j_kg": 2571327.2337290114,
+              "heat_rejected_j_kg": 1583605.5083465925,
+              "heater_residuals_j_kg": [
+                1.1641532182693481e-10,
+                -1.1641532182693481e-10
+              ],
+              "net_work_j_kg": 987721.7253824185,
+              "pump_work_j_kg": 11084.969747752517,
+              "states": [
+                {
+                  "h_j_kg": 3497478.001987539,
+                  "p_pa": 8000000.0,
+                  "quality": null,
+                  "s_j_kg_k": 6850.105323909179,
+                  "t_k": 813.15,
+                  "v_m3_kg": 0.044501896058347944
+                },
+                {
+                  "h_j_kg": 3131681.356828105,
+                  "p_pa": 2077041.9778621283,
+                  "quality": null,
+                  "s_j_kg_k": 6931.868997118445,
+                  "t_k": 621.2142421916134,
+                  "v_m3_kg": 0.132772820273093
+                },
+                {
+                  "h_j_kg": 2784152.8993611415,
+                  "p_pa": 365931.0179105482,
+                  "quality": null,
+                  "s_j_kg_k": 7043.311227602734,
+                  "t_k": 436.0922302395599,
+                  "v_m3_kg": 0.5346716642628325
+                },
+                {
+                  "h_j_kg": 2343157.5019275565,
+                  "p_pa": 15000.0,
+                  "quality": 0.8924512715046579,
+                  "s_j_kg_k": 7227.1449654334065,
+                  "t_k": 327.120266921189,
+                  "v_m3_kg": 8.942794559896665
+                },
+                {
+                  "h_j_kg": 225935.12135565604,
+                  "p_pa": 15000.0,
+                  "quality": 0.0,
+                  "s_j_kg_k": 754.8386490891539,
+                  "t_k": 327.120266921189,
+                  "v_m3_kg": 0.0010140296189788533
+                },
+                {
+                  "h_j_kg": 591050.8006275212,
+                  "p_pa": 365931.0179105482,
+                  "quality": 0.0,
+                  "s_j_kg_k": 1743.754258759302,
+                  "t_k": 413.5810419027571,
+                  "v_m3_kg": 0.001080208147787254
+                },
+                {
+                  "h_j_kg": 917413.9900385739,
+                  "p_pa": 2077041.9778621283,
+                  "quality": 0.0,
+                  "s_j_kg_k": 2464.9097481215063,
+                  "t_k": 487.4538353980016,
+                  "v_m3_kg": 0.0011800560716181692
+                }
+              ]
+            },
+            "score": -0.384129142501243,
+            "status": "complete",
+            "steps": 161
+          }
+        },
+        "scope": "Fixed synthetic Rankine model. Optimize nominal efficiency; report an unused changed condenser/turbine scenario. This is no plant qualification or generalization claim.",
+        "score_replayed": true,
+        "search": {
+          "budget": 400,
+          "evaluations": 400,
+          "evaluator": "thermo-craft",
+          "model_sha256": "c365d173c54842e093a18c9108be103b21c11d7b4fa943fff8a45eb32420001e",
+          "optimizer": "cmaes",
+          "parameters": [
+            365931.0179105482,
+            2077041.9778621283
+          ],
+          "schema": "domain-evaluator.search/0.1",
+          "score": -0.384129142501243,
+          "seed": 1,
+          "status": "complete",
+          "statuses": {
+            "complete": 399,
+            "infeasible": 1
+          },
+          "steps": 60840,
+          "termination": "evaluation_budget"
+        }
+      },
+      "id": "cmaes-1",
+      "passed": true
+    },
+    {
+      "best": {
+        "budget": 400,
+        "evaluations": 400,
+        "evaluator": "thermo-craft",
+        "model_sha256": "c365d173c54842e093a18c9108be103b21c11d7b4fa943fff8a45eb32420001e",
+        "optimizer": "cmaes",
+        "parameters": [
+          365914.88631327666,
+          2076950.6443545148
+        ],
+        "schema": "domain-evaluator.search/0.1",
+        "score": -0.3841291424992388,
+        "seed": 2,
+        "status": "complete",
+        "statuses": {
+          "complete": 399,
+          "infeasible": 1
+        },
+        "steps": 60000,
+        "termination": "evaluation_budget"
+      },
+      "checks": {
+        "cli_status": {
+          "held_out": {
+            "all_complete": true,
+            "cli_exit": 0,
+            "records": 1,
+            "stderr": ""
+          },
+          "nominal": {
+            "all_complete": true,
+            "cli_exit": 0,
+            "records": 1,
+            "stderr": ""
+          }
+        },
+        "metrics": {
+          "held_out_efficiency": 0.3519275785644932,
+          "nominal_efficiency": 0.3841291424992388
+        },
+        "model_hashes": {
+          "held_out": {
+            "cli": "c05f967a8aae568146dcbd6f3f928644ca5aae81554c710027a287b22a55a75a",
+            "expected": "c05f967a8aae568146dcbd6f3f928644ca5aae81554c710027a287b22a55a75a"
+          },
+          "nominal": {
+            "cli": "c365d173c54842e093a18c9108be103b21c11d7b4fa943fff8a45eb32420001e",
+            "expected": "c365d173c54842e093a18c9108be103b21c11d7b4fa943fff8a45eb32420001e"
+          }
+        },
+        "model_replayed": true,
+        "passed": true,
+        "records": {
+          "held_out": {
+            "detail": null,
+            "id": "winner",
+            "metrics": {
+              "condenser_mass_fraction": 0.7640781272393953,
+              "efficiency": 0.3519275785644932,
+              "energy_residual_j_kg": 3.4924596548080444e-10,
+              "exhaust_quality": 0.9298338457893597,
+              "extractions_low_high": [
+                0.10929566762294306,
+                0.12662620513766162
+              ],
+              "gross_work_j_kg": 916011.2888773372,
+              "heat_in_j_kg": 2571337.4131022566,
+              "heat_rejected_j_kg": 1666412.8636368911,
+              "heater_residuals_j_kg": [
+                0.0,
+                0.0
+              ],
+              "net_work_j_kg": 904924.5494653651,
+              "pump_work_j_kg": 11086.739411972121,
+              "states": [
+                {
+                  "h_j_kg": 3497478.001987539,
+                  "p_pa": 8000000.0,
+                  "quality": null,
+                  "s_j_kg_k": 6850.105323909179,
+                  "t_k": 813.15,
+                  "v_m3_kg": 0.044501896058347944
+                },
+                {
+                  "h_j_kg": 3152455.611492054,
+                  "p_pa": 2076950.6443545148,
+                  "quality": null,
+                  "s_j_kg_k": 6965.082519226587,
+                  "t_k": 630.5037780313157,
+                  "v_m3_kg": 0.135075640356454
+                },
+                {
+                  "h_j_kg": 2818941.5229572705,
+                  "p_pa": 365914.88631327666,
+                  "quality": null,
+                  "s_j_kg_k": 7121.661465325146,
+                  "t_k": 452.32026500705246,
+                  "v_m3_kg": 0.5570545442012669
+                },
+                {
+                  "h_j_kg": 2452871.060701336,
+                  "p_pa": 25000.0,
+                  "quality": 0.9298338457893597,
+                  "s_j_kg_k": 7343.415968108273,
+                  "t_k": 338.11328264554675,
+                  "v_m3_kg": 5.768181912799102
+                },
+                {
+                  "h_j_kg": 271925.41623220267,
+                  "p_pa": 25000.0,
+                  "quality": 0.0,
+                  "s_j_kg_k": 893.088367484906,
+                  "t_k": 338.11328264554675,
+                  "v_m3_kg": 0.00101983332265239
+                },
+                {
+                  "h_j_kg": 591044.0941100671,
+                  "p_pa": 365914.88631327666,
+                  "quality": 0.0,
+                  "s_j_kg_k": 1743.7380851344553,
+                  "t_k": 413.57947995746633,
+                  "v_m3_kg": 0.001080206520170108
+                },
+                {
+                  "h_j_kg": 917403.7047457068,
+                  "p_pa": 2076950.6443545148,
+                  "quality": 0.0,
+                  "s_j_kg_k": 2464.888869143734,
+                  "t_k": 487.45159297776,
+                  "v_m3_kg": 0.0011800521812297187
+                }
+              ]
+            },
+            "score": -0.3519275785644932,
+            "status": "complete",
+            "steps": 161
+          },
+          "nominal": {
+            "detail": null,
+            "id": "winner",
+            "metrics": {
+              "condenser_mass_fraction": 0.7479666646175144,
+              "efficiency": 0.3841291424992388,
+              "energy_residual_j_kg": 2.3283064365386963e-10,
+              "exhaust_quality": 0.8924512801164205,
+              "extractions_low_high": [
+                0.12437027774968286,
+                0.12766305763280275
+              ],
+              "gross_work_j_kg": 998810.6084078591,
+              "heat_in_j_kg": 2571337.4131022566,
+              "heat_rejected_j_kg": 1583611.7775310755,
+              "heater_residuals_j_kg": [
+                0.0,
+                1.1641532182693481e-10
+              ],
+              "net_work_j_kg": 987725.6355711808,
+              "pump_work_j_kg": 11084.972836678317,
+              "states": [
+                {
+                  "h_j_kg": 3497478.001987539,
+                  "p_pa": 8000000.0,
+                  "quality": null,
+                  "s_j_kg_k": 6850.105323909179,
+                  "t_k": 813.15,
+                  "v_m3_kg": 0.044501896058347944
+                },
+                {
+                  "h_j_kg": 3131671.1301369052,
+                  "p_pa": 2076950.6443545148,
+                  "quality": null,
+                  "s_j_kg_k": 6931.872055870899,
+                  "t_k": 621.2088094677839,
+                  "v_m3_kg": 0.1327775521878119
+                },
+                {
+                  "h_j_kg": 2784145.6270727976,
+                  "p_pa": 365914.88631327666,
+                  "quality": null,
+                  "s_j_kg_k": 7043.314330106879,
+                  "t_k": 436.0883420391692,
+                  "v_m3_kg": 0.5346905471969423
+                },
+                {
+                  "h_j_kg": 2343157.522357822,
+                  "p_pa": 15000.0,
+                  "quality": 0.8924512801164205,
+                  "s_j_kg_k": 7227.1450278883185,
+                  "t_k": 327.120266921189,
+                  "v_m3_kg": 8.94279464618092
+                },
+                {
+                  "h_j_kg": 225935.12135565604,
+                  "p_pa": 15000.0,
+                  "quality": 0.0,
+                  "s_j_kg_k": 754.8386490891539,
+                  "t_k": 327.120266921189,
+                  "v_m3_kg": 0.0010140296189788533
+                },
+                {
+                  "h_j_kg": 591044.0941100671,
+                  "p_pa": 365914.88631327666,
+                  "quality": 0.0,
+                  "s_j_kg_k": 1743.7380851344553,
+                  "t_k": 413.57947995746633,
+                  "v_m3_kg": 0.001080206520170108
+                },
+                {
+                  "h_j_kg": 917403.7047457068,
+                  "p_pa": 2076950.6443545148,
+                  "quality": 0.0,
+                  "s_j_kg_k": 2464.888869143734,
+                  "t_k": 487.45159297776,
+                  "v_m3_kg": 0.0011800521812297187
+                }
+              ]
+            },
+            "score": -0.3841291424992388,
+            "status": "complete",
+            "steps": 161
+          }
+        },
+        "scope": "Fixed synthetic Rankine model. Optimize nominal efficiency; report an unused changed condenser/turbine scenario. This is no plant qualification or generalization claim.",
+        "score_replayed": true,
+        "search": {
+          "budget": 400,
+          "evaluations": 400,
+          "evaluator": "thermo-craft",
+          "model_sha256": "c365d173c54842e093a18c9108be103b21c11d7b4fa943fff8a45eb32420001e",
+          "optimizer": "cmaes",
+          "parameters": [
+            365914.88631327666,
+            2076950.6443545148
+          ],
+          "schema": "domain-evaluator.search/0.1",
+          "score": -0.3841291424992388,
+          "seed": 2,
+          "status": "complete",
+          "statuses": {
+            "complete": 399,
+            "infeasible": 1
+          },
+          "steps": 60000,
+          "termination": "evaluation_budget"
+        }
+      },
+      "id": "cmaes-2",
+      "passed": true
+    },
+    {
+      "best": {
+        "budget": 400,
+        "evaluations": 400,
+        "evaluator": "thermo-craft",
+        "model_sha256": "c365d173c54842e093a18c9108be103b21c11d7b4fa943fff8a45eb32420001e",
+        "optimizer": "de",
+        "parameters": [
+          365952.0388817742,
+          2077189.3231286998
+        ],
+        "schema": "domain-evaluator.search/0.1",
+        "score": -0.3841291424661944,
+        "seed": 1,
+        "status": "complete",
+        "statuses": {
+          "complete": 400
+        },
+        "steps": 60120,
+        "termination": "evaluation_budget"
+      },
+      "checks": {
+        "cli_status": {
+          "held_out": {
+            "all_complete": true,
+            "cli_exit": 0,
+            "records": 1,
+            "stderr": ""
+          },
+          "nominal": {
+            "all_complete": true,
+            "cli_exit": 0,
+            "records": 1,
+            "stderr": ""
+          }
+        },
+        "metrics": {
+          "held_out_efficiency": 0.3519276568829677,
+          "nominal_efficiency": 0.3841291424661944
+        },
+        "model_hashes": {
+          "held_out": {
+            "cli": "c05f967a8aae568146dcbd6f3f928644ca5aae81554c710027a287b22a55a75a",
+            "expected": "c05f967a8aae568146dcbd6f3f928644ca5aae81554c710027a287b22a55a75a"
+          },
+          "nominal": {
+            "cli": "c365d173c54842e093a18c9108be103b21c11d7b4fa943fff8a45eb32420001e",
+            "expected": "c365d173c54842e093a18c9108be103b21c11d7b4fa943fff8a45eb32420001e"
+          }
+        },
+        "model_replayed": true,
+        "passed": true,
+        "records": {
+          "held_out": {
+            "detail": null,
+            "id": "winner",
+            "metrics": {
+              "condenser_mass_fraction": 0.7640701382824509,
+              "efficiency": 0.3519276568829677,
+              "energy_residual_j_kg": 0.0,
+              "exhaust_quality": 0.9298338362457843,
+              "extractions_low_high": [
+                0.10929976790327899,
+                0.12663009381427012
+              ],
+              "gross_work_j_kg": 916002.1203161397,
+              "heat_in_j_kg": 2571310.812366605,
+              "heat_rejected_j_kg": 1666395.4230525855,
+              "heater_residuals_j_kg": [
+                -5.820766091346741e-11,
+                0.0
+              ],
+              "net_work_j_kg": 904915.3893140194,
+              "pump_work_j_kg": 11086.731002120308,
+              "states": [
+                {
+                  "h_j_kg": 3497478.001987539,
+                  "p_pa": 8000000.0,
+                  "quality": null,
+                  "s_j_kg_k": 6850.105323909179,
+                  "t_k": 813.15,
+                  "v_m3_kg": 0.044501896058347944
+                },
+                {
+                  "h_j_kg": 3152480.8173978124,
+                  "p_pa": 2077189.3231286998,
+                  "quality": null,
+                  "s_j_kg_k": 6965.071365955638,
+                  "t_k": 630.5172446330721,
+                  "v_m3_kg": 0.13506283751910395
+                },
+                {
+                  "h_j_kg": 2818957.7388091297,
+                  "p_pa": 365952.0388817742,
+                  "quality": null,
+                  "s_j_kg_k": 7121.651562484155,
+                  "t_k": 452.3289704020562,
+                  "v_m3_kg": 0.5570084392021826
+                },
+                {
+                  "h_j_kg": 2452871.038316671,
+                  "p_pa": 25000.0,
+                  "quality": 0.9298338362457843,
+                  "s_j_kg_k": 7343.415901903769,
+                  "t_k": 338.11328264554675,
+                  "v_m3_kg": 5.768181853606435
+                },
+                {
+                  "h_j_kg": 271925.41623220267,
+                  "p_pa": 25000.0,
+                  "quality": 0.0,
+                  "s_j_kg_k": 893.088367484906,
+                  "t_k": 338.11328264554675,
+                  "v_m3_kg": 0.00101983332265239
+                },
+                {
+                  "h_j_kg": 591059.5394945547,
+                  "p_pa": 365952.0388817742,
+                  "quality": 0.0,
+                  "s_j_kg_k": 1743.7753335612324,
+                  "t_k": 413.5830771794235,
+                  "v_m3_kg": 0.0010802102686624918
+                },
+                {
+                  "h_j_kg": 917430.5822804433,
+                  "p_pa": 2077189.3231286998,
+                  "quality": 0.0,
+                  "s_j_kg_k": 2464.9434298850238,
+                  "t_k": 487.4574528578952,
+                  "v_m3_kg": 0.0011800623477104
+                }
+              ]
+            },
+            "score": -0.3519276568829677,
+            "status": "complete",
+            "steps": 161
+          },
+          "nominal": {
+            "detail": null,
+            "id": "winner",
+            "metrics": {
+              "condenser_mass_fraction": 0.7479589340147769,
+              "efficiency": 0.3841291424661944,
+              "energy_residual_j_kg": 0.0,
+              "exhaust_quality": 0.8924512715910969,
+              "extractions_low_high": [
+                0.12437416807725107,
+                0.1276668979079721
+              ],
+              "gross_work_j_kg": 998800.3806854067,
+              "heat_in_j_kg": 2571310.812366605,
+              "heat_rejected_j_kg": 1583595.3949981672,
+              "heater_residuals_j_kg": [
+                0.0,
+                1.1641532182693481e-10
+              ],
+              "net_work_j_kg": 987715.4173684376,
+              "pump_work_j_kg": 11084.963316969106,
+              "states": [
+                {
+                  "h_j_kg": 3497478.001987539,
+                  "p_pa": 8000000.0,
+                  "quality": null,
+                  "s_j_kg_k": 6850.105323909179,
+                  "t_k": 813.15,
+                  "v_m3_kg": 0.044501896058347944
+                },
+                {
+                  "h_j_kg": 3131697.854470721,
+                  "p_pa": 2077189.3231286998,
+                  "quality": null,
+                  "s_j_kg_k": 6931.864062878707,
+                  "t_k": 621.2230062249947,
+                  "v_m3_kg": 0.13276518722905706
+                },
+                {
+                  "h_j_kg": 2784162.4098171364,
+                  "p_pa": 365952.0388817742,
+                  "quality": null,
+                  "s_j_kg_k": 7043.3072637778605,
+                  "t_k": 436.0973125654816,
+                  "v_m3_kg": 0.5346470823317861
+                },
+                {
+                  "h_j_kg": 2343157.5021326216,
+                  "p_pa": 15000.0,
+                  "quality": 0.8924512715910969,
+                  "s_j_kg_k": 7227.144966060287,
+                  "t_k": 327.120266921189,
+                  "v_m3_kg": 8.94279456076273
+                },
+                {
+                  "h_j_kg": 225935.12135565604,
+                  "p_pa": 15000.0,
+                  "quality": 0.0,
+                  "s_j_kg_k": 754.8386490891539,
+                  "t_k": 327.120266921189,
+                  "v_m3_kg": 0.0010140296189788533
+                },
+                {
+                  "h_j_kg": 591059.5394945547,
+                  "p_pa": 365952.0388817742,
+                  "quality": 0.0,
+                  "s_j_kg_k": 1743.7753335612324,
+                  "t_k": 413.5830771794235,
+                  "v_m3_kg": 0.0010802102686624918
+                },
+                {
+                  "h_j_kg": 917430.5822804433,
+                  "p_pa": 2077189.3231286998,
+                  "quality": 0.0,
+                  "s_j_kg_k": 2464.9434298850238,
+                  "t_k": 487.4574528578952,
+                  "v_m3_kg": 0.0011800623477104
+                }
+              ]
+            },
+            "score": -0.3841291424661944,
+            "status": "complete",
+            "steps": 161
+          }
+        },
+        "scope": "Fixed synthetic Rankine model. Optimize nominal efficiency; report an unused changed condenser/turbine scenario. This is no plant qualification or generalization claim.",
+        "score_replayed": true,
+        "search": {
+          "budget": 400,
+          "evaluations": 400,
+          "evaluator": "thermo-craft",
+          "model_sha256": "c365d173c54842e093a18c9108be103b21c11d7b4fa943fff8a45eb32420001e",
+          "optimizer": "de",
+          "parameters": [
+            365952.0388817742,
+            2077189.3231286998
+          ],
+          "schema": "domain-evaluator.search/0.1",
+          "score": -0.3841291424661944,
+          "seed": 1,
+          "status": "complete",
+          "statuses": {
+            "complete": 400
+          },
+          "steps": 60120,
+          "termination": "evaluation_budget"
+        }
+      },
+      "id": "de-1",
+      "passed": true
+    },
+    {
+      "best": {
+        "budget": 400,
+        "evaluations": 400,
+        "evaluator": "thermo-craft",
+        "model_sha256": "c365d173c54842e093a18c9108be103b21c11d7b4fa943fff8a45eb32420001e",
+        "optimizer": "de",
+        "parameters": [
+          365986.224827867,
+          2077172.7909730684
+        ],
+        "schema": "domain-evaluator.search/0.1",
+        "score": -0.3841291424200506,
+        "seed": 2,
+        "status": "complete",
+        "statuses": {
+          "complete": 399,
+          "infeasible": 1
+        },
+        "steps": 56320,
+        "termination": "evaluation_budget"
+      },
+      "checks": {
+        "cli_status": {
+          "held_out": {
+            "all_complete": true,
+            "cli_exit": 0,
+            "records": 1,
+            "stderr": ""
+          },
+          "nominal": {
+            "all_complete": true,
+            "cli_exit": 0,
+            "records": 1,
+            "stderr": ""
+          }
+        },
+        "metrics": {
+          "held_out_efficiency": 0.3519277522393632,
+          "nominal_efficiency": 0.3841291424200506
+        },
+        "model_hashes": {
+          "held_out": {
+            "cli": "c05f967a8aae568146dcbd6f3f928644ca5aae81554c710027a287b22a55a75a",
+            "expected": "c05f967a8aae568146dcbd6f3f928644ca5aae81554c710027a287b22a55a75a"
+          },
+          "nominal": {
+            "cli": "c365d173c54842e093a18c9108be103b21c11d7b4fa943fff8a45eb32420001e",
+            "expected": "c365d173c54842e093a18c9108be103b21c11d7b4fa943fff8a45eb32420001e"
+          }
+        },
+        "model_replayed": true,
+        "passed": true,
+        "records": {
+          "held_out": {
+            "detail": null,
+            "id": "winner",
+            "metrics": {
+              "condenser_mass_fraction": 0.7640706870405026,
+              "efficiency": 0.3519277522393632,
+              "energy_residual_j_kg": 0.0,
+              "exhaust_quality": 0.9298336978807987,
+              "extractions_low_high": [
+                0.10930468928884239,
+                0.1266246236706549
+              ],
+              "gross_work_j_kg": 916003.0258928043,
+              "heat_in_j_kg": 2571312.6548037003,
+              "heat_rejected_j_kg": 1666396.3718940045,
+              "heater_residuals_j_kg": [
+                0.0,
+                0.0
+              ],
+              "net_work_j_kg": 904916.2829096958,
+              "pump_work_j_kg": 11086.742983108466,
+              "states": [
+                {
+                  "h_j_kg": 3497478.001987539,
+                  "p_pa": 8000000.0,
+                  "quality": null,
+                  "s_j_kg_k": 6850.105323909179,
+                  "t_k": 813.15,
+                  "v_m3_kg": 0.044501896058347944
+                },
+                {
+                  "h_j_kg": 3152479.071575545,
+                  "p_pa": 2077172.7909730684,
+                  "quality": null,
+                  "s_j_kg_k": 6965.072138440889,
+                  "t_k": 630.5163119040609,
+                  "v_m3_kg": 0.13506372422469295
+                },
+                {
+                  "h_j_kg": 2818972.274046807,
+                  "p_pa": 365986.224827867,
+                  "quality": null,
+                  "s_j_kg_k": 7121.641601029474,
+                  "t_k": 452.33679874663915,
+                  "v_m3_kg": 0.5569657756420114
+                },
+                {
+                  "h_j_kg": 2452870.7137785675,
+                  "p_pa": 25000.0,
+                  "quality": 0.9298336978807987,
+                  "s_j_kg_k": 7343.414942055417,
+                  "t_k": 338.11328264554675,
+                  "v_m3_kg": 5.768180995417306
+                },
+                {
+                  "h_j_kg": 271925.41623220267,
+                  "p_pa": 25000.0,
+                  "quality": 0.0,
+                  "s_j_kg_k": 893.088367484906,
+                  "t_k": 338.11328264554675,
+                  "v_m3_kg": 0.00101983332265239
+                },
+                {
+                  "h_j_kg": 591073.7504801999,
+                  "p_pa": 365986.224827867,
+                  "quality": 0.0,
+                  "s_j_kg_k": 1743.8096047914746,
+                  "t_k": 413.5863869041489,
+                  "v_m3_kg": 0.0010802137176475497
+                },
+                {
+                  "h_j_kg": 917428.7206704735,
+                  "p_pa": 2077172.7909730684,
+                  "quality": 0.0,
+                  "s_j_kg_k": 2464.939650884914,
+                  "t_k": 487.4570469883862,
+                  "v_m3_kg": 0.0011800616435407604
+                }
+              ]
+            },
+            "score": -0.3519277522393632,
+            "status": "complete",
+            "steps": 161
+          },
+          "nominal": {
+            "detail": null,
+            "id": "winner",
+            "metrics": {
+              "condenser_mass_fraction": 0.7479595554789886,
+              "efficiency": 0.3841291424200506,
+              "energy_residual_j_kg": 2.3283064365386963e-10,
+              "exhaust_quality": 0.8924511696116043,
+              "extractions_low_high": [
+                0.1243790497624151,
+                0.12766139475859625
+              ],
+              "gross_work_j_kg": 998801.0995714625,
+              "heat_in_j_kg": 2571312.6548037003,
+              "heat_rejected_j_kg": 1583596.5298201311,
+              "heater_residuals_j_kg": [
+                0.0,
+                0.0
+              ],
+              "net_work_j_kg": 987716.1249835689,
+              "pump_work_j_kg": 11084.974587893532,
+              "states": [
+                {
+                  "h_j_kg": 3497478.001987539,
+                  "p_pa": 8000000.0,
+                  "quality": null,
+                  "s_j_kg_k": 6850.105323909179,
+                  "t_k": 813.15,
+                  "v_m3_kg": 0.044501896058347944
+                },
+                {
+                  "h_j_kg": 3131696.0034784363,
+                  "p_pa": 2077172.7909730684,
+                  "quality": null,
+                  "s_j_kg_k": 6931.86461647991,
+                  "t_k": 621.2220229238474,
+                  "v_m3_kg": 0.13276604360862204
+                },
+                {
+                  "h_j_kg": 2784177.564928958,
+                  "p_pa": 365986.224827867,
+                  "quality": null,
+                  "s_j_kg_k": 7043.300105768171,
+                  "t_k": 436.1054341790627,
+                  "v_m3_kg": 0.5346069115179878
+                },
+                {
+                  "h_j_kg": 2343157.260199789,
+                  "p_pa": 15000.0,
+                  "quality": 0.8924511696116043,
+                  "s_j_kg_k": 7227.144226476474,
+                  "t_k": 327.120266921189,
+                  "v_m3_kg": 8.942793538994627
+                },
+                {
+                  "h_j_kg": 225935.12135565604,
+                  "p_pa": 15000.0,
+                  "quality": 0.0,
+                  "s_j_kg_k": 754.8386490891539,
+                  "t_k": 327.120266921189,
+                  "v_m3_kg": 0.0010140296189788533
+                },
+                {
+                  "h_j_kg": 591073.7504801999,
+                  "p_pa": 365986.224827867,
+                  "quality": 0.0,
+                  "s_j_kg_k": 1743.8096047914746,
+                  "t_k": 413.5863869041489,
+                  "v_m3_kg": 0.0010802137176475497
+                },
+                {
+                  "h_j_kg": 917428.7206704735,
+                  "p_pa": 2077172.7909730684,
+                  "quality": 0.0,
+                  "s_j_kg_k": 2464.939650884914,
+                  "t_k": 487.4570469883862,
+                  "v_m3_kg": 0.0011800616435407604
+                }
+              ]
+            },
+            "score": -0.3841291424200506,
+            "status": "complete",
+            "steps": 161
+          }
+        },
+        "scope": "Fixed synthetic Rankine model. Optimize nominal efficiency; report an unused changed condenser/turbine scenario. This is no plant qualification or generalization claim.",
+        "score_replayed": true,
+        "search": {
+          "budget": 400,
+          "evaluations": 400,
+          "evaluator": "thermo-craft",
+          "model_sha256": "c365d173c54842e093a18c9108be103b21c11d7b4fa943fff8a45eb32420001e",
+          "optimizer": "de",
+          "parameters": [
+            365986.224827867,
+            2077172.7909730684
+          ],
+          "schema": "domain-evaluator.search/0.1",
+          "score": -0.3841291424200506,
+          "seed": 2,
+          "status": "complete",
+          "statuses": {
+            "complete": 399,
+            "infeasible": 1
+          },
+          "steps": 56320,
+          "termination": "evaluation_budget"
+        }
+      },
+      "id": "de-2",
+      "passed": true
+    }
+  ],
+  "seconds": 2.2381287260000136
+}
