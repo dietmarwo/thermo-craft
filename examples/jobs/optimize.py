@@ -13,7 +13,9 @@ def configuration(case):
 
 
 def decode(xs):
-    return 10.0 ** np.asarray(xs)
+    # Scalar powers: numpy's vector power is chosen by CPU model and can differ
+    # in the last digit between hosts, which changes the evaluated pressures.
+    return np.asarray([[10.0 ** float(value) for value in row] for row in np.asarray(xs)])
 
 
 def penalty(x):
