@@ -50,6 +50,17 @@
           "held_out_efficiency": 0.35192761380346754,
           "nominal_efficiency": 0.384129142501243
         },
+        "model_hashes": {
+          "held_out": {
+            "cli": "c05f967a8aae568146dcbd6f3f928644ca5aae81554c710027a287b22a55a75a",
+            "expected": "c05f967a8aae568146dcbd6f3f928644ca5aae81554c710027a287b22a55a75a"
+          },
+          "nominal": {
+            "cli": "c365d173c54842e093a18c9108be103b21c11d7b4fa943fff8a45eb32420001e",
+            "expected": "c365d173c54842e093a18c9108be103b21c11d7b4fa943fff8a45eb32420001e"
+          }
+        },
+        "model_replayed": true,
         "passed": true,
         "records": {
           "held_out": {
@@ -289,6 +300,17 @@
           "held_out_efficiency": 0.3519275785644932,
           "nominal_efficiency": 0.3841291424992388
         },
+        "model_hashes": {
+          "held_out": {
+            "cli": "c05f967a8aae568146dcbd6f3f928644ca5aae81554c710027a287b22a55a75a",
+            "expected": "c05f967a8aae568146dcbd6f3f928644ca5aae81554c710027a287b22a55a75a"
+          },
+          "nominal": {
+            "cli": "c365d173c54842e093a18c9108be103b21c11d7b4fa943fff8a45eb32420001e",
+            "expected": "c365d173c54842e093a18c9108be103b21c11d7b4fa943fff8a45eb32420001e"
+          }
+        },
+        "model_replayed": true,
         "passed": true,
         "records": {
           "held_out": {
@@ -527,6 +549,17 @@
           "held_out_efficiency": 0.3519276568829677,
           "nominal_efficiency": 0.3841291424661944
         },
+        "model_hashes": {
+          "held_out": {
+            "cli": "c05f967a8aae568146dcbd6f3f928644ca5aae81554c710027a287b22a55a75a",
+            "expected": "c05f967a8aae568146dcbd6f3f928644ca5aae81554c710027a287b22a55a75a"
+          },
+          "nominal": {
+            "cli": "c365d173c54842e093a18c9108be103b21c11d7b4fa943fff8a45eb32420001e",
+            "expected": "c365d173c54842e093a18c9108be103b21c11d7b4fa943fff8a45eb32420001e"
+          }
+        },
+        "model_replayed": true,
         "passed": true,
         "records": {
           "held_out": {
@@ -765,6 +798,17 @@
           "held_out_efficiency": 0.3519277522393632,
           "nominal_efficiency": 0.3841291424200506
         },
+        "model_hashes": {
+          "held_out": {
+            "cli": "c05f967a8aae568146dcbd6f3f928644ca5aae81554c710027a287b22a55a75a",
+            "expected": "c05f967a8aae568146dcbd6f3f928644ca5aae81554c710027a287b22a55a75a"
+          },
+          "nominal": {
+            "cli": "c365d173c54842e093a18c9108be103b21c11d7b4fa943fff8a45eb32420001e",
+            "expected": "c365d173c54842e093a18c9108be103b21c11d7b4fa943fff8a45eb32420001e"
+          }
+        },
+        "model_replayed": true,
         "passed": true,
         "records": {
           "held_out": {
@@ -964,5 +1008,5 @@
       "passed": true
     }
   ],
-  "seconds": 2.78018719200918
+  "seconds": 2.2381287260000136
 }
