@@ -1,0 +1,21 @@
+{
+  "budget": 400,
+  "evaluations": 400,
+  "evaluator": "thermo-craft",
+  "model_sha256": "c365d173c54842e093a18c9108be103b21c11d7b4fa943fff8a45eb32420001e",
+  "optimizer": "cmaes",
+  "parameters": [
+    365931.0179105482,
+    2077041.9778621283
+  ],
+  "schema": "domain-evaluator.search/0.1",
+  "score": -0.384129142501243,
+  "seed": 1,
+  "status": "complete",
+  "statuses": {
+    "complete": 399,
+    "infeasible": 1
+  },
+  "steps": 60840,
+  "termination": "evaluation_budget"
+}

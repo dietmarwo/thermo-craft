@@ -1,0 +1,30 @@
+{
+  "adapter_sha256": "ec3aa59bcd63d819ac72d003d9ac1a35693f88e382a32a728ba4eba55e2bdf86",
+  "case_sha256": "cf6bfd4107b7075b62979c03eedb8e86f82392578b971e5cb43ade70b9ad95c1",
+  "distribution": "thermo-craft",
+  "evaluation_budget": 400,
+  "evaluator_max_steps": 1024,
+  "model_sha256": "c365d173c54842e093a18c9108be103b21c11d7b4fa943fff8a45eb32420001e",
+  "module": "thermo_craft",
+  "optimizer": "de",
+  "optimizer_parallelism": "serial ask/tell; native score_matrix population parallelism only",
+  "package_files": {
+    "__init__.py": "dbd6d92d53eb6530da60ceff4c8add86f44499ce5f524dfa03f68de96513f96f",
+    "_native.abi3.so": "d621d8bbed79965277ccebff3e3adc80336f6fb409a75a588e3ab154c8a40dcd",
+    "campaign.py": "0a1c31d7d1089077b6acc2377b2218f20ea7eaef240ca463611dca35f9b77f92",
+    "example.json": "ebbe33ce0101524190d3c71634b364384ea7fcff242bea97ceb6365db38185da"
+  },
+  "packages": {
+    "fcmaes": "2.1.0",
+    "numpy": "2.5.4",
+    "scipy": "1.17.0"
+  },
+  "python": "3.12.14",
+  "scope": "Wheel bytes verified against SHA256SUMS; installed package files verified against wheel. Host libraries are not snapshotted.",
+  "seed": 1,
+  "support_sha256": "076cfd307673def8cc92b1bfc1829d6ad7027ffbcd356ca655552c5007ee2f1b",
+  "version": "0.3.0",
+  "wheel": "thermo_craft-0.3.0-cp310-abi3-manylinux_2_34_x86_64.whl",
+  "wheel_sha256": "9692b2a123976dc6bc2ee82752b8abf67b45aba753329079d9162beb22f97ff4",
+  "workers": 1
+}

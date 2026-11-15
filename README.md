@@ -76,3 +76,5 @@ Independent numerical scripts use Python 3.12. The examples use NumPy 2.3.5,
 SciPy 1.17.0 and fcmaes 2.1.0. `validation/optimize.py thermo_craft` is a
 short in-process SciPy differential-evolution run. The native sweep needs
 only the Rust crate. See `evidence/` for actual runs.
+
+The [command-job adapter](examples/jobs/evaluator.json) runs through the unchanged [domain-evaluator driver](https://github.com/dietmarwo/optimization-jobs/blob/main/tutorials/domain-evaluators/README.md); see the [hydro walkthrough](https://github.com/dietmarwo/hydro-craft/blob/main/docs/command-jobs.md) for setup and replay.
